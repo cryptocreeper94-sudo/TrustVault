@@ -1,49 +1,28 @@
 import { db } from "./db";
 import { 
   videos, 
+  pinAuth,
   type Video, 
   type InsertVideo, 
-  type UpdateVideoRequest 
+  type UpdateVideoRequest,
+  type PinAuth
 } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
-import { authStorage, IAuthStorage } from "./replit_integrations/auth"; // Reuse auth storage
 
-export interface IStorage extends IAuthStorage {
-  // Video operations
-  getVideos(userId?: string): Promise<Video[]>;
+export interface IStorage {
+  getVideos(): Promise<Video[]>;
   getVideo(id: number): Promise<Video | undefined>;
-  createVideo(video: InsertVideo): Promise<Video>;
+  createVideo(video: InsertVideo & { uploadedBy?: string }): Promise<Video>;
   updateVideo(id: number, updates: UpdateVideoRequest): Promise<Video>;
   deleteVideo(id: number): Promise<void>;
   toggleFavorite(id: number, isFavorite: boolean): Promise<Video | undefined>;
+  getPinAuth(): Promise<PinAuth | undefined>;
+  updatePin(pin: string, mustReset: boolean): Promise<PinAuth>;
+  initializePinAuth(pin: string, name: string): Promise<PinAuth>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // --- Auth Storage Delegation ---
-  // We can inherit or just delegate. Delegation is cleaner if we want to keep them separate, 
-  // but for simplicity here I'll just re-implement the interface methods or import them.
-  // Actually, since I extended IAuthStorage, I need to implement them.
-  // Best way is to use the existing authStorage instance logic or just mix it in.
-  
-  async getUser(id: string) {
-    return authStorage.getUser(id);
-  }
-  
-  async upsertUser(user: any) {
-    return authStorage.upsertUser(user);
-  }
-
-  // --- Video Operations ---
-
-  async getVideos(userId?: string): Promise<Video[]> {
-    // If userId provided, we could filter. But for this app, maybe all logged in users see all videos?
-    // User said "mainly meant for my daughter... and her use specifically".
-    // So maybe global list is fine for now, or filter by user. 
-    // Let's return all videos for now as it's a family app.
-    // Or, strictly, usually we filter by `uploadedBy`? 
-    // The user said "I have... videos... I would like to be able to put them there for her".
-    // So HE uploads, SHE watches. 
-    // So everyone should see everything.
+  async getVideos(): Promise<Video[]> {
     return await db.select().from(videos).orderBy(desc(videos.createdAt));
   }
 
@@ -52,7 +31,7 @@ export class DatabaseStorage implements IStorage {
     return video;
   }
 
-  async createVideo(insertVideo: InsertVideo): Promise<Video> {
+  async createVideo(insertVideo: InsertVideo & { uploadedBy?: string }): Promise<Video> {
     const [video] = await db
       .insert(videos)
       .values(insertVideo)
@@ -80,6 +59,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(videos.id, id))
       .returning();
     return video;
+  }
+
+  async getPinAuth(): Promise<PinAuth | undefined> {
+    const [auth] = await db.select().from(pinAuth);
+    return auth;
+  }
+
+  async updatePin(pin: string, mustReset: boolean): Promise<PinAuth> {
+    const existing = await this.getPinAuth();
+    if (existing) {
+      const [updated] = await db
+        .update(pinAuth)
+        .set({ pin, mustReset, updatedAt: new Date() })
+        .where(eq(pinAuth.id, existing.id))
+        .returning();
+      return updated;
+    }
+    return this.initializePinAuth(pin, "Madeline");
+  }
+
+  async initializePinAuth(pin: string, name: string): Promise<PinAuth> {
+    const [auth] = await db
+      .insert(pinAuth)
+      .values({ pin, name, mustReset: true })
+      .returning();
+    return auth;
   }
 }
 
