@@ -83,20 +83,55 @@
 
 ## Ecosystem Context
 
-### TrustLayer
+### TrustLayer (Master Brand)
+- The overarching brand and ecosystem for everything
 - Full ecosystem centered on trust-based engagement between people and businesses
-- Self-described trust model verified on-chain
-- Layer One blockchain
+- A trust-verified, secure blockchain network of businesses and individuals
+- Core philosophy: People who accept responsibility for their own actions, who don't depend on others to make things happen — they do it themselves
+- Built to have real use and real value — not vaporware
+- Founded on direct experience in the blockchain/crypto space and the determination to build something viable, legitimate, and helpful
 
 ### Dark Wave Studios (darkwavestudios.io)
 - Architectural arm of the Layer One blockchain
-- Where this product fits within the broader platform
+- Product development and engineering hub
+- Where this media vault product (and others) are built and maintained
+
+### TrustShield (trustshield.tech)
+- Security arm of the ecosystem
+- Handles the security infrastructure, verification, and protection layers
+- Ensures the network remains trust-verified and secure
+
+### Signal (Native Asset)
+- The native asset of the TrustLayer ecosystem
+- NOT a cryptocurrency, NOT a coin, NOT a token — it is an **asset**
+- Represents something intentional and meaningful: the signal from the ether, from the creator — not the noise and confusion of cultural engineering
+- Currently in early, quiet soft presale phase
+- Launch timing still being determined
+
+### Ecosystem Structure Summary
+```
+TrustLayer (Master Brand / Ecosystem)
+├── Dark Wave Studios (darkwavestudios.io) — Architecture & Product Development
+├── TrustShield (trustshield.tech) — Security & Verification
+├── Signal — Native Asset
+├── Media Vault (this product) — Trust-Gated IP Storage (name TBD)
+└── [Future products aligned to verticals]
+```
 
 ### Key Integration Points
 - Identity: TrustLayer blockchain identity replaces/extends PIN auth
 - Trust: Access control based on verified trust relationships
 - Provenance: Media ownership and origination tracked on-chain
-- Ecosystem: Shared UI/UX patterns, navigation, and user experience across all Dark Wave Studios products
+- Security: TrustShield infrastructure protects vaults and verifies access
+- Value: Signal asset may serve as the medium for transactions, licensing, access rights
+- Ecosystem: Shared UI/UX patterns, navigation, and user experience across all TrustLayer products
+
+### Founding Principles
+- Build something with real utility — not speculative hype
+- Trust is earned through personal responsibility and verified action
+- Every product must serve people and have genuine value
+- The ecosystem exists to help people, not extract from them
+- Provenance, presence, and purpose drive every decision
 
 ---
 
