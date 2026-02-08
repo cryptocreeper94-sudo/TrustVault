@@ -109,9 +109,115 @@
 
 ---
 
+## Industry Verticals & Stakeholder Map
+
+Every digital file that could be considered intellectual property — video, audio, visual art, documents — touches a web of people, companies, and industries. This product sits at the center of all of them. Below is the full vertical map.
+
+### 1. Live Music & Concerts
+- **Fans / Attendees** — Personal memories, fan-shot footage, shared experiences
+- **Artists / Performers** — Controlled distribution of live performance footage, fan engagement
+- **Touring Crews** — Behind-the-scenes content, rehearsal footage, tour documentation
+- **Tour Managers / Booking Agents** — Event documentation, promotional material archiving
+- **Venues** — House recordings, event archives, marketing content libraries
+- **Promoters / Event Companies** — Multi-event archives, promotional reels, investor materials
+- **Ticketing Platforms** — Verified attendee access tied to ticket purchase (trust-gated content)
+
+### 2. Music Production & Recording
+- **Producers / Engineers** — Session recordings, mix versions, stem archives
+- **Studios** — Client project vaults, master recording storage with provenance
+- **Session Musicians** — Performance archives, portfolio reels
+- **Songwriters / Composers** — Demo vaults, writing session recordings, timestamped proof of creation
+- **Labels / Distributors** — Master catalog management, licensing-ready asset libraries
+- **Music Publishers** — Sync licensing catalogs, rights documentation
+
+### 3. Film, Video & Visual Production
+- **Filmmakers / Directors** — Rushes, dailies, cut archives, director's reels
+- **Cinematographers / DPs** — Portfolio vaults, shot libraries
+- **Editors / Post-Production** — Version control for edits, client review portals
+- **VFX / Animation Studios** — Asset libraries, project archives
+- **Production Companies** — Multi-project archives, client deliverables
+- **Actors / Talent** — Audition tapes, showreels, self-tape vaults
+
+### 4. Photography & Visual Art
+- **Photographers** — Client galleries, proof vaults, portfolio archives
+- **Digital Artists / Illustrators** — Portfolio storage, commission deliverables
+- **Galleries / Curators** — Digital exhibition archives, provenance tracking
+- **Art Directors / Creative Directors** — Campaign asset libraries, mood board vaults
+
+### 5. Audio & Podcasting
+- **Podcasters** — Episode archives, raw recording vaults, guest content libraries
+- **Voice Actors** — Demo reels, project deliverables
+- **Audiobook Narrators / Publishers** — Chapter archives, master recordings
+- **Sound Designers** — Sound libraries, project assets
+- **Radio / Broadcast** — Show archives, segment libraries
+
+### 6. Education & Training
+- **Instructors / Coaches** — Lesson recordings, curriculum libraries
+- **Online Course Creators** — Module vaults, student-gated content
+- **Schools / Universities** — Lecture archives, recital recordings, student portfolios
+- **Corporate Training** — Onboarding video libraries, compliance training archives
+
+### 7. Legal & Intellectual Property
+- **IP Attorneys** — Timestamped proof of creation, chain of custody documentation
+- **Rights Management Organizations** — Catalog tracking, licensing documentation
+- **Copyright Registrars** — On-chain provenance as supplemental registration evidence
+- **Dispute Resolution** — Immutable creation timestamps for ownership disputes
+
+### 8. Sports & Athletics
+- **Athletes** — Game film, highlight reels, training footage
+- **Coaches / Teams** — Practice archives, scouting footage, game breakdowns
+- **Sports Agencies** — Client recruitment reels, contract documentation
+- **Fans** — Personal recordings from games, tailgates, events
+
+### 9. Corporate & Business
+- **Businesses** — Private event documentation, product demos, investor presentations
+- **Marketing / Ad Agencies** — Campaign asset vaults, client deliverables
+- **PR Firms** — Media appearance archives, press event footage
+- **Real Estate** — Property tour vaults, staging documentation
+- **Construction / Architecture** — Project documentation, time-lapse archives
+
+### 10. Personal & Family
+- **Families** — Milestone vaults (weddings, births, graduations, reunions)
+- **Memorial / Legacy** — Preserved memories for future generations
+- **Travel** — Trip documentation, personal travel reels
+- **Hobbyists / Creators** — Personal project archives
+
+### 11. Platform & Infrastructure Partners
+- **Cloud Storage Providers** — Backend storage infrastructure
+- **CDN / Streaming Services** — Content delivery for playback
+- **Blockchain / Web3 Infrastructure** — Provenance, identity, trust verification
+- **Payment Processors** — Subscription billing, pay-per-view transactions
+- **App Stores** — Distribution (Apple App Store, Google Play)
+- **Device Manufacturers** — Camera/phone integration, hardware encoding
+
+### 12. Regulatory & Compliance
+- **Data Privacy (GDPR, CCPA)** — User content rights, data portability, deletion compliance
+- **Content Moderation** — Terms of service enforcement, flagging systems
+- **Age Verification** — Gated access for certain content categories
+- **Export Controls** — International content distribution compliance
+
+---
+
+## Core Value Proposition Across All Verticals
+
+The common thread: **any digital file that represents intellectual property needs a secure, private, trust-verified vault with provenance tracking.**
+
+This product is not just a video gallery. It is a **trust-gated digital vault** for intellectual property — where:
+- **Ownership** is provable (blockchain provenance)
+- **Access** is controlled by trust relationships (TrustLayer)
+- **Identity** is verified (on-chain identity)
+- **Files** are stored securely (encrypted, private, with audit trails)
+- **Sharing** is intentional, not accidental (trust-gated, not public-by-default)
+
+This positions the product as infrastructure for the creator economy, the legal profession, corporate enterprise, education, sports, and personal use — all unified under the TrustLayer ecosystem.
+
+---
+
 ## Notes
 
 - Current web version serves as functional prototype and Madeline's personal vault
 - React Native + Expo is the target for production standalone app
 - All future development should align with TrustLayer ecosystem architecture
 - UI/UX requirements are strict and consistent — document and enforce across builds
+- Every vertical identified above represents a potential market segment, partnership opportunity, or feature branch
+- The product name may evolve beyond "Concert Memories" as it expands to cover all verticals
