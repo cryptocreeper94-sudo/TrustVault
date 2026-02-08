@@ -61,14 +61,20 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center">
+          <a
+            href="https://darkwavestudios.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 group"
+            data-testid="link-home"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
               <Music2 className="w-5 h-5 text-white" />
             </div>
-            <h1 className="font-display font-bold text-xl tracking-tight hidden sm:block" data-testid="text-app-title">
+            <h1 className="font-display font-bold text-xl tracking-tight hidden sm:block group-hover:text-primary transition-colors" data-testid="text-app-title">
               Concert Memories
             </h1>
-          </div>
+          </a>
 
           <div className="flex items-center gap-4">
             <div className="relative hidden md:block w-64">
