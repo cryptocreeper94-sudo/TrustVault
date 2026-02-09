@@ -32,8 +32,8 @@ export function useAuth() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (pin: string) => {
-      const res = await apiRequest("POST", "/api/auth/login", { pin });
+    mutationFn: async (password: string) => {
+      const res = await apiRequest("POST", "/api/auth/login", { password });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Login failed");
@@ -45,9 +45,9 @@ export function useAuth() {
     },
   });
 
-  const resetPinMutation = useMutation({
-    mutationFn: async (newPin: string) => {
-      const res = await apiRequest("POST", "/api/auth/reset-pin", { newPin });
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (newPassword: string) => {
+      const res = await apiRequest("POST", "/api/auth/reset-password", { newPassword });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Reset failed");
@@ -75,9 +75,9 @@ export function useAuth() {
     login: loginMutation.mutateAsync,
     loginError: loginMutation.error,
     isLoggingIn: loginMutation.isPending,
-    resetPin: resetPinMutation.mutateAsync,
-    resetPinError: resetPinMutation.error,
-    isResettingPin: resetPinMutation.isPending,
+    resetPassword: resetPasswordMutation.mutateAsync,
+    resetPasswordError: resetPasswordMutation.error,
+    isResettingPassword: resetPasswordMutation.isPending,
     logout: logoutMutation.mutate,
     isLoggingOut: logoutMutation.isPending,
   };

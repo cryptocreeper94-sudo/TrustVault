@@ -723,11 +723,11 @@ export default function Home() {
   }
 
   if (!user) {
-    return <PinLogin />;
+    return <PasswordLogin />;
   }
 
   if (user.mustReset) {
-    return <PinReset />;
+    return <PasswordReset />;
   }
 
   const baseItems = activeCollectionId ? (collectionItems || []) : (mediaItems || []);
@@ -1143,49 +1143,24 @@ export default function Home() {
 }
 
 
-function PinLogin() {
+function PasswordLogin() {
   const { login, isLoggingIn, loginError } = useAuth();
-  const [pin, setPin] = useState("");
-  const [showPin, setShowPin] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pin) return;
+    if (!password) return;
 
     try {
-      await login(pin);
+      await login(password);
     } catch (err: any) {
       setShake(true);
       setTimeout(() => setShake(false), 600);
-      setPin("");
+      setPassword("");
     }
   };
-
-  const handleDigit = (digit: string) => {
-    if (pin.length < 8) {
-      setPin(prev => prev + digit);
-    }
-  };
-
-  const handleBackspace = () => {
-    setPin(prev => prev.slice(0, -1));
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key >= "0" && e.key <= "9") {
-        handleDigit(e.key);
-      } else if (e.key === "Backspace") {
-        handleBackspace();
-      } else if (e.key === "Enter" && pin.length >= 4) {
-        handleSubmit(e as any);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pin]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
@@ -1210,95 +1185,53 @@ function PinLogin() {
       </div>
 
       <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-8 bg-card border-l border-white/5">
-        <div className="max-w-xs w-full space-y-8">
+        <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
             <div className="w-14 h-14 rounded-xl theme-gradient flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
               <Lock className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">Welcome Back</h1>
-            <p className="text-sm text-muted-foreground">Enter your PIN to continue</p>
+            <p className="text-sm text-muted-foreground">Enter your password to continue</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-3">
-              <div
-                className={`flex items-center justify-center gap-2 transition-transform ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}
-              >
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-3 h-3 rounded-full border-2 transition-all duration-200 ${
-                      i < pin.length
-                        ? "bg-primary border-primary scale-110"
-                        : i < 4
-                        ? "border-white/20"
-                        : "border-white/10"
-                    }`}
-                  />
-                ))}
+            <div className={`space-y-3 transition-transform ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}>
+              <div className="relative">
+                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                  data-testid="input-password"
+                  autoFocus
+                  disabled={isLoggingIn}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                  data-testid="button-toggle-password-visibility"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
               </div>
 
               {loginError && (
                 <p className="text-center text-sm text-destructive" data-testid="text-login-error">
-                  Incorrect PIN. Try again.
+                  Incorrect password. Try again.
                 </p>
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
-                <Button
-                  key={digit}
-                  type="button"
-                  variant="outline"
-                  data-testid={`button-digit-${digit}`}
-                  className="h-14 text-xl font-medium border-white/10 bg-white/5"
-                  onClick={() => handleDigit(String(digit))}
-                  disabled={isLoggingIn}
-                >
-                  {digit}
-                </Button>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="button-toggle-pin-visibility"
-                className="h-14 border-white/10 bg-white/5"
-                onClick={() => setShowPin(!showPin)}
-                disabled={isLoggingIn}
-              >
-                {showPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="button-digit-0"
-                className="h-14 text-xl font-medium border-white/10 bg-white/5"
-                onClick={() => handleDigit("0")}
-                disabled={isLoggingIn}
-              >
-                0
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="button-backspace"
-                className="h-14 border-white/10 bg-white/5 text-muted-foreground"
-                onClick={handleBackspace}
-                disabled={isLoggingIn}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-              </Button>
-            </div>
-
-            {showPin && pin.length > 0 && (
-              <p className="text-center text-sm text-muted-foreground font-mono tracking-[0.5em]">{pin}</p>
-            )}
-
             <Button
               type="submit"
               data-testid="button-login-submit"
-              disabled={pin.length < 4 || isLoggingIn}
+              disabled={password.length < 1 || isLoggingIn}
               className="w-full h-12 text-base font-medium bg-primary text-white rounded-lg"
             >
               {isLoggingIn ? (
@@ -1315,179 +1248,176 @@ function PinLogin() {
 }
 
 
-function PinReset() {
-  const { resetPin, isResettingPin, resetPinError } = useAuth();
-  const [newPin, setNewPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
+function PasswordReset() {
+  const { resetPassword, isResettingPassword } = useAuth();
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [step, setStep] = useState<"new" | "confirm">("new");
   const [error, setError] = useState("");
   const { toast } = useToast();
 
-  const activePin = step === "new" ? newPin : confirmPin;
-  const setActivePin = step === "new" ? setNewPin : setConfirmPin;
-
-  const handleDigit = (digit: string) => {
-    if (activePin.length < 8) {
-      setActivePin(prev => prev + digit);
-    }
-  };
-
-  const handleBackspace = () => {
-    setActivePin(prev => prev.slice(0, -1));
-  };
+  const hasMinLength = newPassword.length >= 8;
+  const hasUppercase = /[A-Z]/.test(newPassword);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword);
+  const isValid = hasMinLength && hasUppercase && hasSpecialChar;
 
   const handleContinue = () => {
-    if (step === "new") {
-      if (newPin.length < 4) return;
-      setStep("confirm");
-      setError("");
-    }
+    if (!isValid) return;
+    setStep("confirm");
+    setError("");
   };
 
-  const handleSubmit = async () => {
-    if (newPin !== confirmPin) {
-      setError("PINs don't match. Try again.");
-      setConfirmPin("");
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setError("Passwords don't match. Try again.");
+      setConfirmPassword("");
       return;
     }
 
     try {
-      await resetPin(newPin);
+      await resetPassword(newPassword);
       toast({
-        title: "PIN Updated",
-        description: "Your new PIN has been set successfully.",
+        title: "Password Set",
+        description: "Your new password has been set successfully.",
       });
     } catch (err: any) {
-      setError(err.message || "Failed to update PIN");
+      setError(err.message || "Failed to update password");
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key >= "0" && e.key <= "9") {
-        handleDigit(e.key);
-      } else if (e.key === "Backspace") {
-        handleBackspace();
-      } else if (e.key === "Enter") {
-        if (step === "new" && newPin.length >= 4) {
-          handleContinue();
-        } else if (step === "confirm" && confirmPin.length >= 4) {
-          handleSubmit();
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [newPin, confirmPin, step]);
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="max-w-xs w-full space-y-8">
+      <div className="max-w-sm w-full space-y-8">
         <div className="text-center">
           <div className="w-14 h-14 rounded-xl theme-gradient flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
             <KeyRound className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-reset-title">
-            {step === "new" ? "Set Your New PIN" : "Confirm Your PIN"}
+            {step === "new" ? "Set Your Password" : "Confirm Password"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {step === "new"
-              ? "Choose a 4-8 digit PIN you'll remember"
-              : "Enter the same PIN again to confirm"
+              ? "Create a strong password for your vault"
+              : "Enter the same password again to confirm"
             }
           </p>
         </div>
 
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-3 h-3 rounded-full border-2 transition-all duration-200 ${
-                    i < activePin.length
-                      ? "bg-primary border-primary scale-110"
-                      : i < 4
-                      ? "border-white/20"
-                      : "border-white/10"
-                  }`}
-                />
-              ))}
-            </div>
-
-            {error && (
-              <p className="text-center text-sm text-destructive" data-testid="text-reset-error">{error}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
-              <Button
-                key={digit}
-                type="button"
-                variant="outline"
-                className="h-14 text-xl font-medium border-white/10 bg-white/5"
-                onClick={() => handleDigit(String(digit))}
-                disabled={isResettingPin}
-              >
-                {digit}
-              </Button>
-            ))}
-            <div />
-            <Button
-              type="button"
-              variant="outline"
-              className="h-14 text-xl font-medium border-white/10 bg-white/5"
-              onClick={() => handleDigit("0")}
-              disabled={isResettingPin}
-            >
-              0
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-14 border-white/10 bg-white/5 text-muted-foreground"
-              onClick={handleBackspace}
-              disabled={isResettingPin}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-            </Button>
-          </div>
-
+        <form onSubmit={step === "confirm" ? handleSubmit : (e) => { e.preventDefault(); handleContinue(); }} className="space-y-6">
           {step === "new" ? (
-            <Button
-              data-testid="button-pin-continue"
-              disabled={newPin.length < 4 || isResettingPin}
-              className="w-full h-12 text-base font-medium bg-primary text-white rounded-lg"
-              onClick={handleContinue}
-            >
-              Continue
-            </Button>
+            <div className="space-y-4">
+              <div className="relative">
+                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password"
+                  className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                  data-testid="input-new-password"
+                  autoFocus
+                  disabled={isResettingPassword}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                  data-testid="button-toggle-new-password-visibility"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+
+              <div className="space-y-2 px-1">
+                <div className="flex items-center gap-2">
+                  {hasMinLength ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  <span className={`text-sm ${hasMinLength ? "text-green-500" : "text-muted-foreground"}`}>At least 8 characters</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasUppercase ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  <span className={`text-sm ${hasUppercase ? "text-green-500" : "text-muted-foreground"}`}>At least 1 uppercase letter</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasSpecialChar ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  <span className={`text-sm ${hasSpecialChar ? "text-green-500" : "text-muted-foreground"}`}>At least 1 special character (!@#$...)</span>
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-center text-sm text-destructive" data-testid="text-reset-error">{error}</p>
+              )}
+
+              <Button
+                type="submit"
+                data-testid="button-password-continue"
+                disabled={!isValid || isResettingPassword}
+                className="w-full h-12 text-base font-medium bg-primary text-white rounded-lg"
+              >
+                Continue
+              </Button>
+            </div>
           ) : (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 h-12 border-white/10"
-                onClick={() => { setStep("new"); setConfirmPin(""); setError(""); }}
-                disabled={isResettingPin}
-              >
-                Back
-              </Button>
-              <Button
-                data-testid="button-pin-confirm"
-                disabled={confirmPin.length < 4 || isResettingPin}
-                className="flex-1 h-12 text-base font-medium bg-primary text-white rounded-lg"
-                onClick={handleSubmit}
-              >
-                {isResettingPin ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  "Set PIN"
-                )}
-              </Button>
+            <div className="space-y-4">
+              <div className="relative">
+                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm password"
+                  className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                  data-testid="input-confirm-password"
+                  autoFocus
+                  disabled={isResettingPassword}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                  data-testid="button-toggle-confirm-password-visibility"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+
+              {error && (
+                <p className="text-center text-sm text-destructive" data-testid="text-reset-error">{error}</p>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-12 border-white/10"
+                  onClick={() => { setStep("new"); setConfirmPassword(""); setError(""); }}
+                  disabled={isResettingPassword}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  data-testid="button-password-confirm"
+                  disabled={confirmPassword.length < 8 || isResettingPassword}
+                  className="flex-1 h-12 text-base font-medium bg-primary text-white rounded-lg"
+                >
+                  {isResettingPassword ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    "Set Password"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
-        </div>
+        </form>
       </div>
     </div>
   );

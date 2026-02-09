@@ -27,8 +27,14 @@ function isAuthenticated(req: Request, res: Response, next: NextFunction) {
 async function seedPinAuth() {
   const existing = await storage.getPinAuth();
   if (!existing) {
-    const hashedPin = await bcrypt.hash("4444", 10);
-    await storage.initializePinAuth(hashedPin, "Madeline");
+    const hashedPassword = await bcrypt.hash("Vault@2026!", 10);
+    await storage.initializePinAuth(hashedPassword, "Madeline");
+  } else if (existing.mustReset === false) {
+    const isOldNumericPin = existing.pin.length < 20;
+    if (isOldNumericPin) {
+      const hashedPassword = await bcrypt.hash("Vault@2026!", 10);
+      await storage.updatePin(hashedPassword, true);
+    }
   }
 }
 
@@ -62,21 +68,21 @@ export async function registerRoutes(
 
   registerObjectStorageRoutes(app);
 
-  // --- PIN Auth Routes ---
+  // --- Auth Routes ---
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { pin } = req.body;
-      if (!pin) {
-        return res.status(400).json({ message: "PIN is required" });
+      const { password } = req.body;
+      if (!password) {
+        return res.status(400).json({ message: "Password is required" });
       }
       const auth = await storage.getPinAuth();
       if (!auth) {
         return res.status(500).json({ message: "Auth not configured" });
       }
-      const pinMatch = await bcrypt.compare(pin, auth.pin);
-      if (!pinMatch) {
-        return res.status(401).json({ message: "Incorrect PIN" });
+      const match = await bcrypt.compare(password, auth.pin);
+      if (!match) {
+        return res.status(401).json({ message: "Incorrect password" });
       }
       req.session.authenticated = true;
       req.session.name = auth.name;
@@ -87,21 +93,24 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/auth/reset-pin", isAuthenticated, async (req, res) => {
+  app.post("/api/auth/reset-password", isAuthenticated, async (req, res) => {
     try {
-      const { newPin } = req.body;
-      if (!newPin || newPin.length < 4 || newPin.length > 8) {
-        return res.status(400).json({ message: "PIN must be 4-8 digits" });
+      const { newPassword } = req.body;
+      if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
-      if (!/^\d+$/.test(newPin)) {
-        return res.status(400).json({ message: "PIN must contain only numbers" });
+      if (!/[A-Z]/.test(newPassword)) {
+        return res.status(400).json({ message: "Password must contain at least one uppercase letter" });
       }
-      const hashedNewPin = await bcrypt.hash(newPin, 10);
-      const updated = await storage.updatePin(hashedNewPin, false);
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword)) {
+        return res.status(400).json({ message: "Password must contain at least one special character" });
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const updated = await storage.updatePin(hashedPassword, false);
       return res.json({ success: true, name: updated.name });
     } catch (err) {
-      console.error("Reset PIN error:", err);
-      return res.status(500).json({ message: "Failed to reset PIN" });
+      console.error("Reset password error:", err);
+      return res.status(500).json({ message: "Failed to update password" });
     }
   });
 

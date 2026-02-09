@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a personal **universal media vault** — a full-stack web application that allows a user (Madeline) to upload, store, organize, and preview any type of digital media: videos, audio, images, documents (PDF, DOC, etc.), and other files. The app features PIN-based authentication (not traditional user/password), file upload via presigned URLs to Replit Object Storage, a dark-themed media-focused UI with category filtering and tagging, and multi-format preview in a modal viewer. It's a single-user/personal app with a simple PIN login flow and optional PIN reset on first use.
+This is a personal **universal media vault** — a full-stack web application that allows a user (Madeline) to upload, store, organize, and preview any type of digital media: videos, audio, images, documents (PDF, DOC, etc.), and other files. The app features password-based authentication (SSO-compatible: 8+ chars, 1 uppercase, 1 special character), file upload via presigned URLs to Replit Object Storage, a dark-themed media-focused UI with category filtering and tagging, and multi-format preview in a modal viewer. It's a single-user/personal app with a password login flow and mandatory password reset on first use.
 
 ## User Preferences
 
@@ -46,7 +46,7 @@ This is a personal **universal media vault** — a full-stack web application th
 - **Framework**: Express.js serving both API routes and the static SPA
 - **API Design**: RESTful JSON API under `/api/` prefix. API contracts are defined in `shared/routes.ts` using Zod schemas for request/response validation
 - **Session Management**: express-session with connect-pg-simple (PostgreSQL-backed sessions), 30-day TTL
-- **Authentication**: Custom PIN-based auth (not Replit Auth). A single PIN stored in a `pin_auth` table. Supports PIN reset flow on first login. Session cookie tracks authentication state. There is also a Replit Auth integration present in `server/replit_integrations/auth/` but the active auth system is the PIN-based one.
+- **Authentication**: Custom password-based auth (SSO-compatible). A single password stored (bcrypt hashed) in a `pin_auth` table. Password requirements: 8+ chars, 1 uppercase, 1 special character. Supports password reset flow on first login. Session cookie tracks authentication state. Login endpoint: POST `/api/auth/login` (body: `{password}`). Reset endpoint: POST `/api/auth/reset-password` (body: `{newPassword}`). There is also a Replit Auth integration present in `server/replit_integrations/auth/` but the active auth system is the password-based one.
 - **File Storage**: Replit Object Storage (Google Cloud Storage under the hood) accessed via `@google-cloud/storage`. Files are uploaded using presigned URLs — the backend generates a presigned upload URL, the client uploads directly to storage, then saves metadata to the database.
 - **Dev Server**: Vite dev server is used as middleware in development for HMR
 
