@@ -1,0 +1,107 @@
+ORBIT ECOSYSTEM HANDOFF — Trust Vault
+From: ORBIT Staffing OS (orbitstaffing.replit.app)
+To: Trust Vault
+Date: February 9, 2026
+App ID: dw_app_trustvault
+Registered: Yes — active in ORBIT Ecosystem Hub
+
+Authentication
+Trust Vault is registered in the ORBIT Ecosystem. Set these three environment variables:
+
+ORBIT_HUB_URL=https://orbitstaffing.replit.app
+ORBIT_ECOSYSTEM_API_KEY=dw_app_9ac69f5a55537842b5d7913f2c917c92c5186c42f26e77a5
+ORBIT_ECOSYSTEM_API_SECRET=dw_secret_452747bc7e160a51e04567570b2555de45f6511a1da8ffb08b297f81fb00fec1
+Every request to ORBIT must include these headers:
+
+X-API-Key: ${ORBIT_ECOSYSTEM_API_KEY}
+X-API-Secret: ${ORBIT_ECOSYSTEM_API_SECRET}
+X-App-Name: Trust Vault
+Content-Type: application/json
+Test connection:
+
+GET https://orbitstaffing.replit.app/api/ecosystem/status
+→ { "connected": true, "appName": "Trust Vault", "permissions": [...] }
+Permissions
+Trust Vault has read-only access:
+
+read:workers — Pull worker records
+read:timesheets — Pull timesheet data
+read:payroll — Pull payroll runs
+read:1099 — Pull 1099 contractor data
+Available Endpoints
+Method	Endpoint	Purpose
+GET	/api/ecosystem/status	Verify connection
+GET	/api/ecosystem/shops/{shopId}/workers	Pull workers by tenant
+GET	/api/ecosystem/shops/{shopId}/payroll	Pull payroll by tenant
+POST	/api/ecosystem/sync/financial-transaction	Report revenue for royalty tracking
+GET	/api/ecosystem/financial-statement?period=monthly&format=summary	Pull financial statements
+GET	/api/ecosystem/snippets	Get shared code snippets
+POST	/api/ecosystem/snippets	Share a code snippet
+GET	/api/ecosystem/logs	Get activity logs
+POST	/api/ecosystem/logs	Push an activity log entry
+Drop-In Client Class
+Copy into services/orbitClient.ts:
+
+export class OrbitEcosystemClient {
+  private hubUrl: string;
+  private apiKey: string;
+  private apiSecret: string;
+  constructor() {
+    this.hubUrl = process.env.ORBIT_HUB_URL || "https://orbitstaffing.replit.app";
+    this.apiKey = process.env.ORBIT_ECOSYSTEM_API_KEY || "";
+    this.apiSecret = process.env.ORBIT_ECOSYSTEM_API_SECRET || "";
+  }
+  private get headers() {
+    return {
+      "Content-Type": "application/json",
+      "X-API-Key": this.apiKey,
+      "X-API-Secret": this.apiSecret,
+      "X-App-Name": "Trust Vault",
+    };
+  }
+  private async request(method: string, path: string, body?: any) {
+    const res = await fetch(`${this.hubUrl}${path}`, {
+      method,
+      headers: this.headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(`ORBIT API ${method} ${path} failed: ${JSON.stringify(err)}`);
+    }
+    return res.json();
+  }
+  async checkConnection() { return this.request("GET", "/api/ecosystem/status"); }
+  async getShopWorkers(shopId: string) { return this.request("GET", `/api/ecosystem/shops/${shopId}/workers`); }
+  async getShopPayroll(shopId: string) { return this.request("GET", `/api/ecosystem/shops/${shopId}/payroll`); }
+  async getFinancialStatement(params?: { period?: string; format?: string }) {
+    const query = params ? "?" + new URLSearchParams(params as any).toString() : "";
+    return this.request("GET", `/api/ecosystem/financial-statement${query}`);
+  }
+  async reportTransaction(tx: { transactionId: string; amount: number; currency: string; description: string; category: string; timestamp: string }) {
+    return this.request("POST", "/api/ecosystem/sync/financial-transaction", tx);
+  }
+  async getSnippets() { return this.request("GET", "/api/ecosystem/snippets"); }
+  async getLogs() { return this.request("GET", "/api/ecosystem/logs"); }
+  async pushLog(log: { action: string; details?: any }) { return this.request("POST", "/api/ecosystem/logs", log); }
+}
+Usage:
+
+const orbit = new OrbitEcosystemClient();
+await orbit.checkConnection();
+Financial Hub — Royalty Split
+100% Jason — Trust Vault is a sole-owner product
+All revenue reported via reportTransaction() is tracked in the DarkWave Financial Hub ledger and blockchain-stamped on Solana
+Webhook (ORBIT → Trust Vault)
+If Trust Vault wants to receive payroll event notifications, set up:
+
+POST https://trustvault.replit.app/webhooks/orbit
+ORBIT will sign payloads with HMAC-SHA256. Events: payroll.completed, payroll.payment.sent, payroll.payment.failed, worker.created, worker.updated, document.generated, tax.form.ready
+
+Quick Start Checklist
+[ ] Set ORBIT_HUB_URL, ORBIT_ECOSYSTEM_API_KEY, ORBIT_ECOSYSTEM_API_SECRET in env
+[ ] Copy OrbitEcosystemClient class into services/orbitClient.ts
+[ ] Call orbit.checkConnection() to verify connectivity
+[ ] Pull financial statements: orbit.getFinancialStatement({ period: "monthly" })
+[ ] Report revenue: orbit.reportTransaction({...}) → 100% Jason
+[ ] Done — ORBIT handles the rest
