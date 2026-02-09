@@ -19,6 +19,7 @@ declare module "express-session" {
     name: string;
     tenantId: string;
     pinAuthId: number;
+    isAdmin: boolean;
   }
 }
 
@@ -108,7 +109,8 @@ export async function registerRoutes(
       req.session.name = auth.name;
       req.session.tenantId = tenant.id;
       req.session.pinAuthId = auth.id;
-      return res.json({ name: auth.name, mustReset: false, tenantId: tenant.id });
+      req.session.isAdmin = false;
+      return res.json({ name: auth.name, mustReset: false, tenantId: tenant.id, isAdmin: false });
     } catch (err) {
       console.error("Setup error:", err);
       return res.status(500).json({ message: "Account setup failed" });
@@ -164,7 +166,8 @@ export async function registerRoutes(
       req.session.name = auth.name;
       req.session.tenantId = tenant.id;
       req.session.pinAuthId = auth.id;
-      return res.json({ name: auth.name, mustReset: auth.mustReset, tenantId: tenant.id });
+      req.session.isAdmin = auth.isAdmin ?? false;
+      return res.json({ name: auth.name, mustReset: auth.mustReset, tenantId: tenant.id, isAdmin: auth.isAdmin ?? false });
     } catch (err) {
       console.error("Login error:", err);
       return res.status(500).json({ message: "Login failed" });
@@ -218,10 +221,16 @@ export async function registerRoutes(
     if (!req.session || !req.session.authenticated) {
       return res.status(401).json({ message: "Not authenticated" });
     }
+    let mustReset = false;
+    if (req.session.pinAuthId) {
+      const auth = await storage.getPinAuthById(req.session.pinAuthId);
+      if (auth) mustReset = auth.mustReset ?? false;
+    }
     return res.json({
       name: req.session.name || "User",
-      mustReset: false,
+      mustReset,
       tenantId: req.session.tenantId,
+      isAdmin: req.session.isAdmin ?? false,
     });
   });
 

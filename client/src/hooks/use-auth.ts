@@ -5,6 +5,7 @@ interface AuthUser {
   name: string;
   mustReset: boolean;
   tenantId?: string;
+  isAdmin?: boolean;
 }
 
 interface AuthStatus {

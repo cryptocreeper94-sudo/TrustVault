@@ -25,6 +25,7 @@ export const pinAuth = pgTable("pin_auth", {
   mustReset: boolean("must_reset").default(true),
   name: text("name").notNull().default("Madeline"),
   tenantId: varchar("tenant_id"),
+  isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -2,7 +2,15 @@
 
 ## Overview
 
-This project is a personal **universal media vault**, a full-stack web application designed for a single user (Madeline) to upload, store, organize, and preview various digital media types including videos, audio, images, and documents. Key features include password-based authentication, file uploads to Replit Object Storage via presigned URLs, a dark-themed UI with category filtering and tagging, and a multi-format modal media viewer. It emphasizes a premium user experience and is envisioned as a core component within a broader ecosystem (TrustLayer / Dark Wave Studios), with future plans for blockchain integration and native mobile applications. The project aims to provide robust media management capabilities, including advanced editing tools and smart organization features, making it a comprehensive solution for digital content.
+This project is a **universal media vault** (TrustVault / DW Media Studio), a full-stack multi-tenant web application designed for a family of users to upload, store, organize, and preview various digital media types including videos, audio, images, and documents. Key features include multi-user authentication with tenant isolation, file uploads to Replit Object Storage via presigned URLs, a dark-themed UI with category filtering and tagging, and a multi-format modal media viewer. It emphasizes a premium user experience and is envisioned as a core component within a broader ecosystem (TrustLayer / Dark Wave Studios), with future plans for blockchain integration and native mobile applications. The project aims to provide robust media management capabilities, including advanced editing tools and smart organization features, making it a comprehensive solution for digital content.
+
+### Users & Tenants
+- **Jason** (developer/owner, admin): PIN 0424, tenant `jason`, isAdmin=true — has master access to all tenant spaces
+- **Madeline** (daughter): tenant `madeline` — has own isolated media space
+- **Natalie** (daughter): tenant `natalie` — has own isolated media space (must reset password on first login)
+- **Avery** (daughter): tenant `avery` — has own isolated media space (must reset password on first login)
+- Multi-user login: when 4+ accounts exist, login shows Name + Password fields
+- Admin accounts can view/manage all tenant spaces (planned dev portal feature)
 
 ## User Preferences
 
