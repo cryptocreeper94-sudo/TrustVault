@@ -13,6 +13,8 @@ import {
 import { UploadDialog } from "@/components/UploadDialog";
 import { MediaGrid } from "@/components/MediaGrid";
 import { MediaViewer } from "@/components/MediaViewer";
+import { NowPlaying } from "@/components/NowPlaying";
+import { AmbientMode } from "@/components/AmbientMode";
 import { EditMediaDialog } from "@/components/EditMediaDialog";
 import { Button } from "@/components/ui/button";
 import { type MediaResponse } from "@shared/routes";
@@ -22,7 +24,7 @@ import {
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
-  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail, Fingerprint, MessageSquare,
+  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail, Fingerprint, MessageSquare, Monitor,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -717,6 +719,8 @@ export default function Home() {
   const [activeCollectionId, setActiveCollectionId] = useState<number | null>(null);
   const [showNewCollectionDialog, setShowNewCollectionDialog] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [nowPlayingItem, setNowPlayingItem] = useState<MediaResponse | null>(null);
+  const [showAmbientMode, setShowAmbientMode] = useState(false);
   const { showOnboarding, setShowOnboarding, openGuide } = useOnboarding(user?.name);
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
@@ -745,6 +749,16 @@ export default function Home() {
   if (user.mustReset) {
     return <PasswordReset />;
   }
+
+  const audioPlaylist = (mediaItems || []).filter(m => m.category === "audio");
+
+  const handlePlay = (item: MediaResponse) => {
+    if (item.category === "audio") {
+      setNowPlayingItem(item);
+    } else {
+      setViewingItem(item);
+    }
+  };
 
   const baseItems = activeCollectionId ? (collectionItems || []) : (mediaItems || []);
 
@@ -905,6 +919,15 @@ export default function Home() {
                         Community Voice
                       </Button>
                     </a>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
+                      onClick={() => setShowAmbientMode(true)}
+                      data-testid="button-ambient-mode"
+                    >
+                      <Monitor className="w-4 h-4" />
+                      Ambient Mode
+                    </Button>
                   </nav>
 
                   <Separator className="my-2" />
@@ -1224,7 +1247,7 @@ export default function Home() {
         ) : viewMode === "timeline" ? (
           <TimelineView
             items={filtered}
-            onPlay={setViewingItem}
+            onPlay={handlePlay}
             onEdit={setEditingItem}
             bulkMode={bulkMode}
             selectedIds={selectedIds}
@@ -1233,7 +1256,7 @@ export default function Home() {
         ) : bulkMode ? (
           <BulkMediaGrid
             items={filtered}
-            onPlay={setViewingItem}
+            onPlay={handlePlay}
             onEdit={setEditingItem}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
@@ -1241,7 +1264,7 @@ export default function Home() {
         ) : (
           <MediaGrid
             items={filtered}
-            onPlay={setViewingItem}
+            onPlay={handlePlay}
             onEdit={setEditingItem}
           />
         )}
@@ -1275,6 +1298,22 @@ export default function Home() {
         item={viewingItem}
         open={!!viewingItem}
         onOpenChange={(open) => !open && setViewingItem(null)}
+      />
+
+      {nowPlayingItem && (
+        <NowPlaying
+          item={nowPlayingItem}
+          playlist={audioPlaylist}
+          open={!!nowPlayingItem}
+          onClose={() => setNowPlayingItem(null)}
+          onTrackChange={(track) => setNowPlayingItem(track)}
+        />
+      )}
+
+      <AmbientMode
+        items={mediaItems || []}
+        open={showAmbientMode}
+        onClose={() => setShowAmbientMode(false)}
       />
 
       <EditMediaDialog
