@@ -139,6 +139,70 @@ export type UploadUrlResponse = {
   };
 };
 
+// --- Ecosystem API Tables ---
+
+export const ECOSYSTEM_CAPABILITIES = [
+  "video_walkthrough",
+  "video_editing",
+  "audio_editing",
+  "media_combining",
+  "branded_intros",
+  "voiceover",
+  "multi_angle_stitch",
+  "thumbnail_generation",
+] as const;
+export type EcosystemCapability = typeof ECOSYSTEM_CAPABILITIES[number];
+
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  tenantId: text("tenant_id").notNull().unique(),
+  appName: text("app_name").notNull(),
+  apiKey: text("api_key").notNull().unique(),
+  apiSecret: text("api_secret").notNull(),
+  webhookUrl: text("webhook_url"),
+  capabilities: text("capabilities").array(),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;
+
+export const PROJECT_STATUSES = ["queued", "in_progress", "rendering", "complete", "failed", "cancelled"] as const;
+export type ProjectStatus = typeof PROJECT_STATUSES[number];
+
+export const ecosystemProjects = pgTable("ecosystem_projects", {
+  id: serial("id").primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  title: text("title").notNull(),
+  status: text("status").notNull().default("queued"),
+  propertyAddress: text("property_address"),
+  propertyId: text("property_id"),
+  requestType: text("request_type").notNull(),
+  notes: text("notes"),
+  agentId: text("agent_id"),
+  thumbnailUrl: text("thumbnail_url"),
+  outputUrl: text("output_url"),
+  duration: integer("duration"),
+  timeline: text("timeline"),
+  assets: text("assets"),
+  renderStatus: text("render_status"),
+  errorMessage: text("error_message"),
+  estimatedTurnaround: text("estimated_turnaround"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type EcosystemProject = typeof ecosystemProjects.$inferSelect;
+export type InsertEcosystemProject = typeof ecosystemProjects.$inferInsert;
+
+export const insertEcosystemProjectSchema = createInsertSchema(ecosystemProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export function detectCategory(contentType: string): MediaCategory {
   if (contentType.startsWith("video/")) return "video";
   if (contentType.startsWith("audio/")) return "audio";

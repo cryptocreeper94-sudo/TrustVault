@@ -16,6 +16,15 @@ This is a personal **universal media vault** — a full-stack web application th
 
 ## Recent Changes
 
+- **Ecosystem API: TrustHome Connectivity** (Feb 2026) — Added inter-service API for DarkWave ecosystem integration:
+  - **HMAC Authentication**: `Authorization: DW <apiKey>:<timestamp>:<signature>` scheme with HMAC-SHA256, 5-minute timestamp tolerance, constant-time signature comparison
+  - **Tenant Scoping**: All ecosystem data isolated by `tenantId`; API key tied to specific tenant
+  - **New tables**: `api_keys` (tenant credentials, webhook URL, capabilities), `ecosystem_projects` (tenant-scoped projects with status tracking)
+  - **Ecosystem API module**: `server/ecosystem/` — auth.ts (HMAC middleware + signature utilities), storage.ts (project/tenant CRUD), routes.ts (all endpoints), webhook.ts (callback with retry)
+  - **Endpoints**: GET `/api/ecosystem/status`, GET `/api/ecosystem/projects`, GET `/api/ecosystem/projects/:id`, GET `/api/ecosystem/projects/:id/status`, POST `/api/ecosystem/walkthrough-request`, POST `/api/ecosystem/projects/:id/cancel`, POST `/api/ecosystem/provision` (vault-auth-protected)
+  - **Webhook callbacks**: POST to tenant webhook URL on job completion/cancellation with HMAC-signed requests, 3 retries with exponential backoff
+  - **Capabilities**: video_walkthrough, video_editing, audio_editing, media_combining, branded_intros, voiceover, multi_angle_stitch, thumbnail_generation
+- **Auth System Redesign** (Feb 2026) — Removed pre-seeded default password; users create own account via 3-step setup flow (name, password, confirm). Added change-password feature via key icon in vault header.
 - **Phase 1 Expansion: Media Editors & Merge** (Feb 2026) — Added full-featured standalone editors:
   - **Image Editor** (`/editor/image/:id`): Crop, rotate, resize, 7 filters (grayscale/sepia/vintage/cool/vivid/fade), brightness/contrast/saturation/blur adjustments, canvas-based processing, saves as new media item
   - **Audio Editor** (`/editor/audio/:id`): Waveform visualization, trim/cut with draggable handles, fade in/out, volume control, playback speed, WAV encoding via OfflineAudioContext, saves as new media item
@@ -66,6 +75,8 @@ This is a personal **universal media vault** — a full-stack web application th
   - `users` — kept from Replit Auth integration, not actively used by PIN auth
   - `collections` — user-created albums/collections (name, description, coverMediaId)
   - `collection_items` — junction table linking media_items to collections (collectionId, mediaItemId, addedAt)
+  - `api_keys` — ecosystem tenant API credentials (tenantId, appName, apiKey, apiSecret, webhookUrl, capabilities, active)
+  - `ecosystem_projects` — tenant-scoped media projects (tenantId, title, status, propertyAddress, propertyId, requestType, notes, agentId, thumbnailUrl, outputUrl, duration, timeline, assets, renderStatus, errorMessage, estimatedTurnaround)
 
 ### Build System
 - **Development**: `npm run dev` — runs tsx with Vite middleware for HMR

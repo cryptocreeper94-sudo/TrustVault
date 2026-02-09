@@ -1,0 +1,78 @@
+ECOSYSTEM CONNECTIVITY REQUEST
+From: TrustHome (DarkWave Studios LLC)
+To: TrustVault / DW Media Studio
+Date: February 9, 2026
+Re: Tenant API Connectivity for Video Walkthrough & Media Editing Integration
+
+OVERVIEW
+
+TrustHome has built and deployed a tenant space for DW Media Studio within the DarkWave ecosystem. Our platform is ready to connect. We need TrustVault to expose the following API contract so TrustHome agents can request video walkthroughs, track media projects, and receive completed assets directly inside their dashboard.
+
+1. AUTHENTICATION PROTOCOL
+
+All requests between our apps use the standard DarkWave HMAC signature scheme:
+
+Header: Authorization: DW <apiKey>:<timestamp>:<signature>
+Signature: HMAC-SHA256 of <timestamp>:<apiKey> using the shared API secret
+Header: X-App-Name: TrustHome
+We need you to generate and provide us an API key pair (DW_MEDIA_API_KEY and DW_MEDIA_API_SECRET) scoped to the TrustHome tenant
+2. TENANT SCOPING
+
+Every request from TrustHome includes a tenantId value of "trusthome":
+
+On GET requests: passed as query parameter ?tenantId=trusthome
+On POST/PUT requests: included in the JSON body as { "tenantId": "trusthome", ... }
+All projects, assets, and jobs must be scoped to this tenant to keep ecosystem apps isolated.
+
+3. ENDPOINTS WE NEED EXPOSED
+
+Base URL we are configured to call: https://media.darkwavestudios.io/api
+
+Method	Endpoint	Request	Expected Response
+GET	/status	?tenantId=trusthome	{ configured: bool, capabilities: string[], version: string }
+GET	/projects	?tenantId=trusthome	{ projects: [{ id, title, status, propertyAddress, createdAt, thumbnailUrl }] }
+GET	/projects/:id	?tenantId=trusthome	Full project detail: timeline, assets, render status, outputUrl
+GET	/projects/:id/status	?tenantId=trusthome	`{ status: "queued"
+POST	/walkthrough-request	{ tenantId, propertyAddress, propertyId?, requestType, notes?, agentId }	{ requestId, status: "queued", estimatedTurnaround }
+POST	/projects/:id/cancel	{ tenantId }	{ success: bool, message }
+4. CAPABILITIES WE EXPECT
+
+Please confirm which of the following your API supports:
+
+video_walkthrough - property walkthrough video creation from raw footage
+video_editing - cuts, transitions, effects, color grading
+audio_editing - voiceover overlay, background music, audio mixing
+media_combining - merge multiple clips into single output
+branded_intros - agent/brokerage branded intro and outro sequences
+voiceover - AI-generated or recorded voiceover integration
+multi_angle_stitch - combine footage from multiple camera angles
+thumbnail_generation - auto-generate listing thumbnails from video
+5. WEBHOOK CALLBACK
+
+When a job completes or fails, POST back to us:
+
+URL: https://<trusthome-domain>/api/media-studio/webhook
+Method: POST
+Auth: Same HMAC signature scheme (sign with your key pair)
+Payload: { requestId, status, outputUrl, thumbnailUrl, duration, tenantId, completedAt }
+6. REAL-TIME UPDATES (OPTIONAL)
+
+We have a dedicated #Media Studio channel in our ecosystem-wide Signal Chat. If you want to push real-time status updates:
+
+Socket.IO relay: wss://darkwavestudios.io
+Channel ID: ecosystem-media
+Source app identifier: mediastudio
+7. WHAT WE NEED BACK
+
+To go live, provide us:
+
+API key pair (DW_MEDIA_API_KEY / DW_MEDIA_API_SECRET)
+Confirmed base URL (we default to https://media.darkwavestudios.io/api)
+List of supported capabilities from Section 4
+Confirmation of webhook callback format from Section 5
+Once we receive the key pair, the connection goes live immediately - no rebuild required on our side. Everything is already wired.
+
+CONTACT
+TrustHome Platform | DarkWave Studios LLC 2026
+Powered by trustshield.tech
+

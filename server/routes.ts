@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import { detectCategory, type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { processTrimJob, processMergeJob } from "./videoProcessor";
+import { registerEcosystemRoutes } from "./ecosystem/routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -58,6 +59,7 @@ export async function registerRoutes(
   }));
 
   registerObjectStorageRoutes(app);
+  registerEcosystemRoutes(app);
 
   // --- Auth Routes ---
 
