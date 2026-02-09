@@ -51,6 +51,7 @@ export async function registerRoutes(
   });
 
   app.set("trust proxy", 1);
+  const isProduction = process.env.NODE_ENV === "production";
   app.use(session({
     secret: process.env.SESSION_SECRET || "concert-memories-secret-key",
     store: sessionStore,
@@ -58,7 +59,8 @@ export async function registerRoutes(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
+      secure: isProduction,
+      sameSite: "lax" as const,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     },
   }));
