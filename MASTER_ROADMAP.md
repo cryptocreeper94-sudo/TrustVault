@@ -24,7 +24,23 @@
 
 ---
 
-## Phase 1 — Polish & Foundation
+## Phase 1 — Trust Layer SSO & Signal Chat (NEXT)
+
+- [ ] Implement Trust Layer ID generation (tl-{base36-timestamp}-{random-8-chars}) at user registration
+- [ ] Add JWT-based SSO with shared JWT_SECRET across ecosystem apps (HS256, 7-day expiry)
+- [ ] Create cross-app auth endpoints: /api/chat/auth/register, /api/chat/auth/login, /api/chat/auth/me
+- [ ] Build chat_users, chat_channels, chat_messages database tables (Drizzle ORM)
+- [ ] Seed default channels: general, announcements, darkwavestudios-support, garagebot-support, tlid-marketing, guardian-ai
+- [ ] Implement WebSocket server at /ws/chat with JWT-authenticated join (no userId-based auth)
+- [ ] Build real-time chat features: message history, typing indicators, user presence, channel switching
+- [ ] Enforce password policy consistency (8+ chars, 1 uppercase, 1 special char, bcrypt 12 rounds)
+- [ ] Wire TrustVault auth to issue Trust Layer IDs + JWT tokens for ecosystem-wide identity
+- [ ] Build Signal Chat UI with channel list, message thread, reply support, and online indicators
+- [ ] Reference spec: attached_assets/Pasted--TRUST-LAYER-SSO-SIGNAL-CHAT-HANDOFF-*.txt
+
+---
+
+## Phase 2 — Polish & Foundation
 
 - [ ] Thumbnail generation (extract frame from uploaded video)
 - [ ] Video duration display on cards
@@ -36,7 +52,7 @@
 
 ---
 
-## Phase 2 — Multi-User & Sharing
+## Phase 3 — Multi-User & Sharing
 
 - [ ] Multi-user support (multiple PINs or user accounts)
 - [ ] Role-based access (owner vs. viewer)
@@ -46,7 +62,7 @@
 
 ---
 
-## Phase 3 — TrustLayer Blockchain Integration
+## Phase 4 — TrustLayer Blockchain Integration
 
 - [ ] Connect authentication to TrustLayer identity layer
 - [ ] On-chain identity verification for gallery access
@@ -58,7 +74,7 @@
 
 ---
 
-## Phase 4 — React Native + Expo (Standalone Native App)
+## Phase 5 — React Native + Expo (Standalone Native App)
 
 - [ ] Port frontend to React Native + Expo
 - [ ] Native video capture and upload (direct from phone camera)
@@ -70,7 +86,7 @@
 
 ---
 
-## Phase 5 — Platform & Marketplace
+## Phase 6 — Platform & Marketplace
 
 - [ ] Concert community features: organize clips by artist, venue, tour
 - [ ] Small venue / indie artist tools: offer fans private galleries as digital merch
