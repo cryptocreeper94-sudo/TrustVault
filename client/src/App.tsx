@@ -13,6 +13,7 @@ import MergeEditor from "@/pages/MergeEditor";
 import Blog from "@/pages/Blog";
 import BlogPostPage from "@/pages/BlogPost";
 import BlogAdmin from "@/pages/BlogAdmin";
+import Pricing from "@/pages/Pricing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/admin" component={BlogAdmin} />
       <Route path="/blog/:slug" component={BlogPostPage} />
+      <Route path="/pricing" component={Pricing} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -6,6 +6,7 @@ import {
   collectionItems,
   processingJobs,
   blogPosts,
+  subscriptions,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
@@ -19,6 +20,8 @@ import {
   type JobStatus,
   type BlogPost,
   type InsertBlogPost,
+  type Subscription,
+  type InsertSubscription,
 } from "@shared/schema";
 import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 
@@ -51,6 +54,10 @@ export interface IStorage {
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, updates: Partial<InsertBlogPost>): Promise<BlogPost>;
   deleteBlogPost(id: number): Promise<void>;
+  getSubscription(): Promise<Subscription | undefined>;
+  getSubscriptionByCustomerId(customerId: string): Promise<Subscription | undefined>;
+  upsertSubscription(data: InsertSubscription): Promise<Subscription>;
+  updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -284,6 +291,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlogPost(id: number): Promise<void> {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  async getSubscription(): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).limit(1);
+    return sub;
+  }
+
+  async getSubscriptionByCustomerId(customerId: string): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.stripeCustomerId, customerId));
+    return sub;
+  }
+
+  async upsertSubscription(data: InsertSubscription): Promise<Subscription> {
+    const existing = await this.getSubscriptionByCustomerId(data.stripeCustomerId);
+    if (existing) {
+      const [updated] = await db
+        .update(subscriptions)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(subscriptions.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(subscriptions).values(data).returning();
+    return created;
+  }
+
+  async updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription> {
+    const [updated] = await db
+      .update(subscriptions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return updated;
   }
 }
 

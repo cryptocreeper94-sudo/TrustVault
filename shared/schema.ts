@@ -233,6 +233,66 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 
+// --- Subscription Tables ---
+
+export const SUBSCRIPTION_TIERS = ["free", "personal", "pro", "studio"] as const;
+export type SubscriptionTier = typeof SUBSCRIPTION_TIERS[number];
+
+export const SUBSCRIPTION_STATUSES = ["active", "canceled", "past_due", "trialing", "incomplete"] as const;
+export type SubscriptionStatus = typeof SUBSCRIPTION_STATUSES[number];
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  tier: text("tier").notNull().default("free"),
+  status: text("status").notNull().default("active"),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+
+export const TIER_LIMITS: Record<SubscriptionTier, { storage: string; items: number; features: string[] }> = {
+  free: {
+    storage: "500MB",
+    items: 50,
+    features: ["Basic viewing", "50 media items", "Standard support"],
+  },
+  personal: {
+    storage: "5GB",
+    items: 500,
+    features: ["All media editors", "Collections & tags", "500 media items", "5GB storage", "PWA access"],
+  },
+  pro: {
+    storage: "50GB",
+    items: 5000,
+    features: ["Merge & combine tools", "AI blog platform", "5,000 media items", "50GB storage", "Priority support", "Advanced editors"],
+  },
+  studio: {
+    storage: "Unlimited",
+    items: -1,
+    features: ["Ecosystem API access", "Unlimited media items", "Unlimited storage", "Blockchain provenance (coming soon)", "White-label options", "Dedicated support"],
+  },
+};
+
+export const TIER_PRICING: Record<SubscriptionTier, { monthly: number; annual: number; name: string; description: string }> = {
+  free: { monthly: 0, annual: 0, name: "Free", description: "Get started with basic media storage" },
+  personal: { monthly: 599, annual: 5999, name: "Personal", description: "For individual creators who need more" },
+  pro: { monthly: 1299, annual: 12999, name: "Pro", description: "Full creative studio for serious creators" },
+  studio: { monthly: 2499, annual: 24999, name: "Studio", description: "Enterprise-grade for professionals" },
+};
+
 export function detectCategory(contentType: string): MediaCategory {
   if (contentType.startsWith("video/")) return "video";
   if (contentType.startsWith("audio/")) return "audio";

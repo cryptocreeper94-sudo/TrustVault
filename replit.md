@@ -29,6 +29,7 @@ This project is a personal **universal media vault**, a full-stack web applicati
 - **Media Merge/Combine**: Guided workflow for creating image collages, audio concatenations, and video concatenations.
 - **Smart Browsing & Organization**: Collections system, timeline view, grid/timeline toggle, various sort options, date range filtering, and bulk selection with batch actions.
 - **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.
+- **Stripe Subscription System**: Pricing page with 4 tiers (Free/Personal/Pro/Studio), Stripe Checkout for payments, Customer Portal for management, webhook handling for subscription lifecycle.
 
 ### Backend (Express + Node.js)
 - **Runtime**: Node.js with TypeScript (tsx/esbuild).
@@ -37,6 +38,7 @@ This project is a personal **universal media vault**, a full-stack web applicati
 - **Authentication**: Custom password-based authentication (8+ chars, 1 uppercase, 1 special character) with bcrypt hashing and password reset flow. Express-session with PostgreSQL-backed storage.
 - **File Storage Interaction**: Generates presigned URLs for direct client uploads to Replit Object Storage, then stores metadata in the database.
 - **Ecosystem API (TrustHome Connectivity)**: Inter-service API for DarkWave ecosystem integration, featuring HMAC authentication, tenant scoping, project management, and webhook callbacks with retry mechanisms.
+- **Stripe Integration**: Subscription management with Checkout Sessions, Customer Portal, and webhook event handling (`server/stripe/routes.ts`).
 
 ### Shared Code (`shared/`)
 - **Schema**: Drizzle ORM schema definitions (`shared/schema.ts`) for all database tables.
@@ -45,7 +47,7 @@ This project is a personal **universal media vault**, a full-stack web applicati
 ### Database
 - **Database**: PostgreSQL.
 - **ORM**: Drizzle ORM for schema management and migrations.
-- **Key Tables**: `media_items` (media metadata), `pin_auth` (authentication), `sessions`, `collections`, `collection_items` (for media organization), `api_keys` (ecosystem credentials), `ecosystem_projects` (tenant-scoped projects), `blog_posts` (blog content).
+- **Key Tables**: `media_items` (media metadata), `pin_auth` (authentication), `sessions`, `collections`, `collection_items` (for media organization), `api_keys` (ecosystem credentials), `ecosystem_projects` (tenant-scoped projects), `blog_posts` (blog content), `subscriptions` (Stripe subscription state).
 
 ### Key Design Patterns
 - **Presigned URL Upload Flow**: Efficient file upload by offloading direct file transfer to cloud storage.
@@ -62,6 +64,9 @@ This project is a personal **universal media vault**, a full-stack web applicati
 ### Environment Variables
 - `DATABASE_URL`: PostgreSQL connection string.
 - `SESSION_SECRET`: Secret for `express-session` signing.
+- `STRIPE_SECRET_KEY`: Stripe secret API key for server-side operations.
+- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key exposed to frontend.
+- `STRIPE_WEBHOOK_SECRET`: (Optional) Stripe webhook signing secret for signature verification.
 
 ### Key NPM Dependencies
 - **Server**: `express`, `drizzle-orm`, `pg`, `express-session`, `connect-pg-simple`, `@google-cloud/storage`, `zod`.

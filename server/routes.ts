@@ -11,6 +11,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { processTrimJob, processMergeJob } from "./videoProcessor";
 import { registerEcosystemRoutes } from "./ecosystem/routes";
 import { registerBlogRoutes } from "./blog/routes";
+import { registerStripeRoutes } from "./stripe/routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -62,6 +63,7 @@ export async function registerRoutes(
   registerObjectStorageRoutes(app);
   registerEcosystemRoutes(app);
   registerBlogRoutes(app);
+  registerStripeRoutes(app);
 
   // --- Auth Routes ---
 
