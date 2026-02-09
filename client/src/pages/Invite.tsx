@@ -43,10 +43,10 @@ export default function Invite() {
           >
             <img src={trustlayerEmblem} alt="TrustLayer Emblem" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6 shadow-2xl shadow-primary/30" />
             <h1 className="text-3xl sm:text-4xl font-display font-bold tracking-tight mb-3" data-testid="text-invite-title">
-              You're Invited
+              I Made This For You
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-sm mx-auto" data-testid="text-invite-description">
-              Your private media vault is ready. Store, organize, and preview your most valuable digital content — all in one place.
+              Your own private media vault is ready. A place to store, organize, and keep your most valuable photos, videos, music, and files — all in one safe spot.
             </p>
           </motion.div>
 
@@ -107,7 +107,40 @@ export default function Invite() {
               </Button>
             </div>
             <p className="text-center text-xs text-muted-foreground/60 mt-3" data-testid="text-invite-instructions">
-              Use the name and password you were given to log in.
+              Log in with your first name and the temporary password below.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+            className="w-full mb-8"
+          >
+            <Card className="p-5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Your Login Info</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Name</span>
+                  <span className="text-sm font-medium font-mono" data-testid="text-invite-username">Your first name</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Temporary Password</span>
+                  <span className="text-sm font-medium font-mono" data-testid="text-invite-password">Temp12345!</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground/60 mt-3">You'll be asked to set your own password when you first log in.</p>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.65, duration: 0.5 }}
+            className="w-full mb-10 text-center"
+          >
+            <p className="text-lg italic text-muted-foreground/80 font-display" data-testid="text-invite-love">
+              Love, Dad
             </p>
           </motion.div>
 
