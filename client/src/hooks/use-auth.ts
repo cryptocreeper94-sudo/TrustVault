@@ -6,6 +6,10 @@ interface AuthUser {
   mustReset: boolean;
 }
 
+interface AuthStatus {
+  accountExists: boolean;
+}
+
 async function fetchMe(): Promise<AuthUser | null> {
   const response = await fetch("/api/auth/me", {
     credentials: "include",
@@ -29,6 +33,26 @@ export function useAuth() {
     queryFn: fetchMe,
     retry: false,
     staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: authStatus, isLoading: isLoadingStatus } = useQuery<AuthStatus>({
+    queryKey: ["/api/auth/status"],
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const setupMutation = useMutation({
+    mutationFn: async ({ name, password }: { name: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/auth/setup", { name, password });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Setup failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/status"] });
+    },
   });
 
   const loginMutation = useMutation({
@@ -59,6 +83,17 @@ export function useAuth() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/auth/change-password", { currentPassword, newPassword });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Change password failed");
+      }
+      return res.json();
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/auth/logout");
@@ -72,12 +107,20 @@ export function useAuth() {
     user,
     isLoading,
     isAuthenticated: !!user,
+    accountExists: authStatus?.accountExists ?? true,
+    isLoadingStatus,
+    setup: setupMutation.mutateAsync,
+    setupError: setupMutation.error,
+    isSettingUp: setupMutation.isPending,
     login: loginMutation.mutateAsync,
     loginError: loginMutation.error,
     isLoggingIn: loginMutation.isPending,
     resetPassword: resetPasswordMutation.mutateAsync,
     resetPasswordError: resetPasswordMutation.error,
     isResettingPassword: resetPasswordMutation.isPending,
+    changePassword: changePasswordMutation.mutateAsync,
+    changePasswordError: changePasswordMutation.error,
+    isChangingPassword: changePasswordMutation.isPending,
     logout: logoutMutation.mutate,
     isLoggingOut: logoutMutation.isPending,
   };

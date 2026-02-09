@@ -28,7 +28,7 @@ export interface IStorage {
   toggleFavorite(id: number, isFavorite: boolean): Promise<MediaItem | undefined>;
   getPinAuth(): Promise<PinAuth | undefined>;
   updatePin(pin: string, mustReset: boolean): Promise<PinAuth>;
-  initializePinAuth(pin: string, name: string): Promise<PinAuth>;
+  initializePinAuth(pin: string, name: string, mustReset?: boolean): Promise<PinAuth>;
   getCollections(): Promise<CollectionWithCount[]>;
   getCollection(id: number): Promise<Collection | undefined>;
   createCollection(data: InsertCollection): Promise<Collection>;
@@ -108,10 +108,10 @@ export class DatabaseStorage implements IStorage {
     return this.initializePinAuth(pin, "Madeline");
   }
 
-  async initializePinAuth(pin: string, name: string): Promise<PinAuth> {
+  async initializePinAuth(pin: string, name: string, mustReset: boolean = true): Promise<PinAuth> {
     const [auth] = await db
       .insert(pinAuth)
-      .values({ pin, name, mustReset: true })
+      .values({ pin, name, mustReset })
       .returning();
     return auth;
   }

@@ -22,6 +22,7 @@ import {
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
+  UserPlus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -691,7 +692,7 @@ function BulkActionBar({
 }
 
 export default function Home() {
-  const { user, isLoading: authLoading, logout } = useAuth();
+  const { user, isLoading: authLoading, isLoadingStatus, accountExists, logout } = useAuth();
   const { data: mediaItems, isLoading: mediaLoading } = useMediaItems();
   const { data: collectionsData } = useCollections();
   const [viewingItem, setViewingItem] = useState<MediaResponse | null>(null);
@@ -706,6 +707,7 @@ export default function Home() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [activeCollectionId, setActiveCollectionId] = useState<number | null>(null);
   const [showNewCollectionDialog, setShowNewCollectionDialog] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
 
@@ -714,12 +716,16 @@ export default function Home() {
     ? collections.find(c => c.id === activeCollectionId)
     : null;
 
-  if (authLoading) {
+  if (authLoading || isLoadingStatus) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
+  }
+
+  if (!user && !accountExists) {
+    return <AccountSetup />;
   }
 
   if (!user) {
@@ -836,6 +842,19 @@ export default function Home() {
                 {greeting}, {user.name}
               </span>
               <ThemeSwitcher />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    data-testid="button-change-password"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowChangePassword(true)}
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Change password</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1138,6 +1157,11 @@ export default function Home() {
         open={showNewCollectionDialog}
         onOpenChange={setShowNewCollectionDialog}
       />
+
+      <ChangePasswordDialog
+        open={showChangePassword}
+        onOpenChange={setShowChangePassword}
+      />
     </div>
   );
 }
@@ -1420,5 +1444,410 @@ function PasswordReset() {
         </form>
       </div>
     </div>
+  );
+}
+
+
+function AccountSetup() {
+  const { setup, isSettingUp, setupError } = useAuth();
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState<"name" | "password" | "confirm">("name");
+  const [error, setError] = useState("");
+  const { toast } = useToast();
+
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password);
+  const isPasswordValid = hasMinLength && hasUppercase && hasSpecialChar;
+
+  const handleNameContinue = () => {
+    if (!name.trim()) return;
+    setStep("password");
+  };
+
+  const handlePasswordContinue = () => {
+    if (!isPasswordValid) return;
+    setStep("confirm");
+    setError("");
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords don't match. Try again.");
+      setConfirmPassword("");
+      return;
+    }
+
+    try {
+      await setup({ name: name.trim(), password });
+      toast({
+        title: "Account Created",
+        description: `Welcome to your vault, ${name.trim()}!`,
+      });
+    } catch (err: any) {
+      setError(err.message || "Failed to create account");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      <div className="relative w-full md:w-1/2 lg:w-3/5 h-[40vh] md:h-screen overflow-hidden bg-black">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-background to-background opacity-80" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen" />
+
+        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 z-10 bg-gradient-to-t from-black via-transparent to-transparent">
+          <div className="max-w-md">
+            <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4 leading-tight">
+              Your digital assets,<br />
+              <span className="theme-gradient-text">
+                secured forever.
+              </span>
+            </h2>
+            <p className="text-white/60 text-lg hidden md:block">
+              A private vault for your most valuable media and memories.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-8 bg-card border-l border-white/5">
+        <div className="max-w-sm w-full space-y-8">
+          <div className="text-center">
+            <div className="w-14 h-14 rounded-xl theme-gradient flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
+              <UserPlus className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-setup-title">
+              {step === "name" ? "Create Your Account" : step === "password" ? "Set Your Password" : "Confirm Password"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {step === "name"
+                ? "What should we call you?"
+                : step === "password"
+                  ? "Create a strong password for your vault"
+                  : "Enter the same password again to confirm"
+              }
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (step === "name") handleNameContinue();
+              else if (step === "password") handlePasswordContinue();
+              else handleSubmit();
+            }}
+            className="space-y-6"
+          >
+            {step === "name" && (
+              <div className="space-y-4">
+                <div className="relative">
+                  <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                    data-testid="input-setup-name"
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  data-testid="button-setup-name-continue"
+                  disabled={!name.trim()}
+                  className="w-full h-12 text-base font-medium bg-primary text-white rounded-lg"
+                >
+                  Continue
+                </Button>
+              </div>
+            )}
+
+            {step === "password" && (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create password"
+                    className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                    data-testid="input-setup-password"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    onClick={() => setShowPassword(!showPassword)}
+                    data-testid="button-toggle-setup-password-visibility"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+
+                <div className="space-y-2 px-1">
+                  <div className="flex items-center gap-2">
+                    {hasMinLength ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+                    <span className={`text-sm ${hasMinLength ? "text-green-500" : "text-muted-foreground"}`}>At least 8 characters</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasUppercase ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+                    <span className={`text-sm ${hasUppercase ? "text-green-500" : "text-muted-foreground"}`}>At least 1 uppercase letter</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasSpecialChar ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+                    <span className={`text-sm ${hasSpecialChar ? "text-green-500" : "text-muted-foreground"}`}>At least 1 special character (!@#$...)</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-12 border-white/10"
+                    onClick={() => setStep("name")}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    data-testid="button-setup-password-continue"
+                    disabled={!isPasswordValid}
+                    className="flex-1 h-12 text-base font-medium bg-primary text-white rounded-lg"
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {step === "confirm" && (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                    className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                    data-testid="input-setup-confirm-password"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+
+                {error && (
+                  <p className="text-center text-sm text-destructive" data-testid="text-setup-error">{error}</p>
+                )}
+                {setupError && (
+                  <p className="text-center text-sm text-destructive" data-testid="text-setup-error">{setupError.message}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-12 border-white/10"
+                    onClick={() => { setStep("password"); setConfirmPassword(""); setError(""); }}
+                    disabled={isSettingUp}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    data-testid="button-setup-create"
+                    disabled={confirmPassword.length < 8 || isSettingUp}
+                    className="flex-1 h-12 text-base font-medium bg-primary text-white rounded-lg"
+                  >
+                    {isSettingUp ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      "Create Account"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function ChangePasswordDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { changePassword, isChangingPassword } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [error, setError] = useState("");
+  const { toast } = useToast();
+
+  const hasMinLength = newPassword.length >= 8;
+  const hasUppercase = /[A-Z]/.test(newPassword);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword);
+  const isValid = hasMinLength && hasUppercase && hasSpecialChar;
+
+  const handleReset = () => {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowCurrent(false);
+    setShowNew(false);
+    setError("");
+  };
+
+  const handleClose = (isOpen: boolean) => {
+    if (!isOpen) handleReset();
+    onOpenChange(isOpen);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (newPassword !== confirmPassword) {
+      setError("New passwords don't match.");
+      return;
+    }
+
+    try {
+      await changePassword({ currentPassword, newPassword });
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully.",
+      });
+      handleClose(false);
+    } catch (err: any) {
+      setError(err.message || "Failed to change password");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md glass-morphism text-foreground">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display font-bold" data-testid="text-change-password-title">Change Password</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Current Password</Label>
+            <div className="relative">
+              <Input
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="pr-10 bg-white/5 border-white/10"
+                data-testid="input-current-password"
+                autoFocus
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
+                onClick={() => setShowCurrent(!showCurrent)}
+                tabIndex={-1}
+              >
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">New Password</Label>
+            <div className="relative">
+              <Input
+                type={showNew ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="pr-10 bg-white/5 border-white/10"
+                data-testid="input-new-password-change"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
+                onClick={() => setShowNew(!showNew)}
+                tabIndex={-1}
+              >
+                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2 px-1">
+            <div className="flex items-center gap-2">
+              {hasMinLength ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <span className={`text-sm ${hasMinLength ? "text-green-500" : "text-muted-foreground"}`}>At least 8 characters</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasUppercase ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <span className={`text-sm ${hasUppercase ? "text-green-500" : "text-muted-foreground"}`}>At least 1 uppercase letter</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasSpecialChar ? <Check className="w-4 h-4 text-green-500 shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <span className={`text-sm ${hasSpecialChar ? "text-green-500" : "text-muted-foreground"}`}>At least 1 special character (!@#$...)</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Confirm New Password</Label>
+            <Input
+              type={showNew ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              className="bg-white/5 border-white/10"
+              data-testid="input-confirm-new-password"
+            />
+          </div>
+
+          {error && (
+            <p className="text-center text-sm text-destructive" data-testid="text-change-password-error">{error}</p>
+          )}
+
+          <Button
+            type="submit"
+            data-testid="button-change-password-submit"
+            disabled={!currentPassword || !isValid || confirmPassword.length < 8 || isChangingPassword}
+            className="w-full bg-primary text-white"
+          >
+            {isChangingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
