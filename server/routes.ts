@@ -194,7 +194,11 @@ export async function registerRoutes(
   app.patch(api.media.update.path, isAuthenticated, async (req, res) => {
     try {
       const input = api.media.update.input.parse(req.body);
-      const item = await storage.updateMediaItem(Number(req.params.id), input);
+      const updates: any = { ...input };
+      if (updates.eventDate) {
+        updates.eventDate = new Date(updates.eventDate);
+      }
+      const item = await storage.updateMediaItem(Number(req.params.id), updates);
       if (!item) {
         return res.status(404).json({ message: "Media item not found" });
       }
