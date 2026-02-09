@@ -22,7 +22,7 @@ import {
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
-  UserPlus, BookOpen,
+  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,10 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -842,46 +846,111 @@ export default function Home() {
                 {greeting}, {user.name}
               </span>
               <ThemeSwitcher />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a href="/blog/admin">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    data-testid="button-hamburger-menu"
+                    variant="ghost"
+                    size="icon"
+                  >
+                    <Menu className="w-4 h-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="flex flex-col">
+                  <SheetHeader className="text-left">
+                    <SheetTitle className="font-display flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg theme-gradient flex items-center justify-center">
+                        <Shield className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      DW Media Studio
+                    </SheetTitle>
+                    <p className="text-xs text-muted-foreground">
+                      {greeting}, {user.name}
+                    </p>
+                  </SheetHeader>
+
+                  <Separator className="my-2" />
+
+                  <nav className="flex flex-col gap-1" data-testid="nav-hamburger-menu">
+                    <a href="/" className="w-full">
+                      <Button variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-vault">
+                        <LayoutGrid className="w-4 h-4" />
+                        Media Vault
+                      </Button>
+                    </a>
+                    <a href="/blog" className="w-full">
+                      <Button variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-blog">
+                        <Globe className="w-4 h-4" />
+                        Blog
+                      </Button>
+                    </a>
+                    <a href="/blog/admin" className="w-full">
+                      <Button variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-blog-admin">
+                        <BookOpen className="w-4 h-4" />
+                        Blog Manager
+                      </Button>
+                    </a>
+                  </nav>
+
+                  <Separator className="my-2" />
+
+                  <div className="flex flex-col gap-1">
                     <Button
-                      data-testid="button-blog-admin"
                       variant="ghost"
-                      size="icon"
+                      className="w-full justify-start gap-3"
+                      onClick={() => setShowChangePassword(true)}
+                      data-testid="nav-link-change-password"
                     >
-                      <BookOpen className="w-4 h-4" />
+                      <KeyRound className="w-4 h-4" />
+                      Change Password
                     </Button>
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Blog Manager</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    data-testid="button-change-password"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowChangePassword(true)}
-                  >
-                    <KeyRound className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Change password</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    data-testid="button-logout"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => logout()}
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Sign out</TooltipContent>
-              </Tooltip>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
+                      onClick={() => logout()}
+                      data-testid="nav-link-logout"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </Button>
+                  </div>
+
+                  <div className="mt-auto pt-6">
+                    <Separator className="mb-4" />
+                    <div className="space-y-3">
+                      <a
+                        href="https://dwtl.io"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground group"
+                        data-testid="link-trustlayer"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-primary" />
+                        <span>Trust Layer</span>
+                        <span className="text-xs text-muted-foreground/60">dwtl.io</span>
+                        <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </a>
+                      <a
+                        href="https://darkwavestudios.io"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground group"
+                        data-testid="link-darkwavestudios"
+                      >
+                        <Shield className="w-3.5 h-3.5 text-primary" />
+                        <span>Dark Wave Studios</span>
+                        <span className="text-xs text-muted-foreground/60">.io</span>
+                        <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </a>
+                      <div className="pt-2 border-t border-border/50">
+                        <p className="text-[11px] text-muted-foreground/50 text-center">
+                          Powered by <a href="https://trustshield.tech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/70 hover:text-primary transition-colors" data-testid="link-trustshield">TrustShield.tech</a>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
