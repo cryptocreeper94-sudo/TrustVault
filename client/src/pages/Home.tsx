@@ -22,7 +22,7 @@ import {
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
-  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail, Fingerprint,
+  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail, Fingerprint, MessageSquare,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -897,6 +897,12 @@ export default function Home() {
                       <Button variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-pricing">
                         <CreditCard className="w-4 h-4" />
                         Pricing & Plans
+                      </Button>
+                    </a>
+                    <a href="/roadmap" className="w-full">
+                      <Button variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-roadmap">
+                        <MessageSquare className="w-4 h-4" />
+                        Community Voice
                       </Button>
                     </a>
                   </nav>

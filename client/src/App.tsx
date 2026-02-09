@@ -17,6 +17,7 @@ import Pricing from "@/pages/Pricing";
 import Invite from "@/pages/Invite";
 import Join from "@/pages/Join";
 import Admin from "@/pages/Admin";
+import Roadmap from "@/pages/Roadmap";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/invite" component={Invite} />
       <Route path="/join" component={Join} />
       <Route path="/admin" component={Admin} />
+      <Route path="/roadmap" component={Roadmap} />
       <Route component={NotFound} />
     </Switch>
   );

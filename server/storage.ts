@@ -28,6 +28,11 @@ import {
   type InsertTenant,
   type WhitelistEntry,
   type InsertWhitelistEntry,
+  type FeatureRequest,
+  type InsertFeatureRequest,
+  type FeatureVote,
+  featureRequests,
+  featureVotes,
 } from "@shared/schema";
 import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 
@@ -95,6 +100,15 @@ export interface IStorage {
   createWhitelistEntry(data: InsertWhitelistEntry): Promise<WhitelistEntry>;
   deleteWhitelistEntry(id: number): Promise<void>;
   markWhitelistUsed(id: number): Promise<WhitelistEntry>;
+
+  // Feature Requests / Community Voice
+  getFeatureRequests(): Promise<FeatureRequest[]>;
+  getFeatureRequest(id: number): Promise<FeatureRequest | undefined>;
+  createFeatureRequest(data: InsertFeatureRequest): Promise<FeatureRequest>;
+  updateFeatureRequest(id: number, updates: Partial<InsertFeatureRequest>): Promise<FeatureRequest>;
+  deleteFeatureRequest(id: number): Promise<void>;
+  voteForFeature(featureId: number, tenantId: string): Promise<{ voted: boolean }>;
+  getVotesForTenant(tenantId: string): Promise<number[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -462,6 +476,58 @@ export class DatabaseStorage implements IStorage {
       .where(eq(whitelist.id, id))
       .returning();
     return updated;
+  }
+
+  // --- Feature Requests / Community Voice ---
+
+  async getFeatureRequests(): Promise<FeatureRequest[]> {
+    return db.select().from(featureRequests).orderBy(desc(featureRequests.votes), desc(featureRequests.createdAt));
+  }
+
+  async getFeatureRequest(id: number): Promise<FeatureRequest | undefined> {
+    const [request] = await db.select().from(featureRequests).where(eq(featureRequests.id, id));
+    return request;
+  }
+
+  async createFeatureRequest(data: InsertFeatureRequest): Promise<FeatureRequest> {
+    const [created] = await db.insert(featureRequests).values(data).returning();
+    return created;
+  }
+
+  async updateFeatureRequest(id: number, updates: Partial<InsertFeatureRequest>): Promise<FeatureRequest> {
+    const [updated] = await db
+      .update(featureRequests)
+      .set(updates)
+      .where(eq(featureRequests.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFeatureRequest(id: number): Promise<void> {
+    await db.delete(featureVotes).where(eq(featureVotes.featureRequestId, id));
+    await db.delete(featureRequests).where(eq(featureRequests.id, id));
+  }
+
+  async voteForFeature(featureId: number, tenantId: string): Promise<{ voted: boolean }> {
+    const [existing] = await db.select().from(featureVotes)
+      .where(and(eq(featureVotes.featureRequestId, featureId), eq(featureVotes.tenantId, tenantId)));
+
+    if (existing) {
+      await db.delete(featureVotes).where(eq(featureVotes.id, existing.id));
+      await db.update(featureRequests).set({ votes: sql`votes - 1` }).where(eq(featureRequests.id, featureId));
+      return { voted: false };
+    } else {
+      await db.insert(featureVotes).values({ featureRequestId: featureId, tenantId });
+      await db.update(featureRequests).set({ votes: sql`votes + 1` }).where(eq(featureRequests.id, featureId));
+      return { voted: true };
+    }
+  }
+
+  async getVotesForTenant(tenantId: string): Promise<number[]> {
+    const votes = await db.select({ featureRequestId: featureVotes.featureRequestId })
+      .from(featureVotes)
+      .where(eq(featureVotes.tenantId, tenantId));
+    return votes.map(v => v.featureRequestId);
   }
 }
 

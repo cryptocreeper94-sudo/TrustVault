@@ -396,6 +396,171 @@ export async function registerRoutes(
     }
   });
 
+  // --- Feature Requests / Community Voice ---
+
+  app.get("/api/features", isAuthenticated, async (_req, res) => {
+    try {
+      const requests = await storage.getFeatureRequests();
+      res.json(requests);
+    } catch (err) {
+      console.error("Error fetching feature requests:", err);
+      res.status(500).json({ message: "Failed to fetch feature requests" });
+    }
+  });
+
+  app.get("/api/features/my-votes", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = req.session.tenantId!;
+      const votedIds = await storage.getVotesForTenant(tenantId);
+      res.json(votedIds);
+    } catch (err) {
+      console.error("Error fetching votes:", err);
+      res.status(500).json({ message: "Failed to fetch votes" });
+    }
+  });
+
+  const featureSubmitSchema = z.object({
+    title: z.string().min(3, "Title must be at least 3 characters"),
+    description: z.string().min(10, "Description must be at least 10 characters"),
+    category: z.enum(["music_services", "media_tools", "storage", "social", "integrations", "other"]).default("other"),
+  });
+
+  app.post("/api/features", isAuthenticated, async (req, res) => {
+    try {
+      const parsed = featureSubmitSchema.parse(req.body);
+      const request = await storage.createFeatureRequest({
+        title: parsed.title,
+        description: parsed.description,
+        category: parsed.category,
+        submittedBy: req.session.name || null,
+        tenantId: req.session.tenantId || null,
+        status: "open",
+        adminNote: null,
+      });
+      res.json(request);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Error creating feature request:", err);
+      res.status(500).json({ message: "Failed to submit feature request" });
+    }
+  });
+
+  app.post("/api/features/:id/vote", isAuthenticated, async (req, res) => {
+    try {
+      const featureId = Number(req.params.id);
+      const tenantId = req.session.tenantId!;
+      const result = await storage.voteForFeature(featureId, tenantId);
+      res.json(result);
+    } catch (err) {
+      console.error("Error voting:", err);
+      res.status(500).json({ message: "Failed to vote" });
+    }
+  });
+
+  const featureUpdateSchema = z.object({
+    status: z.enum(["open", "under_review", "planned", "in_progress", "completed", "declined"]).optional(),
+    adminNote: z.string().nullable().optional(),
+  });
+
+  app.patch("/api/features/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const parsed = featureUpdateSchema.parse(req.body);
+      const updated = await storage.updateFeatureRequest(id, parsed);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Error updating feature request:", err);
+      res.status(500).json({ message: "Failed to update feature request" });
+    }
+  });
+
+  app.delete("/api/features/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      await storage.deleteFeatureRequest(Number(req.params.id));
+      res.sendStatus(204);
+    } catch (err) {
+      console.error("Error deleting feature request:", err);
+      res.status(500).json({ message: "Failed to delete feature request" });
+    }
+  });
+
+  // Seed initial feature requests if none exist
+  app.post("/api/features/seed", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const existing = await storage.getFeatureRequests();
+      if (existing.length > 0) {
+        return res.json({ message: "Features already seeded", count: existing.length });
+      }
+
+      const seeds = [
+        {
+          title: "Music Service Integration (Spotify, Apple Music, etc.)",
+          description: "Connect to music streaming services to browse and import tracks. This feature requires proper copyright licensing and legal review before implementation. We want to do this the right way — with proper agreements in place to protect our community.",
+          category: "music_services",
+          status: "under_review",
+          adminNote: "Requires copyright attorney consultation and licensing agreements. Tracking community interest to build a case for proper implementation.",
+          isSeeded: true,
+          submittedBy: null,
+          tenantId: null,
+        },
+        {
+          title: "Playlist Sharing Between Users",
+          description: "Allow users to share playlists and collections with other TrustVault members while maintaining ownership tracking.",
+          category: "social",
+          status: "open",
+          isSeeded: true,
+          submittedBy: null,
+          tenantId: null,
+          adminNote: null,
+        },
+        {
+          title: "Advanced Audio Equalizer & Effects",
+          description: "Built-in audio equalizer with presets and custom frequency controls for audio playback within the vault.",
+          category: "media_tools",
+          status: "open",
+          isSeeded: true,
+          submittedBy: null,
+          tenantId: null,
+          adminNote: null,
+        },
+        {
+          title: "Bulk Import from Cloud Storage",
+          description: "Import media files directly from Google Drive, Dropbox, or iCloud into your vault with automatic organization.",
+          category: "integrations",
+          status: "open",
+          isSeeded: true,
+          submittedBy: null,
+          tenantId: null,
+          adminNote: null,
+        },
+        {
+          title: "Collaborative Collections",
+          description: "Create shared collections where multiple family members can contribute and organize media together.",
+          category: "social",
+          status: "planned",
+          isSeeded: true,
+          submittedBy: null,
+          tenantId: null,
+          adminNote: "Planned for Phase 3 of the roadmap.",
+        },
+      ];
+
+      for (const seed of seeds) {
+        await storage.createFeatureRequest(seed as any);
+      }
+
+      res.json({ message: "Seeded feature requests", count: seeds.length });
+    } catch (err) {
+      console.error("Error seeding features:", err);
+      res.status(500).json({ message: "Failed to seed features" });
+    }
+  });
+
   // --- Media Routes ---
 
   // Batch routes must come before parameterized :id routes
