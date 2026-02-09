@@ -366,7 +366,6 @@ export function VinylAgent() {
                             size="icon"
                             onClick={() => speakText(msg.content, i)}
                             disabled={loadingAudio === i}
-                            className="h-6 w-6"
                             data-testid={`button-speak-${i}`}
                             title={playingIndex === i ? "Stop" : "Listen"}
                           >
