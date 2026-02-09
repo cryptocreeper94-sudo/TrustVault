@@ -15,6 +15,7 @@ import { registerStripeRoutes } from "./stripe/routes";
 import { registerAgentRoutes } from "./agent/routes";
 import { registerChatAuthRoutes } from "./chat/auth-routes";
 import { setupChatWebSocket } from "./chat/ws-server";
+import { generateTrustLayerId, generateJWT, hashPassword } from "./trustlayer-sso";
 
 declare module "express-session" {
   interface SessionData {
@@ -270,6 +271,85 @@ export async function registerRoutes(
       tenantId: req.session.tenantId,
       isAdmin: req.session.isAdmin ?? false,
     });
+  });
+
+  app.post("/api/auth/bridge-sso", isAuthenticated, async (req, res) => {
+    try {
+      const pinAuthId = req.session.pinAuthId!;
+      const auth = await storage.getPinAuthById(pinAuthId);
+      if (!auth) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      const existing = await storage.getChatUserByPinAuthId(pinAuthId);
+      if (existing) {
+        const token = generateJWT(existing.id, existing.trustLayerId || "");
+        return res.json({
+          success: true,
+          user: {
+            id: existing.id,
+            username: existing.username,
+            displayName: existing.displayName,
+            email: existing.email,
+            avatarColor: existing.avatarColor,
+            role: existing.role,
+            trustLayerId: existing.trustLayerId,
+          },
+          token,
+        });
+      }
+
+      const email = auth.email || `${auth.name.toLowerCase()}@trustvault.local`;
+      const existingByEmail = await storage.getChatUserByEmail(email);
+      if (existingByEmail) {
+        const token = generateJWT(existingByEmail.id, existingByEmail.trustLayerId || "");
+        return res.json({
+          success: true,
+          user: {
+            id: existingByEmail.id,
+            username: existingByEmail.username,
+            displayName: existingByEmail.displayName,
+            email: existingByEmail.email,
+            avatarColor: existingByEmail.avatarColor,
+            role: existingByEmail.role,
+            trustLayerId: existingByEmail.trustLayerId,
+          },
+          token,
+        });
+      }
+
+      const trustLayerId = generateTrustLayerId();
+      const passwordHash = await hashPassword(auth.pin);
+
+      const chatUser = await storage.createChatUser({
+        username: auth.name.toLowerCase(),
+        email,
+        passwordHash,
+        displayName: auth.name,
+        avatarColor: "#06b6d4",
+        role: auth.isAdmin ? "admin" : "member",
+        trustLayerId,
+        pinAuthId: auth.id,
+      });
+
+      const token = generateJWT(chatUser.id, trustLayerId);
+      return res.json({
+        success: true,
+        user: {
+          id: chatUser.id,
+          username: chatUser.username,
+          displayName: chatUser.displayName,
+          email: chatUser.email,
+          avatarColor: chatUser.avatarColor,
+          role: chatUser.role,
+          trustLayerId: chatUser.trustLayerId,
+        },
+        token,
+      });
+    } catch (err) {
+      console.error("SSO bridge error:", err);
+      return res.status(500).json({ success: false, message: "Failed to bridge SSO" });
+    }
   });
 
   app.post("/api/auth/logout", (req, res) => {

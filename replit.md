@@ -42,12 +42,15 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.
 - **Stripe Subscription System**: Pricing page with 4 tiers (Free/Personal/Pro/Studio), Stripe Checkout for payments, Customer Portal for management, webhook handling for subscription lifecycle.
 - **Spinny AI Agent**: Vinyl record mascot (googly eyes, smiley face) that lives as a floating side tab. Opens into a full chat panel powered by OpenAI (gpt-5.1) with streaming SSE responses. Tenant-scoped conversations with media vault context awareness. Uses `conversations` and `messages` tables with tenant isolation. Voice output via ElevenLabs TTS (primary, Sarah voice) with OpenAI gpt-audio (nova voice) as fallback. Auto-speak toggle and per-message speak buttons.
+- **Signal Chat**: Real-time ecosystem-wide chat system at `/chat`. JWT-authenticated via TrustLayer SSO. Channel-based messaging with WebSocket real-time delivery (typing indicators, presence, user join/leave). Supports reply threading. 6 default channels: general, announcements, darkwavestudios-support, garagebot-support, tlid-marketing, guardian-ai.
 
 ### Backend (Express + Node.js)
 - **Runtime**: Node.js with TypeScript (tsx/esbuild).
 - **Framework**: Express.js, serving API routes and static SPA.
 - **API Design**: RESTful JSON API using Zod for contract validation (`shared/routes.ts`).
-- **Authentication**: Custom password-based authentication (8+ chars, 1 uppercase, 1 special character) with bcrypt hashing and password reset flow. Express-session with PostgreSQL-backed storage.
+- **Authentication**: Dual auth system — (1) Custom password-based session auth for media vault (8+ chars, 1 uppercase, 1 special character, bcrypt hashing, express-session with PostgreSQL store), and (2) JWT-based TrustLayer SSO for cross-app ecosystem auth (HS256, 7-day expiry, shared JWT_SECRET across apps).
+- **TrustLayer SSO**: Cross-app single sign-on via shared JWT_SECRET. Trust Layer ID generation (tl-{base36-timestamp}-{random-8-chars}) at registration. Auth endpoints: /api/chat/auth/register, /api/chat/auth/login, /api/chat/auth/me. Bridge endpoint /api/auth/bridge-sso creates chat_users from existing TrustVault session users.
+- **WebSocket Chat Server**: ws library at /ws/chat with noServer mode (shares HTTP server with Vite HMR). JWT-authenticated join, channel switching, message broadcast, typing indicators, presence tracking.
 - **File Storage Interaction**: Generates presigned URLs for direct client uploads to Replit Object Storage, then stores metadata in the database.
 - **Ecosystem API (TrustHome Connectivity)**: Inter-service API for DarkWave ecosystem integration, featuring HMAC authentication, tenant scoping, project management, and webhook callbacks with retry mechanisms.
 - **Stripe Integration**: Subscription management with Checkout Sessions, Customer Portal, and webhook event handling (`server/stripe/routes.ts`).
@@ -59,7 +62,7 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 ### Database
 - **Database**: PostgreSQL.
 - **ORM**: Drizzle ORM for schema management and migrations.
-- **Key Tables**: `media_items` (media metadata), `pin_auth` (authentication), `sessions`, `collections`, `collection_items` (for media organization), `api_keys` (ecosystem credentials), `ecosystem_projects` (tenant-scoped projects), `blog_posts` (blog content), `subscriptions` (Stripe subscription state).
+- **Key Tables**: `media_items` (media metadata), `pin_auth` (authentication), `sessions`, `collections`, `collection_items` (for media organization), `api_keys` (ecosystem credentials), `ecosystem_projects` (tenant-scoped projects), `blog_posts` (blog content), `subscriptions` (Stripe subscription state), `chat_users` (TrustLayer SSO accounts), `chat_channels` (Signal Chat channels), `chat_messages` (Signal Chat messages).
 
 ### Key Design Patterns
 - **Presigned URL Upload Flow**: Efficient file upload by offloading direct file transfer to cloud storage.
@@ -80,8 +83,9 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key exposed to frontend.
 - `STRIPE_WEBHOOK_SECRET`: (Optional) Stripe webhook signing secret for signature verification.
 - `ELEVENLABS_API_KEY`: ElevenLabs API key for Spinny TTS voice.
+- `JWT_SECRET`: Shared JWT signing secret for TrustLayer SSO (must be identical across all ecosystem apps).
 
 ### Key NPM Dependencies
-- **Server**: `express`, `drizzle-orm`, `pg`, `express-session`, `connect-pg-simple`, `@google-cloud/storage`, `zod`.
+- **Server**: `express`, `drizzle-orm`, `pg`, `express-session`, `connect-pg-simple`, `@google-cloud/storage`, `zod`, `jsonwebtoken`, `ws`.
 - **Client**: `react`, `@tanstack/react-query`, `wouter`, `framer-motion`, `@uppy/core`, `@uppy/aws-s3`, `@uppy/react`, `shadcn/ui` components.
 - **Build**: `vite`, `esbuild`, `tsx`, `drizzle-kit`, `typescript`.

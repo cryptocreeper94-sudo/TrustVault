@@ -59,7 +59,15 @@ function broadcastPresence() {
 }
 
 export function setupChatWebSocket(server: Server): void {
-  const wss = new WebSocketServer({ server, path: "/ws/chat" });
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url === "/ws/chat") {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit("connection", ws, request);
+      });
+    }
+  });
 
   wss.on("connection", (ws: WebSocket) => {
     let authenticated = false;

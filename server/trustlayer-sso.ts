@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-jwt-secret-change-me";
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? (() => { throw new Error("JWT_SECRET must be set in production"); })() : "dev-jwt-secret-change-me") as string;
 const JWT_ISSUER = "trust-layer-sso";
 const JWT_EXPIRY = "7d";
 const BCRYPT_ROUNDS = 12;
