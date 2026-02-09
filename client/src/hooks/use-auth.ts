@@ -59,8 +59,8 @@ export function useAuth() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async ({ name, password }: { name?: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/auth/login", { name, password });
+    mutationFn: async ({ name, password, rememberMe }: { name?: string; password: string; rememberMe?: boolean }) => {
+      const res = await apiRequest("POST", "/api/auth/login", { name, password, rememberMe });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Login failed");

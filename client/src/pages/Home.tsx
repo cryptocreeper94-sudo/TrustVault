@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -1286,6 +1287,7 @@ function PasswordLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   const multiUser = accountCount > 1;
 
@@ -1299,7 +1301,7 @@ function PasswordLogin() {
     setErrorMsg("");
 
     try {
-      await login({ name: multiUser ? name.trim() : undefined, password });
+      await login({ name: multiUser ? name.trim() : undefined, password, rememberMe });
     } catch (err: any) {
       setShake(true);
       setTimeout(() => setShake(false), 600);
@@ -1391,11 +1393,27 @@ function PasswordLogin() {
               )}
             </div>
 
+            <div className="flex items-center gap-3">
+              <Switch
+                id="remember-me"
+                checked={rememberMe}
+                onCheckedChange={setRememberMe}
+                data-testid="toggle-remember-me"
+              />
+              <label
+                htmlFor="remember-me"
+                className="text-sm text-muted-foreground cursor-pointer select-none"
+              >
+                Keep me logged in for 30 days
+              </label>
+            </div>
+
             <Button
               type="submit"
+              size="lg"
               data-testid="button-login-submit"
               disabled={password.length < 1 || isLoggingIn}
-              className="w-full h-12 text-base font-medium bg-primary text-white rounded-lg"
+              className="w-full text-base font-medium"
             >
               {isLoggingIn ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -1403,6 +1421,12 @@ function PasswordLogin() {
                 "Unlock"
               )}
             </Button>
+
+            <p className="text-[11px] text-muted-foreground/60 text-center leading-relaxed">
+              By logging in, you agree to our use of secure session cookies.
+              {rememberMe ? " Your session will persist for 30 days on this device." : " Your session will end when you close the browser."}
+              {" "}We do not share your data with third parties. Your media files are stored securely in your private tenant space.
+            </p>
           </form>
         </div>
       </div>

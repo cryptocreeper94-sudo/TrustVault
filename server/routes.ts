@@ -128,7 +128,7 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { name, password } = req.body;
+      const { name, password, rememberMe } = req.body;
       if (!password) {
         return res.status(400).json({ message: "Password is required" });
       }
@@ -176,6 +176,14 @@ export async function registerRoutes(
       req.session.tenantId = tenant.id;
       req.session.pinAuthId = auth.id;
       req.session.isAdmin = auth.isAdmin ?? false;
+
+      if (rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+      } else {
+        req.session.cookie.maxAge = null as any;
+        req.session.cookie.expires = false as any;
+      }
+
       return res.json({ name: auth.name, mustReset: auth.mustReset, tenantId: tenant.id, isAdmin: auth.isAdmin ?? false });
     } catch (err) {
       console.error("Login error:", err);
