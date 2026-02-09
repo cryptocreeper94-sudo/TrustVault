@@ -22,6 +22,10 @@ export function EditMediaDialog({ item, open, onOpenChange }: EditMediaDialogPro
   const [label, setLabel] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [artist, setArtist] = useState("");
+  const [venue, setVenue] = useState("");
+  const [tour, setTour] = useState("");
+  const [eventDate, setEventDate] = useState("");
 
   const updateMedia = useUpdateMedia();
   const { toast } = useToast();
@@ -33,6 +37,10 @@ export function EditMediaDialog({ item, open, onOpenChange }: EditMediaDialogPro
       setLabel(item.label || "");
       setTags(item.tags || []);
       setTagInput("");
+      setArtist(item.artist || "");
+      setVenue(item.venue || "");
+      setTour(item.tour || "");
+      setEventDate(item.eventDate ? new Date(item.eventDate).toISOString().split("T")[0] : "");
     }
   }, [item, open]);
 
@@ -63,6 +71,10 @@ export function EditMediaDialog({ item, open, onOpenChange }: EditMediaDialogPro
           description: description || undefined,
           label: label || undefined,
           tags: tags.length > 0 ? tags : undefined,
+          artist: artist || undefined,
+          venue: venue || undefined,
+          tour: tour || undefined,
+          eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
         },
       });
       toast({ title: "Updated", description: "Changes saved." });
@@ -132,6 +144,56 @@ export function EditMediaDialog({ item, open, onOpenChange }: EditMediaDialogPro
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Event Details</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-artist" className="text-[11px] text-muted-foreground">Artist</Label>
+                <Input
+                  id="edit-artist"
+                  data-testid="input-edit-artist"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  placeholder="Artist name"
+                  className="bg-white/5 border-white/10 focus:border-primary/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-venue" className="text-[11px] text-muted-foreground">Venue</Label>
+                <Input
+                  id="edit-venue"
+                  data-testid="input-edit-venue"
+                  value={venue}
+                  onChange={(e) => setVenue(e.target.value)}
+                  placeholder="Venue name"
+                  className="bg-white/5 border-white/10 focus:border-primary/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-tour" className="text-[11px] text-muted-foreground">Tour</Label>
+                <Input
+                  id="edit-tour"
+                  data-testid="input-edit-tour"
+                  value={tour}
+                  onChange={(e) => setTour(e.target.value)}
+                  placeholder="Tour name"
+                  className="bg-white/5 border-white/10 focus:border-primary/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-event-date" className="text-[11px] text-muted-foreground">Event Date</Label>
+                <Input
+                  id="edit-event-date"
+                  data-testid="input-edit-event-date"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="bg-white/5 border-white/10 focus:border-primary/50"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

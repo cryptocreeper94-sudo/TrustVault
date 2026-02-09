@@ -16,13 +16,23 @@ This is a personal **universal media vault** — a full-stack web application th
 
 ## Recent Changes
 
+- **Phase 1 Expansion: Media Editors & Merge** (Feb 2026) — Added full-featured standalone editors:
+  - **Image Editor** (`/editor/image/:id`): Crop, rotate, resize, 7 filters (grayscale/sepia/vintage/cool/vivid/fade), brightness/contrast/saturation/blur adjustments, canvas-based processing, saves as new media item
+  - **Audio Editor** (`/editor/audio/:id`): Waveform visualization, trim/cut with draggable handles, fade in/out, volume control, playback speed, WAV encoding via OfflineAudioContext, saves as new media item
+  - **Video Editor** (`/editor/video/:id`): Timeline/trim bar, custom playback controls, frame capture (saves as new image), visual adjustments (brightness/contrast), saves clip info as new media item
+  - **Merge/Combine** (`/merge`): 4-step guided workflow — select type (image collage/audio concat/video concat), select items, configure, process & save. Image collage uses canvas, audio concat uses Web Audio API with crossfade support
+  - **Batch Upload**: Multi-file queue with per-file progress, client-side thumbnail extraction for images/videos, duration detection for videos, event detail fields (artist/venue/tour)
+  - **Schema additions**: thumbnailUrl, durationSeconds, artist, venue, tour, eventDate fields on media_items
+  - **Media cards**: Show thumbnails, duration badges, artist info; "Open in editor" button (Wand2 icon) navigates to appropriate editor
+  - **Edit dialog**: Added artist/venue/tour/eventDate fields
+  - **Mobile polish**: All pages audited and fixed for responsive layouts, touch targets, stacking panels on small screens
 - **Phase 1: Smart Browsing & Organization** (Feb 2026) — Added collections system (create/manage albums), timeline view (group media by year/month), grid/timeline view toggle, sort options (date/name/size), date range filtering, bulk select mode with floating action bar (batch favorite/unfavorite, batch delete, set label, add/remove from collections). Collections use junction table (`collection_items`). Batch API routes (`PATCH /api/media/batch`, `DELETE /api/media/batch`). React hooks for all CRUD operations in `client/src/hooks/use-media.ts`.
 
 ## System Architecture
 
 ### Frontend (React SPA)
 - **Framework**: React 18 with TypeScript, bundled by Vite
-- **Routing**: Wouter (lightweight client-side router) — single main route (`/`) plus a 404 page
+- **Routing**: Wouter (lightweight client-side router) — routes: `/` (home), `/editor/image/:id`, `/editor/audio/:id`, `/editor/video/:id`, `/merge`, plus 404 page
 - **State Management**: TanStack React Query for server state (data fetching, caching, mutations)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, styled with Tailwind CSS and CSS variables for theming
 - **Animations**: Framer Motion for page transitions and micro-interactions
@@ -50,7 +60,7 @@ This is a personal **universal media vault** — a full-stack web application th
 - **ORM**: Drizzle ORM with `drizzle-kit` for migrations
 - **Schema Push**: Use `npm run db:push` to push schema changes to the database (uses `drizzle-kit push`)
 - **Tables**:
-  - `media_items` — stores all media metadata (title, description, url/object path, filename, content type, category, size, label, tags, file_date, favorite flag)
+  - `media_items` — stores all media metadata (title, description, url/object path, filename, content type, category, size, label, tags, file_date, favorite flag, thumbnailUrl, durationSeconds, artist, venue, tour, eventDate)
   - `pin_auth` — single-row table for PIN authentication (pin, must_reset flag, name)
   - `sessions` — express-session storage
   - `users` — kept from Replit Auth integration, not actively used by PIN auth

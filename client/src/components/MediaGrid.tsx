@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from "react";
+import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
-import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye } from "lucide-react";
+import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Wand2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,12 @@ const CATEGORY_BG: Record<MediaCategory, string> = {
   document: "bg-amber-500/10 border-amber-500/20",
   other: "bg-white/5 border-white/10",
 };
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
 interface MediaGridProps {
   items: MediaResponse[];
@@ -81,6 +88,7 @@ export function MediaGrid({ items, onPlay, onEdit }: MediaGridProps) {
 }
 
 function MediaCard({ item, onPlay, onEdit, index }: { item: MediaResponse; onPlay: () => void; onEdit: () => void; index: number }) {
+  const [, navigate] = useLocation();
   const toggleFavorite = useToggleFavorite();
   const deleteMedia = useDeleteMedia();
   const { toast } = useToast();
@@ -161,13 +169,29 @@ function MediaCard({ item, onPlay, onEdit, index }: { item: MediaResponse; onPla
               className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
             />
+          ) : (cat === "video" || cat === "audio") && item.thumbnailUrl ? (
+            <img
+              src={`/objects/${item.thumbnailUrl}`}
+              alt={item.title}
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
           ) : null}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />
 
-          {cat !== "image" && (
+          {cat !== "image" && !((cat === "video" || cat === "audio") && item.thumbnailUrl) && (
             <div className={`relative z-20 p-4 rounded-full ${catBg} border`}>
               <CatIcon className={`w-8 h-8 sm:w-10 sm:h-10 ${catColor}`} />
+            </div>
+          )}
+
+          {(cat === "video" || cat === "audio") && item.durationSeconds && (
+            <div className="absolute bottom-2 right-2 z-20">
+              <Badge variant="secondary" className="text-[10px] font-mono bg-black/60 backdrop-blur-md border-white/10 text-white no-default-hover-elevate no-default-active-elevate">
+                <Clock className="w-3 h-3 mr-1" />
+                {formatDuration(item.durationSeconds)}
+              </Badge>
             </div>
           )}
 
@@ -192,10 +216,10 @@ function MediaCard({ item, onPlay, onEdit, index }: { item: MediaResponse; onPla
             <TooltipTrigger asChild>
               <button
                 onClick={handleFavorite}
-                className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10"
+                className="absolute top-2 right-2 z-20 p-2 sm:p-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10"
                 data-testid={`button-favorite-${item.id}`}
               >
-                <Heart className={`w-3.5 h-3.5 ${item.isFavorite ? "fill-red-500 text-red-500" : "text-white/60"}`} />
+                <Heart className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${item.isFavorite ? "fill-red-500 text-red-500" : "text-white/60"}`} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
@@ -215,6 +239,11 @@ function MediaCard({ item, onPlay, onEdit, index }: { item: MediaResponse; onPla
               >
                 {item.title}
               </h3>
+              {item.artist && (
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5" data-testid={`text-artist-${item.id}`}>
+                  {item.artist}
+                </p>
+              )}
               <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
                 {displayDate && (
                   <span className="flex items-center gap-1">
@@ -243,6 +272,24 @@ function MediaCard({ item, onPlay, onEdit, index }: { item: MediaResponse; onPla
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">Edit details</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={cat === "document" || cat === "other"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      haptic("tap");
+                      navigate(`/editor/${cat}/${item.id}`);
+                    }}
+                    data-testid={`button-open-editor-${item.id}`}
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Open in editor</TooltipContent>
               </Tooltip>
               <AlertDialog>
                 <Tooltip>

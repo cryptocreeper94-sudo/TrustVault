@@ -46,6 +46,12 @@ export const mediaItems = pgTable("media_items", {
   fileDate: timestamp("file_date"),
   createdAt: timestamp("created_at").defaultNow(),
   isFavorite: boolean("is_favorite").default(false),
+  thumbnailUrl: text("thumbnail_url"),
+  durationSeconds: integer("duration_seconds"),
+  artist: text("artist"),
+  venue: text("venue"),
+  tour: text("tour"),
+  eventDate: timestamp("event_date"),
 });
 
 export const insertMediaSchema = createInsertSchema(mediaItems).omit({
@@ -59,7 +65,7 @@ export type PinAuth = typeof pinAuth.$inferSelect;
 export type MediaItem = typeof mediaItems.$inferSelect;
 export type InsertMediaItem = z.infer<typeof insertMediaSchema>;
 
-export type UpdateMediaRequest = Partial<Pick<InsertMediaItem, "title" | "description" | "label" | "tags">>;
+export type UpdateMediaRequest = Partial<Pick<InsertMediaItem, "title" | "description" | "label" | "tags" | "artist" | "venue" | "tour" | "eventDate" | "thumbnailUrl" | "durationSeconds">>;
 export type ToggleFavoriteRequest = { isFavorite: boolean };
 
 export type MediaItemResponse = MediaItem;

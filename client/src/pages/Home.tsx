@@ -21,12 +21,13 @@ import {
   Loader2, Plus, LogOut, Shield, Search, Lock, KeyRound, Eye, EyeOff,
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
-  Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X,
+  Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -515,8 +516,8 @@ function BulkActionBar({
         className="fixed bottom-0 left-0 right-0 z-50 glass-morphism border-t border-white/10 px-4 py-3"
         data-testid="bulk-action-bar"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate">
               {count} selected
             </Badge>
@@ -527,7 +528,7 @@ function BulkActionBar({
               Deselect All
             </Button>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap overflow-x-auto">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -908,6 +909,13 @@ export default function Home() {
               )}
             </Button>
 
+            <Link href="/merge">
+              <Button data-testid="button-merge" variant="outline" className="rounded-full gap-2">
+                <Layers className="w-4 h-4" />
+                Merge
+              </Button>
+            </Link>
+
             <UploadDialog>
               <Button data-testid="button-upload" className="bg-primary text-white shadow-lg shadow-primary/25 rounded-full gap-2">
                 <Plus className="w-4 h-4" />
@@ -982,7 +990,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div className="flex flex-col gap-3 mb-5">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center rounded-lg overflow-visible glass-card">
               <Button
@@ -1006,7 +1014,7 @@ export default function Home() {
             </div>
 
             <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
-              <SelectTrigger className="w-[180px] bg-white/5 border-white/10" data-testid="select-sort">
+              <SelectTrigger className="w-[140px] sm:w-[180px] bg-white/5 border-white/10" data-testid="select-sort">
                 <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -1026,7 +1034,7 @@ export default function Home() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-[140px] bg-white/5 border-white/10 text-sm"
+              className="w-[120px] sm:w-[140px] bg-white/5 border-white/10 text-sm"
               data-testid="input-date-from"
               placeholder="From"
             />
@@ -1035,7 +1043,7 @@ export default function Home() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-[140px] bg-white/5 border-white/10 text-sm"
+              className="w-[120px] sm:w-[140px] bg-white/5 border-white/10 text-sm"
               data-testid="input-date-to"
               placeholder="To"
             />

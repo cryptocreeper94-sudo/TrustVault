@@ -54,6 +54,12 @@ export const api = {
         description: z.string().optional(),
         label: z.string().optional(),
         tags: z.array(z.string()).optional(),
+        artist: z.string().optional(),
+        venue: z.string().optional(),
+        tour: z.string().optional(),
+        eventDate: z.string().optional(),
+        thumbnailUrl: z.string().optional(),
+        durationSeconds: z.number().optional(),
       }),
       responses: {
         200: z.custom<typeof mediaItems.$inferSelect>(),
