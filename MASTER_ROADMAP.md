@@ -235,14 +235,40 @@ Every digital file that could be considered intellectual property — video, aud
 
 ## Core Value Proposition Across All Verticals
 
-The common thread: **any digital file that represents intellectual property needs a secure, private, trust-verified vault with provenance tracking.**
+The common thread: **any digital file that represents intellectual property needs a secure, immutable, trust-verified vault with provenance tracking — and the ability to showcase it when the creator chooses.**
 
-This product is not just a video gallery. It is a **trust-gated digital vault** for intellectual property — where:
+This product is not just a video gallery. It is not just storage. It is a **creator's permanent, immutable showcase and vault** — where:
 - **Ownership** is provable (blockchain provenance)
 - **Access** is controlled by trust relationships (TrustLayer)
 - **Identity** is verified (on-chain identity)
 - **Files** are stored securely (encrypted, private, with audit trails)
 - **Sharing** is intentional, not accidental (trust-gated, not public-by-default)
+- **Permanence** is guaranteed — immutable, cannot be erased, altered, or disputed
+- **Showcase mode** lets creators go public on their terms — editable presentation, curated galleries, professional portfolio view
+- **Vault mode** keeps everything locked, private, and protected until the creator decides otherwise
+
+### The Dual Nature: Vault + Showcase
+
+Every creator needs two things:
+1. A **vault** — where the raw work lives, protected, permanent, provable. Demos, drafts, masters, originals, contracts, session recordings. Private by default. Immutable.
+2. A **showcase** — where the finished work shines. A curated, editable, professional presentation the creator controls completely. Public when they choose. Their portfolio, their gallery, their storefront.
+
+Most platforms force you to choose one or the other. This does both — and the creator controls the line between them.
+
+### What "Immutable and Permanent" Means
+- Once a file enters the vault, its existence and timestamp are recorded on-chain
+- The original file cannot be altered or deleted from the provenance record
+- The creator can choose to hide, archive, or remove from showcase — but the proof of creation remains forever
+- This protects creators in disputes, licensing negotiations, and rights management
+- This is not "cloud storage that might shut down" — this is permanent record, backed by blockchain
+
+### All Media Types
+The vault and showcase support every form of digital intellectual property:
+- Video (concerts, films, reels, demos, tutorials)
+- Audio (music, podcasts, voice work, sound design)
+- Images (photography, art, design, architecture)
+- Documents (contracts, scripts, manuscripts, blueprints)
+- Mixed media (presentations, portfolios, collections)
 
 This positions the product as infrastructure for the creator economy, the legal profession, corporate enterprise, education, sports, and personal use — all unified under the TrustLayer ecosystem.
 

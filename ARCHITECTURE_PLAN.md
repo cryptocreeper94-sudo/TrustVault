@@ -6,11 +6,15 @@
 
 ---
 
+## The Vision
+
+> This is not a storage product. This is a **creator's permanent, immutable showcase and vault for all media** — video, audio, images, documents — with public/private control, blockchain-backed provenance, and trust-gated access. Built here as a standalone product, connected to the TrustLayer ecosystem via API.
+
 ## The Core Question
 
 > "Do we build everything in one place, or separate it out?"
 
-**Answer: Modular monorepo with independent deployable services, unified by a shared design system and identity layer.**
+**Answer: Build deep here as a standalone product. Connect wide to the ecosystem via API. Each ecosystem site (darkwavestudios.io, dwsc.io, trustshield.tech) remains independent. This product gets its own domain and deployment, linked to the others through clean API integrations.**
 
 Here's why, and here's how.
 
