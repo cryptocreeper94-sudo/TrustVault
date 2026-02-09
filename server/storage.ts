@@ -50,7 +50,7 @@ export interface IStorage {
   getPinAuthByName(name: string): Promise<PinAuth | undefined>;
   getPinAuthById(id: number): Promise<PinAuth | undefined>;
   getAllPinAuths(): Promise<PinAuth[]>;
-  updatePin(id: number, pin: string, mustReset: boolean): Promise<PinAuth>;
+  updatePin(id: number, pin: string, mustReset: boolean, email?: string): Promise<PinAuth>;
   initializePinAuth(pin: string, name: string, mustReset?: boolean, tenantId?: string): Promise<PinAuth>;
 
   // Collections (tenant-scoped)
@@ -190,10 +190,12 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(pinAuth);
   }
 
-  async updatePin(id: number, pin: string, mustReset: boolean): Promise<PinAuth> {
+  async updatePin(id: number, pin: string, mustReset: boolean, email?: string): Promise<PinAuth> {
+    const updates: any = { pin, mustReset, updatedAt: new Date() };
+    if (email !== undefined) updates.email = email;
     const [updated] = await db
       .update(pinAuth)
-      .set({ pin, mustReset, updatedAt: new Date() })
+      .set(updates)
       .where(eq(pinAuth.id, id))
       .returning();
     return updated;

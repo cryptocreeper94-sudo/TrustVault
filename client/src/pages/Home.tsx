@@ -22,7 +22,7 @@ import {
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
-  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard,
+  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1390,20 +1390,33 @@ function PasswordLogin() {
 
 function PasswordReset() {
   const { resetPassword, isResettingPassword } = useAuth();
+  const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [step, setStep] = useState<"new" | "confirm">("new");
+  const [step, setStep] = useState<"email" | "password" | "confirm">("email");
   const [error, setError] = useState("");
   const { toast } = useToast();
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test(email.trim());
 
   const hasMinLength = newPassword.length >= 8;
   const hasUppercase = /[A-Z]/.test(newPassword);
   const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword);
-  const isValid = hasMinLength && hasUppercase && hasSpecialChar;
+  const isPasswordValid = hasMinLength && hasUppercase && hasSpecialChar;
 
-  const handleContinue = () => {
-    if (!isValid) return;
+  const handleEmailContinue = () => {
+    if (!isEmailValid) {
+      setError("Please enter a valid email address");
+      return;
+    }
+    setError("");
+    setStep("password");
+  };
+
+  const handlePasswordContinue = () => {
+    if (!isPasswordValid) return;
     setStep("confirm");
     setError("");
   };
@@ -1417,14 +1430,32 @@ function PasswordReset() {
     }
 
     try {
-      await resetPassword(newPassword);
+      await resetPassword({ newPassword, email: email.trim() });
       toast({
-        title: "Password Set",
-        description: "Your new password has been set successfully.",
+        title: "Account Set Up",
+        description: "Your email and password have been saved securely.",
       });
     } catch (err: any) {
-      setError(err.message || "Failed to update password");
+      setError(err.message || "Failed to set up account");
     }
+  };
+
+  const stepTitles = {
+    email: "Set Up Your Account",
+    password: "Create Your Password",
+    confirm: "Confirm Password",
+  };
+  const stepDescs = {
+    email: "Enter your email to secure your vault",
+    password: "Create a strong password for your vault",
+    confirm: "Enter the same password again to confirm",
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step === "email") handleEmailContinue();
+    else if (step === "password") handlePasswordContinue();
+    else handleSubmit();
   };
 
   return (
@@ -1435,18 +1466,45 @@ function PasswordReset() {
             <KeyRound className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-reset-title">
-            {step === "new" ? "Set Your Password" : "Confirm Password"}
+            {stepTitles[step]}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {step === "new"
-              ? "Create a strong password for your vault"
-              : "Enter the same password again to confirm"
-            }
+            {stepDescs[step]}
           </p>
         </div>
 
-        <form onSubmit={step === "confirm" ? handleSubmit : (e) => { e.preventDefault(); handleContinue(); }} className="space-y-6">
-          {step === "new" ? (
+        <form onSubmit={handleFormSubmit} className="space-y-6">
+          {step === "email" && (
+            <div className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                  placeholder="Your email address"
+                  className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                  data-testid="input-reset-email"
+                  autoFocus
+                />
+              </div>
+
+              {error && (
+                <p className="text-center text-sm text-destructive" data-testid="text-reset-error">{error}</p>
+              )}
+
+              <Button
+                type="submit"
+                data-testid="button-email-continue"
+                disabled={!email.trim()}
+                className="w-full h-12 text-base font-medium bg-primary text-white rounded-lg"
+              >
+                Continue
+              </Button>
+            </div>
+          )}
+
+          {step === "password" && (
             <div className="space-y-4">
               <div className="relative">
                 <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1492,16 +1550,28 @@ function PasswordReset() {
                 <p className="text-center text-sm text-destructive" data-testid="text-reset-error">{error}</p>
               )}
 
-              <Button
-                type="submit"
-                data-testid="button-password-continue"
-                disabled={!isValid || isResettingPassword}
-                className="w-full h-12 text-base font-medium bg-primary text-white rounded-lg"
-              >
-                Continue
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-12 border-white/10"
+                  onClick={() => { setStep("email"); setError(""); }}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  data-testid="button-password-continue"
+                  disabled={!isPasswordValid || isResettingPassword}
+                  className="flex-1 h-12 text-base font-medium bg-primary text-white rounded-lg"
+                >
+                  Continue
+                </Button>
+              </div>
             </div>
-          ) : (
+          )}
+
+          {step === "confirm" && (
             <div className="space-y-4">
               <div className="relative">
                 <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1537,7 +1607,7 @@ function PasswordReset() {
                   type="button"
                   variant="outline"
                   className="flex-1 h-12 border-white/10"
-                  onClick={() => { setStep("new"); setConfirmPassword(""); setError(""); }}
+                  onClick={() => { setStep("password"); setConfirmPassword(""); setError(""); }}
                   disabled={isResettingPassword}
                 >
                   Back
@@ -1551,7 +1621,7 @@ function PasswordReset() {
                   {isResettingPassword ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    "Set Password"
+                    "Complete Setup"
                   )}
                 </Button>
               </div>
@@ -1567,12 +1637,16 @@ function PasswordReset() {
 function AccountSetup() {
   const { setup, isSettingUp, setupError } = useAuth();
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [step, setStep] = useState<"name" | "password" | "confirm">("name");
+  const [step, setStep] = useState<"name" | "email" | "password" | "confirm">("name");
   const [error, setError] = useState("");
   const { toast } = useToast();
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test(email.trim());
 
   const hasMinLength = password.length >= 8;
   const hasUppercase = /[A-Z]/.test(password);
@@ -1581,6 +1655,15 @@ function AccountSetup() {
 
   const handleNameContinue = () => {
     if (!name.trim()) return;
+    setStep("email");
+  };
+
+  const handleEmailContinue = () => {
+    if (!isEmailValid) {
+      setError("Please enter a valid email address");
+      return;
+    }
+    setError("");
     setStep("password");
   };
 
@@ -1599,7 +1682,7 @@ function AccountSetup() {
     }
 
     try {
-      await setup({ name: name.trim(), password });
+      await setup({ name: name.trim(), password, email: email.trim() });
       toast({
         title: "Account Created",
         description: `Welcome to your vault, ${name.trim()}!`,
@@ -1638,14 +1721,16 @@ function AccountSetup() {
               <UserPlus className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-setup-title">
-              {step === "name" ? "Create Your Account" : step === "password" ? "Set Your Password" : "Confirm Password"}
+              {step === "name" ? "Create Your Account" : step === "email" ? "Your Email" : step === "password" ? "Set Your Password" : "Confirm Password"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {step === "name"
                 ? "What should we call you?"
-                : step === "password"
-                  ? "Create a strong password for your vault"
-                  : "Enter the same password again to confirm"
+                : step === "email"
+                  ? "Enter your email to secure your account"
+                  : step === "password"
+                    ? "Create a strong password for your vault"
+                    : "Enter the same password again to confirm"
               }
             </p>
           </div>
@@ -1654,6 +1739,7 @@ function AccountSetup() {
             onSubmit={(e) => {
               e.preventDefault();
               if (step === "name") handleNameContinue();
+              else if (step === "email") handleEmailContinue();
               else if (step === "password") handlePasswordContinue();
               else handleSubmit();
             }}
@@ -1681,6 +1767,46 @@ function AccountSetup() {
                 >
                   Continue
                 </Button>
+              </div>
+            )}
+
+            {step === "email" && (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                    placeholder="Your email address"
+                    className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                    data-testid="input-setup-email"
+                    autoFocus
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-center text-sm text-destructive" data-testid="text-setup-error">{error}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-12 border-white/10"
+                    onClick={() => { setStep("name"); setError(""); }}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    data-testid="button-setup-email-continue"
+                    disabled={!email.trim()}
+                    className="flex-1 h-12 text-base font-medium bg-primary text-white rounded-lg"
+                  >
+                    Continue
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -1730,7 +1856,7 @@ function AccountSetup() {
                     type="button"
                     variant="outline"
                     className="flex-1 h-12 border-white/10"
-                    onClick={() => setStep("name")}
+                    onClick={() => setStep("email")}
                   >
                     Back
                   </Button>

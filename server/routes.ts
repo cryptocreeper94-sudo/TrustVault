@@ -82,11 +82,19 @@ export async function registerRoutes(
 
   app.post("/api/auth/setup", async (req, res) => {
     try {
-      const { name, password } = req.body;
+      const { name, password, email } = req.body;
       if (!name || !name.trim()) {
         return res.status(400).json({ message: "Name is required" });
       }
+      if (!email || !email.trim()) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+      }
       const trimmedName = name.trim();
+      const trimmedEmail = email.trim().toLowerCase();
       const existingByName = await storage.getPinAuthByName(trimmedName);
       if (existingByName) {
         return res.status(400).json({ message: "An account with that name already exists. Please log in." });
@@ -104,6 +112,7 @@ export async function registerRoutes(
         status: "active",
       });
       const auth = await storage.initializePinAuth(hashedPassword, trimmedName, false, tenant.id);
+      await storage.updatePin(auth.id, hashedPassword, false, trimmedEmail);
       await storage.updateTenant(tenant.id, { pinAuthId: auth.id });
       req.session.authenticated = true;
       req.session.name = auth.name;
@@ -176,13 +185,20 @@ export async function registerRoutes(
 
   app.post("/api/auth/reset-password", isAuthenticated, async (req, res) => {
     try {
-      const { newPassword } = req.body;
+      const { newPassword, email } = req.body;
+      if (!email || !email.trim()) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+      }
       const validationError = validatePassword(newPassword);
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      const updated = await storage.updatePin(req.session.pinAuthId!, hashedPassword, false);
+      const updated = await storage.updatePin(req.session.pinAuthId!, hashedPassword, false, email.trim().toLowerCase());
       return res.json({ success: true, name: updated.name });
     } catch (err) {
       console.error("Reset password error:", err);

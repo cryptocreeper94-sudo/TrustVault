@@ -44,8 +44,8 @@ export function useAuth() {
   });
 
   const setupMutation = useMutation({
-    mutationFn: async ({ name, password }: { name: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/auth/setup", { name, password });
+    mutationFn: async ({ name, password, email }: { name: string; password: string; email: string }) => {
+      const res = await apiRequest("POST", "/api/auth/setup", { name, password, email });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Setup failed");
@@ -73,8 +73,8 @@ export function useAuth() {
   });
 
   const resetPasswordMutation = useMutation({
-    mutationFn: async (newPassword: string) => {
-      const res = await apiRequest("POST", "/api/auth/reset-password", { newPassword });
+    mutationFn: async ({ newPassword, email }: { newPassword: string; email: string }) => {
+      const res = await apiRequest("POST", "/api/auth/reset-password", { newPassword, email });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Reset failed");
