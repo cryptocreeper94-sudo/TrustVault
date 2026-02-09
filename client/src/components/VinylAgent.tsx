@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, Trash2, Loader2 } from "lucide-react";
+import { Send, X, Trash2, Loader2, Volume2, VolumeX, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -21,8 +21,13 @@ export function VinylAgent() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [isBouncing, setIsBouncing] = useState(false);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [loadingAudio, setLoadingAudio] = useState<number | null>(null);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastSpokenIndexRef = useRef<number>(-1);
 
   useEffect(() => {
     const bounceInterval = setInterval(() => {
@@ -45,6 +50,66 @@ export function VinylAgent() {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    setPlayingIndex(null);
+  }, []);
+
+  const speakText = useCallback(async (text: string, index: number) => {
+    if (playingIndex === index) {
+      stopAudio();
+      return;
+    }
+    stopAudio();
+    setLoadingAudio(index);
+    try {
+      const res = await fetch("/api/agent/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setPlayingIndex(null);
+        audioRef.current = null;
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        setPlayingIndex(null);
+        audioRef.current = null;
+      };
+      setPlayingIndex(index);
+      setLoadingAudio(null);
+      await audio.play();
+    } catch {
+      setLoadingAudio(null);
+      setPlayingIndex(null);
+    }
+  }, [playingIndex, stopAudio]);
+
+  useEffect(() => {
+    if (!autoSpeak || isLoading) return;
+    const lastMsg = messages[messages.length - 1];
+    const lastIndex = messages.length - 1;
+    if (lastMsg?.role === "assistant" && lastMsg.content && lastIndex > lastSpokenIndexRef.current) {
+      lastSpokenIndexRef.current = lastIndex;
+      speakText(lastMsg.content, lastIndex);
+    }
+  }, [messages, isLoading, autoSpeak, speakText]);
+
+  useEffect(() => {
+    return () => { stopAudio(); };
+  }, [stopAudio]);
 
   const startConversation = useCallback(async () => {
     try {
@@ -204,6 +269,16 @@ export function VinylAgent() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => setAutoSpeak(prev => !prev)}
+                    className={`toggle-elevate ${autoSpeak ? "toggle-elevated" : ""}`}
+                    data-testid="button-toggle-auto-speak"
+                    title={autoSpeak ? "Auto-speak on" : "Auto-speak off"}
+                  >
+                    {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={clearChat}
                     disabled={messages.length === 0}
                     data-testid="button-clear-chat"
@@ -267,18 +342,42 @@ export function VinylAgent() {
                         />
                       </div>
                     )}
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-muted rounded-bl-md"
-                      }`}
-                      data-testid={`message-${msg.role}-${i}`}
-                    >
-                      {msg.content || (
-                        <div className="flex items-center gap-1.5">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          <span className="text-xs text-muted-foreground">Thinking...</span>
+                    <div className="flex flex-col gap-1 max-w-[80%]">
+                      <div
+                        className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground rounded-br-md"
+                            : "bg-muted rounded-bl-md"
+                        }`}
+                        data-testid={`message-${msg.role}-${i}`}
+                      >
+                        {msg.content || (
+                          <div className="flex items-center gap-1.5">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span className="text-xs text-muted-foreground">Thinking...</span>
+                          </div>
+                        )}
+                      </div>
+                      {msg.role === "assistant" && msg.content && (
+                        <div className="self-start ml-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => speakText(msg.content, i)}
+                            disabled={loadingAudio === i}
+                            className="h-6 w-6"
+                            data-testid={`button-speak-${i}`}
+                            title={playingIndex === i ? "Stop" : "Listen"}
+                          >
+                            {loadingAudio === i ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : playingIndex === i ? (
+                              <Square className="h-3.5 w-3.5" />
+                            ) : (
+                              <Volume2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
                         </div>
                       )}
                     </div>

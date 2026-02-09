@@ -9,6 +9,9 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **Madeline** (daughter): tenant `madeline` — has own isolated media space
 - **Natalie** (daughter): tenant `natalie` — has own isolated media space (must reset password on first login)
 - **Avery** (daughter): tenant `avery` — has own isolated media space (must reset password on first login)
+- **Jennifer** (sister): tenant `jennifer` — has own isolated media space (must reset password on first login)
+- **Will** (nephew): tenant `will` — has own isolated media space (must reset password on first login)
+- **Carley** (niece): tenant `carley` — has own isolated media space (must reset password on first login)
 - Multi-user login: when 4+ accounts exist, login shows Name + Password fields
 - Admin accounts can view/manage all tenant spaces (planned dev portal feature)
 
@@ -38,7 +41,7 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **Smart Browsing & Organization**: Collections system, timeline view, grid/timeline toggle, various sort options, date range filtering, and bulk selection with batch actions.
 - **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.
 - **Stripe Subscription System**: Pricing page with 4 tiers (Free/Personal/Pro/Studio), Stripe Checkout for payments, Customer Portal for management, webhook handling for subscription lifecycle.
-- **Spinny AI Agent**: Vinyl record mascot (googly eyes, smiley face) that lives as a floating side tab. Opens into a full chat panel powered by OpenAI (gpt-5.1) with streaming SSE responses. Tenant-scoped conversations with media vault context awareness. Uses `conversations` and `messages` tables with tenant isolation.
+- **Spinny AI Agent**: Vinyl record mascot (googly eyes, smiley face) that lives as a floating side tab. Opens into a full chat panel powered by OpenAI (gpt-5.1) with streaming SSE responses. Tenant-scoped conversations with media vault context awareness. Uses `conversations` and `messages` tables with tenant isolation. Voice output via ElevenLabs TTS (primary, Sarah voice) with OpenAI gpt-audio (nova voice) as fallback. Auto-speak toggle and per-message speak buttons.
 
 ### Backend (Express + Node.js)
 - **Runtime**: Node.js with TypeScript (tsx/esbuild).
@@ -76,6 +79,7 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - `STRIPE_SECRET_KEY`: Stripe secret API key for server-side operations.
 - `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key exposed to frontend.
 - `STRIPE_WEBHOOK_SECRET`: (Optional) Stripe webhook signing secret for signature verification.
+- `ELEVENLABS_API_KEY`: ElevenLabs API key for Spinny TTS voice.
 
 ### Key NPM Dependencies
 - **Server**: `express`, `drizzle-orm`, `pg`, `express-session`, `connect-pg-simple`, `@google-cloud/storage`, `zod`.

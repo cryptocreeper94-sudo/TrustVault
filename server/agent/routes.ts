@@ -186,4 +186,78 @@ export function registerAgentRoutes(app: Express): void {
       res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
+
+  app.post("/api/agent/tts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { text } = req.body;
+      if (!text || typeof text !== "string") {
+        return res.status(400).json({ error: "Text is required" });
+      }
+
+      const truncated = text.slice(0, 2000);
+      const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
+
+      if (elevenLabsKey) {
+        try {
+          const voiceId = "EXAVITQu4vr4xnSDxMaL";
+          const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+            method: "POST",
+            headers: {
+              "Accept": "audio/mpeg",
+              "Content-Type": "application/json",
+              "xi-api-key": elevenLabsKey,
+            },
+            body: JSON.stringify({
+              text: truncated,
+              model_id: "eleven_multilingual_v2",
+              voice_settings: {
+                stability: 0.5,
+                similarity_boost: 0.75,
+                style: 0.3,
+                use_speaker_boost: true,
+              },
+            }),
+          });
+
+          if (ttsRes.ok && ttsRes.body) {
+            res.setHeader("Content-Type", "audio/mpeg");
+            res.setHeader("X-TTS-Provider", "elevenlabs");
+            const arrayBuffer = await ttsRes.arrayBuffer();
+            res.send(Buffer.from(arrayBuffer));
+            return;
+          }
+          console.warn("ElevenLabs TTS failed, status:", ttsRes.status, "falling back to OpenAI");
+        } catch (err) {
+          console.warn("ElevenLabs TTS error, falling back to OpenAI:", err);
+        }
+      }
+
+      try {
+        const audioRes = await openai.chat.completions.create({
+          model: "gpt-audio",
+          messages: [
+            { role: "system", content: "You are a friendly AI assistant named Spinny. Read the following text aloud exactly as written, with a warm and upbeat tone. Do not add any extra words or commentary." },
+            { role: "user", content: truncated },
+          ],
+          modalities: ["text", "audio"],
+          audio: { voice: "nova", format: "mp3" },
+        });
+
+        const audioData = (audioRes.choices[0]?.message as any)?.audio?.data;
+        if (audioData) {
+          res.setHeader("Content-Type", "audio/mpeg");
+          res.setHeader("X-TTS-Provider", "openai");
+          res.send(Buffer.from(audioData, "base64"));
+          return;
+        }
+        throw new Error("No audio data in OpenAI response");
+      } catch (openaiErr) {
+        console.error("OpenAI TTS fallback failed:", openaiErr);
+        res.status(503).json({ error: "Voice is temporarily unavailable" });
+      }
+    } catch (error) {
+      console.error("TTS error:", error);
+      res.status(500).json({ error: "Failed to generate speech" });
+    }
+  });
 }
