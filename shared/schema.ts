@@ -403,4 +403,80 @@ export function detectCategory(contentType: string): MediaCategory {
   return "other";
 }
 
+// --- Signal Chat / TrustLayer SSO Tables ---
+
+export const CHAT_USER_ROLES = ["member", "admin", "moderator", "bot"] as const;
+export type ChatUserRole = typeof CHAT_USER_ROLES[number];
+
+export const chatUsers = pgTable("chat_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  displayName: text("display_name").notNull(),
+  avatarColor: text("avatar_color").notNull().default("#06b6d4"),
+  role: text("role").notNull().default("member"),
+  trustLayerId: text("trust_layer_id").unique(),
+  isOnline: boolean("is_online").default(false),
+  lastSeen: timestamp("last_seen").defaultNow(),
+  pinAuthId: integer("pin_auth_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertChatUserSchema = createInsertSchema(chatUsers).omit({
+  id: true,
+  isOnline: true,
+  lastSeen: true,
+  createdAt: true,
+});
+
+export type ChatUser = typeof chatUsers.$inferSelect;
+export type InsertChatUser = z.infer<typeof insertChatUserSchema>;
+
+export const CHANNEL_CATEGORIES = ["ecosystem", "support", "general"] as const;
+export type ChannelCategory = typeof CHANNEL_CATEGORIES[number];
+
+export const chatChannels = pgTable("chat_channels", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  category: text("category").notNull().default("ecosystem"),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertChatChannelSchema = createInsertSchema(chatChannels).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ChatChannel = typeof chatChannels.$inferSelect;
+export type InsertChatChannel = z.infer<typeof insertChatChannelSchema>;
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  channelId: varchar("channel_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  content: text("content").notNull(),
+  replyToId: varchar("reply_to_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+export const DEFAULT_CHANNELS = [
+  { name: "general", description: "General conversation for the TrustLayer ecosystem", category: "ecosystem", isDefault: true },
+  { name: "announcements", description: "Official announcements and updates", category: "ecosystem", isDefault: true },
+  { name: "darkwavestudios-support", description: "Support for Dark Wave Studios products", category: "support", isDefault: false },
+  { name: "garagebot-support", description: "Support for GarageBot", category: "support", isDefault: false },
+  { name: "tlid-marketing", description: "TrustLayer ID marketing and outreach", category: "general", isDefault: false },
+  { name: "guardian-ai", description: "Guardian AI assistant channel", category: "general", isDefault: false },
+] as const;
+
 export * from "./models/chat";

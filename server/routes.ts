@@ -13,6 +13,8 @@ import { registerEcosystemRoutes } from "./ecosystem/routes";
 import { registerBlogRoutes } from "./blog/routes";
 import { registerStripeRoutes } from "./stripe/routes";
 import { registerAgentRoutes } from "./agent/routes";
+import { registerChatAuthRoutes } from "./chat/auth-routes";
+import { setupChatWebSocket } from "./chat/ws-server";
 
 declare module "express-session" {
   interface SessionData {
@@ -71,6 +73,14 @@ export async function registerRoutes(
   registerBlogRoutes(app);
   registerStripeRoutes(app);
   registerAgentRoutes(app);
+  registerChatAuthRoutes(app);
+  setupChatWebSocket(httpServer);
+
+  storage.seedDefaultChannels().then(() => {
+    console.log("[Signal Chat] Default channels seeded");
+  }).catch((err) => {
+    console.error("[Signal Chat] Failed to seed channels:", err);
+  });
 
   // --- Auth Routes ---
 

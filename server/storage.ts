@@ -9,6 +9,10 @@ import {
   subscriptions,
   tenants,
   whitelist,
+  chatUsers,
+  chatChannels,
+  chatMessages,
+  DEFAULT_CHANNELS,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
@@ -31,6 +35,10 @@ import {
   type FeatureRequest,
   type InsertFeatureRequest,
   type FeatureVote,
+  type ChatUser,
+  type InsertChatUser,
+  type ChatChannel,
+  type ChatMessage,
   featureRequests,
   featureVotes,
 } from "@shared/schema";
@@ -109,6 +117,22 @@ export interface IStorage {
   deleteFeatureRequest(id: number): Promise<void>;
   voteForFeature(featureId: number, tenantId: string): Promise<{ voted: boolean }>;
   getVotesForTenant(tenantId: string): Promise<number[]>;
+
+  // Signal Chat / SSO
+  getChatUserByUsername(username: string): Promise<ChatUser | undefined>;
+  getChatUserByEmail(email: string): Promise<ChatUser | undefined>;
+  getChatUserById(id: string): Promise<ChatUser | undefined>;
+  getChatUserByTrustLayerId(tlId: string): Promise<ChatUser | undefined>;
+  getChatUserByPinAuthId(pinAuthId: number): Promise<ChatUser | undefined>;
+  createChatUser(data: InsertChatUser): Promise<ChatUser>;
+  updateChatUserOnline(id: string, isOnline: boolean): Promise<void>;
+  getOnlineChatUsers(): Promise<ChatUser[]>;
+  getChatChannels(): Promise<ChatChannel[]>;
+  getChatChannel(id: string): Promise<ChatChannel | undefined>;
+  getChatChannelByName(name: string): Promise<ChatChannel | undefined>;
+  seedDefaultChannels(): Promise<void>;
+  getChatMessages(channelId: string, limit?: number): Promise<(ChatMessage & { username: string; avatarColor: string; role: string; displayName: string })[]>;
+  createChatMessage(data: { channelId: string; userId: string; content: string; replyToId?: string }): Promise<ChatMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -528,6 +552,103 @@ export class DatabaseStorage implements IStorage {
       .from(featureVotes)
       .where(eq(featureVotes.tenantId, tenantId));
     return votes.map(v => v.featureRequestId);
+  }
+
+  // --- Signal Chat / SSO ---
+
+  async getChatUserByUsername(username: string): Promise<ChatUser | undefined> {
+    const [user] = await db.select().from(chatUsers)
+      .where(sql`LOWER(${chatUsers.username}) = LOWER(${username})`);
+    return user;
+  }
+
+  async getChatUserByEmail(email: string): Promise<ChatUser | undefined> {
+    const [user] = await db.select().from(chatUsers)
+      .where(sql`LOWER(${chatUsers.email}) = LOWER(${email})`);
+    return user;
+  }
+
+  async getChatUserById(id: string): Promise<ChatUser | undefined> {
+    const [user] = await db.select().from(chatUsers).where(eq(chatUsers.id, id));
+    return user;
+  }
+
+  async getChatUserByTrustLayerId(tlId: string): Promise<ChatUser | undefined> {
+    const [user] = await db.select().from(chatUsers).where(eq(chatUsers.trustLayerId, tlId));
+    return user;
+  }
+
+  async getChatUserByPinAuthId(pinAuthId: number): Promise<ChatUser | undefined> {
+    const [user] = await db.select().from(chatUsers).where(eq(chatUsers.pinAuthId, pinAuthId));
+    return user;
+  }
+
+  async createChatUser(data: InsertChatUser): Promise<ChatUser> {
+    const [created] = await db.insert(chatUsers).values(data).returning();
+    return created;
+  }
+
+  async updateChatUserOnline(id: string, isOnline: boolean): Promise<void> {
+    await db.update(chatUsers).set({ isOnline, lastSeen: new Date() }).where(eq(chatUsers.id, id));
+  }
+
+  async getOnlineChatUsers(): Promise<ChatUser[]> {
+    return db.select().from(chatUsers).where(eq(chatUsers.isOnline, true));
+  }
+
+  async getChatChannels(): Promise<ChatChannel[]> {
+    return db.select().from(chatChannels).orderBy(chatChannels.name);
+  }
+
+  async getChatChannel(id: string): Promise<ChatChannel | undefined> {
+    const [ch] = await db.select().from(chatChannels).where(eq(chatChannels.id, id));
+    return ch;
+  }
+
+  async getChatChannelByName(name: string): Promise<ChatChannel | undefined> {
+    const [ch] = await db.select().from(chatChannels).where(eq(chatChannels.name, name));
+    return ch;
+  }
+
+  async seedDefaultChannels(): Promise<void> {
+    for (const ch of DEFAULT_CHANNELS) {
+      const existing = await this.getChatChannelByName(ch.name);
+      if (!existing) {
+        await db.insert(chatChannels).values({
+          name: ch.name,
+          description: ch.description,
+          category: ch.category,
+          isDefault: ch.isDefault,
+        });
+      }
+    }
+  }
+
+  async getChatMessages(channelId: string, limit: number = 50): Promise<(ChatMessage & { username: string; avatarColor: string; role: string; displayName: string })[]> {
+    const rows = await db
+      .select({
+        id: chatMessages.id,
+        channelId: chatMessages.channelId,
+        userId: chatMessages.userId,
+        content: chatMessages.content,
+        replyToId: chatMessages.replyToId,
+        createdAt: chatMessages.createdAt,
+        username: chatUsers.username,
+        avatarColor: chatUsers.avatarColor,
+        role: chatUsers.role,
+        displayName: chatUsers.displayName,
+      })
+      .from(chatMessages)
+      .innerJoin(chatUsers, eq(chatMessages.userId, chatUsers.id))
+      .where(eq(chatMessages.channelId, channelId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+    return rows.reverse();
+  }
+
+  async createChatMessage(data: { channelId: string; userId: string; content: string; replyToId?: string }): Promise<ChatMessage> {
+    const [created] = await db.insert(chatMessages).values(data).returning();
+    return created;
   }
 }
 
