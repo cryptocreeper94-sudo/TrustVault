@@ -325,6 +325,28 @@ export const TIER_PRICING: Record<SubscriptionTier, { monthly: number; annual: n
   studio: { monthly: 2499, annual: 24999, name: "Studio", description: "Enterprise-grade for professionals" },
 };
 
+// --- Whitelist / Invite System ---
+
+export const whitelist = pgTable("whitelist", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  inviteCode: text("invite_code").notNull().unique(),
+  used: boolean("used").default(false),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertWhitelistSchema = createInsertSchema(whitelist).omit({
+  id: true,
+  used: true,
+  usedAt: true,
+  createdAt: true,
+});
+
+export type WhitelistEntry = typeof whitelist.$inferSelect;
+export type InsertWhitelistEntry = z.infer<typeof insertWhitelistSchema>;
+
 export function detectCategory(contentType: string): MediaCategory {
   if (contentType.startsWith("video/")) return "video";
   if (contentType.startsWith("audio/")) return "audio";

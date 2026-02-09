@@ -8,6 +8,7 @@ import {
   blogPosts,
   subscriptions,
   tenants,
+  whitelist,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
@@ -25,6 +26,8 @@ import {
   type InsertSubscription,
   type Tenant,
   type InsertTenant,
+  type WhitelistEntry,
+  type InsertWhitelistEntry,
 } from "@shared/schema";
 import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 
@@ -52,6 +55,7 @@ export interface IStorage {
   getAllPinAuths(): Promise<PinAuth[]>;
   updatePin(id: number, pin: string, mustReset: boolean, email?: string): Promise<PinAuth>;
   initializePinAuth(pin: string, name: string, mustReset?: boolean, tenantId?: string): Promise<PinAuth>;
+  updatePinAuthTenantId(id: number, tenantId: string): Promise<void>;
 
   // Collections (tenant-scoped)
   getCollections(tenantId: string): Promise<CollectionWithCount[]>;
@@ -83,6 +87,14 @@ export interface IStorage {
   getSubscriptionByCustomerId(customerId: string): Promise<Subscription | undefined>;
   upsertSubscription(data: InsertSubscription): Promise<Subscription>;
   updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription>;
+
+  // Whitelist / Invites
+  getWhitelistEntries(): Promise<WhitelistEntry[]>;
+  getWhitelistEntry(id: number): Promise<WhitelistEntry | undefined>;
+  getWhitelistByCode(code: string): Promise<WhitelistEntry | undefined>;
+  createWhitelistEntry(data: InsertWhitelistEntry): Promise<WhitelistEntry>;
+  deleteWhitelistEntry(id: number): Promise<void>;
+  markWhitelistUsed(id: number): Promise<WhitelistEntry>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -207,6 +219,10 @@ export class DatabaseStorage implements IStorage {
       .values({ pin, name, mustReset, tenantId: tenantId || null })
       .returning();
     return auth;
+  }
+
+  async updatePinAuthTenantId(id: number, tenantId: string): Promise<void> {
+    await db.update(pinAuth).set({ tenantId }).where(eq(pinAuth.id, id));
   }
 
   // --- Collections (tenant-scoped) ---
@@ -410,6 +426,40 @@ export class DatabaseStorage implements IStorage {
       .update(subscriptions)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(subscriptions.id, id))
+      .returning();
+    return updated;
+  }
+
+  // --- Whitelist / Invites ---
+
+  async getWhitelistEntries(): Promise<WhitelistEntry[]> {
+    return db.select().from(whitelist).orderBy(desc(whitelist.createdAt));
+  }
+
+  async getWhitelistEntry(id: number): Promise<WhitelistEntry | undefined> {
+    const [entry] = await db.select().from(whitelist).where(eq(whitelist.id, id));
+    return entry;
+  }
+
+  async getWhitelistByCode(code: string): Promise<WhitelistEntry | undefined> {
+    const [entry] = await db.select().from(whitelist).where(eq(whitelist.inviteCode, code));
+    return entry;
+  }
+
+  async createWhitelistEntry(data: InsertWhitelistEntry): Promise<WhitelistEntry> {
+    const [created] = await db.insert(whitelist).values(data).returning();
+    return created;
+  }
+
+  async deleteWhitelistEntry(id: number): Promise<void> {
+    await db.delete(whitelist).where(eq(whitelist.id, id));
+  }
+
+  async markWhitelistUsed(id: number): Promise<WhitelistEntry> {
+    const [updated] = await db
+      .update(whitelist)
+      .set({ used: true, usedAt: new Date() })
+      .where(eq(whitelist.id, id))
       .returning();
     return updated;
   }

@@ -15,6 +15,8 @@ import BlogPostPage from "@/pages/BlogPost";
 import BlogAdmin from "@/pages/BlogAdmin";
 import Pricing from "@/pages/Pricing";
 import Invite from "@/pages/Invite";
+import Join from "@/pages/Join";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +32,8 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPostPage} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/invite" component={Invite} />
+      <Route path="/join" component={Join} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -270,6 +270,132 @@ export async function registerRoutes(
     });
   });
 
+  // --- Whitelist / Invite Routes ---
+
+  function isAdmin(req: Request, res: Response, next: NextFunction) {
+    if (req.session && req.session.authenticated && req.session.isAdmin) {
+      return next();
+    }
+    return res.status(403).json({ message: "Admin access required" });
+  }
+
+  app.get("/api/whitelist", isAdmin, async (_req, res) => {
+    try {
+      const entries = await storage.getWhitelistEntries();
+      res.json(entries);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch whitelist" });
+    }
+  });
+
+  app.post("/api/whitelist", isAdmin, async (req, res) => {
+    try {
+      const { name, email } = req.body;
+      if (!name || typeof name !== "string" || name.trim().length < 1) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const entry = await storage.createWhitelistEntry({
+        name: name.trim(),
+        email: email?.trim() || null,
+        inviteCode,
+      });
+      res.json(entry);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to create invite" });
+    }
+  });
+
+  app.delete("/api/whitelist/:id", isAdmin, async (req, res) => {
+    try {
+      await storage.deleteWhitelistEntry(Number(req.params.id));
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete invite" });
+    }
+  });
+
+  app.get("/api/admin/users", isAdmin, async (_req, res) => {
+    try {
+      const users = await storage.getAllPinAuths();
+      const sanitized = users.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        tenantId: u.tenantId,
+        isAdmin: u.isAdmin,
+        mustReset: u.mustReset,
+        createdAt: u.createdAt,
+      }));
+      res.json(sanitized);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/join", async (req, res) => {
+    try {
+      const { inviteCode, name, password, email } = req.body;
+      if (!inviteCode || !name || !password) {
+        return res.status(400).json({ message: "Invite code, name, and password are required" });
+      }
+
+      const entry = await storage.getWhitelistByCode(inviteCode.trim().toUpperCase());
+      if (!entry) {
+        return res.status(404).json({ message: "Invalid invite code" });
+      }
+      if (entry.used) {
+        return res.status(400).json({ message: "This invite code has already been used" });
+      }
+
+      const validationError = validatePassword(password);
+      if (validationError) {
+        return res.status(400).json({ message: validationError });
+      }
+
+      const existingUser = await storage.getPinAuthByName(name.trim());
+      if (existingUser) {
+        return res.status(400).json({ message: "An account with that name already exists" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const newUser = await storage.initializePinAuth(
+        hashedPassword,
+        name.trim(),
+        false,
+        "pending"
+      );
+
+      if (email) {
+        await storage.updatePin(newUser.id, hashedPassword, false, email.trim().toLowerCase());
+      }
+
+      const tenant = await storage.createTenant({
+        name: name.trim(),
+        storagePrefix: `tenant_${crypto.randomUUID()}`,
+        tier: "free",
+        status: "active",
+        pinAuthId: newUser.id,
+      });
+
+      await storage.updatePinAuthTenantId(newUser.id, tenant.id);
+
+      await storage.markWhitelistUsed(entry.id);
+
+      req.session.authenticated = true;
+      req.session.name = name.trim();
+      req.session.tenantId = tenant.id;
+      req.session.pinAuthId = newUser.id;
+      req.session.isAdmin = false;
+
+      res.json({ success: true, name: name.trim() });
+    } catch (err) {
+      console.error("Join error:", err);
+      res.status(500).json({ message: "Failed to create account" });
+    }
+  });
+
   // --- Media Routes ---
 
   // Batch routes must come before parameterized :id routes

@@ -904,6 +904,19 @@ export default function Home() {
                   <Separator className="my-2" />
 
                   <div className="flex flex-col gap-1">
+                    {user?.isAdmin && (
+                      <Button
+                        asChild
+                        variant="ghost"
+                        className="w-full justify-start gap-3"
+                        data-testid="nav-link-admin"
+                      >
+                        <Link href="/admin">
+                          <Shield className="w-4 h-4" />
+                          Developer Portal
+                        </Link>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-3"
