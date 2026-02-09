@@ -18,7 +18,7 @@ import Invite from "@/pages/Invite";
 import Join from "@/pages/Join";
 import Admin from "@/pages/Admin";
 import Roadmap from "@/pages/Roadmap";
-import SignalChat from "@/pages/SignalChat";
+import { SignalChatPanel } from "@/components/SignalChatPanel";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,7 +37,6 @@ function Router() {
       <Route path="/join" component={Join} />
       <Route path="/admin" component={Admin} />
       <Route path="/roadmap" component={Roadmap} />
-      <Route path="/chat" component={SignalChat} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -50,6 +49,7 @@ function App() {
         <ThemeProvider>
           <TooltipProvider>
             <Router />
+            <SignalChatPanel />
             <Toaster />
           </TooltipProvider>
         </ThemeProvider>
