@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { Check, ArrowLeft, Shield, Zap, Crown, Sparkles, Loader2 } from "lucide-react";
+import { Check, ArrowLeft, Shield, Zap, Crown, Sparkles, Loader2, Award, ExternalLink, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -311,6 +311,7 @@ export default function Pricing() {
                   { label: "Merge & Combine", values: ["-", "-", "Yes", "Yes"] },
                   { label: "AI Blog Platform", values: ["-", "-", "Yes", "Yes"] },
                   { label: "Ecosystem API", values: ["-", "-", "-", "Yes"] },
+                  { label: "TrustLayer Membership", values: ["-", "Yes", "Yes", "Yes"] },
                   { label: "Support", values: ["Standard", "Standard", "Priority", "Dedicated"] },
                 ].map((row) => (
                   <tr key={row.label} className="border-b border-border/50">
@@ -333,15 +334,86 @@ export default function Pricing() {
           </div>
         </div>
 
-        <div className="mt-12 text-center text-xs text-muted-foreground/60 max-w-xl mx-auto space-y-1">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="mt-16 max-w-2xl mx-auto"
+        >
+          <Card className="overflow-hidden">
+            <div className="p-1">
+              <div className="rounded-lg theme-gradient p-5 sm:p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white font-display">Become a TrustLayer Member</h3>
+                    <p className="text-xs text-white/70">Part of the Dark Wave Studios ecosystem</p>
+                  </div>
+                </div>
+                <p className="text-sm text-white/90 leading-relaxed">
+                  When you subscribe to any paid plan, you automatically become a TrustLayer member — 
+                  giving you access to the full Dark Wave Studios ecosystem.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-start gap-3">
+                  <Award className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Membership Card</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">Get your digital membership card and ecosystem identity</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Users className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Member Dashboard</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">Access your full TrustLayer dashboard and tools</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Ecosystem Access</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">Use the same login across all DW Studio apps</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-border/50 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+                <a
+                  href="https://dwtl.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="link-trustlayer-pricing"
+                >
+                  <Button variant="outline" className="gap-2">
+                    <Shield className="w-4 h-4" />
+                    Visit TrustLayer Dashboard
+                    <ExternalLink className="w-3 h-3" />
+                  </Button>
+                </a>
+                <p className="text-xs text-muted-foreground">
+                  Log in at{" "}
+                  <a href="https://dwtl.io" target="_blank" rel="noopener noreferrer" className="text-primary/80 hover:text-primary transition-colors font-medium" data-testid="link-dwtl-text">
+                    dwtl.io
+                  </a>{" "}
+                  to set up your dashboard and membership card
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        <div className="mt-8 text-center text-xs text-muted-foreground/60 max-w-xl mx-auto space-y-1">
           <p>All plans include secure cloud storage, PWA access, and our premium interface.</p>
           <p>Prices shown in USD. Cancel anytime from the Manage Subscription portal.</p>
           <p className="pt-2">
-            Part of the{" "}
-            <a href="https://dwtl.io" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary transition-colors">
-              TrustLayer
-            </a>{" "}
-            ecosystem by{" "}
+            Powered by{" "}
             <a href="https://darkwavestudios.io" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary transition-colors">
               Dark Wave Studios
             </a>

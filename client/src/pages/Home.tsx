@@ -64,6 +64,7 @@ import { useHaptic } from "@/hooks/use-haptic";
 import { format, parseISO } from "date-fns";
 import type { CollectionWithCount } from "@shared/schema";
 import { OnboardingGuide, HelpTooltip, useOnboarding } from "@/components/OnboardingGuide";
+import { TrustLayerBadge } from "@/components/TrustLayerBadge";
 import { HelpCircle } from "lucide-react";
 
 function getGreeting(): string {
@@ -833,6 +834,7 @@ export default function Home() {
           </a>
 
           <div className="flex items-center gap-3 flex-1 justify-end">
+            <TrustLayerBadge />
             <div className="relative hidden md:block w-56 lg:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
