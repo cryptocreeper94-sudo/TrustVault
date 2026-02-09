@@ -15,6 +15,7 @@ import { MediaGrid } from "@/components/MediaGrid";
 import { MediaViewer } from "@/components/MediaViewer";
 import { NowPlaying } from "@/components/NowPlaying";
 import { AmbientMode } from "@/components/AmbientMode";
+import { VinylAgent } from "@/components/VinylAgent";
 import { EditMediaDialog } from "@/components/EditMediaDialog";
 import { Button } from "@/components/ui/button";
 import { type MediaResponse } from "@shared/routes";
@@ -1315,6 +1316,8 @@ export default function Home() {
         open={showAmbientMode}
         onClose={() => setShowAmbientMode(false)}
       />
+
+      <VinylAgent />
 
       <EditMediaDialog
         item={editingItem}

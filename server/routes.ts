@@ -12,6 +12,7 @@ import { processTrimJob, processMergeJob } from "./videoProcessor";
 import { registerEcosystemRoutes } from "./ecosystem/routes";
 import { registerBlogRoutes } from "./blog/routes";
 import { registerStripeRoutes } from "./stripe/routes";
+import { registerAgentRoutes } from "./agent/routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -69,6 +70,7 @@ export async function registerRoutes(
   registerEcosystemRoutes(app);
   registerBlogRoutes(app);
   registerStripeRoutes(app);
+  registerAgentRoutes(app);
 
   // --- Auth Routes ---
 

@@ -38,6 +38,7 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **Smart Browsing & Organization**: Collections system, timeline view, grid/timeline toggle, various sort options, date range filtering, and bulk selection with batch actions.
 - **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.
 - **Stripe Subscription System**: Pricing page with 4 tiers (Free/Personal/Pro/Studio), Stripe Checkout for payments, Customer Portal for management, webhook handling for subscription lifecycle.
+- **Spinny AI Agent**: Vinyl record mascot (googly eyes, smiley face) that lives as a floating side tab. Opens into a full chat panel powered by OpenAI (gpt-5.1) with streaming SSE responses. Tenant-scoped conversations with media vault context awareness. Uses `conversations` and `messages` tables with tenant isolation.
 
 ### Backend (Express + Node.js)
 - **Runtime**: Node.js with TypeScript (tsx/esbuild).

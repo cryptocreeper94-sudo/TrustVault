@@ -402,3 +402,5 @@ export function detectCategory(contentType: string): MediaCategory {
   ) return "document";
   return "other";
 }
+
+export * from "./models/chat";
