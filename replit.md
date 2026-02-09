@@ -14,6 +14,10 @@ This is a personal **universal media vault** — a full-stack web application th
 - A full master roadmap exists at `MASTER_ROADMAP.md` covering phases from current MVP through blockchain integration and native app deployment.
 - A strategic architecture plan exists at `ARCHITECTURE_PLAN.md` covering the modular architecture strategy, build order, workspace separation, and how the media vault fits into the broader TrustLayer ecosystem (Dark Wave Studios, TrustShield, Signal asset).
 
+## Recent Changes
+
+- **Phase 1: Smart Browsing & Organization** (Feb 2026) — Added collections system (create/manage albums), timeline view (group media by year/month), grid/timeline view toggle, sort options (date/name/size), date range filtering, bulk select mode with floating action bar (batch favorite/unfavorite, batch delete, set label, add/remove from collections). Collections use junction table (`collection_items`). Batch API routes (`PATCH /api/media/batch`, `DELETE /api/media/batch`). React hooks for all CRUD operations in `client/src/hooks/use-media.ts`.
+
 ## System Architecture
 
 ### Frontend (React SPA)
@@ -37,7 +41,7 @@ This is a personal **universal media vault** — a full-stack web application th
 - **Dev Server**: Vite dev server is used as middleware in development for HMR
 
 ### Shared Code (`shared/`)
-- **Schema**: Drizzle ORM schema definitions in `shared/schema.ts` — defines `videos`, `pinAuth`, `users`, and `sessions` tables
+- **Schema**: Drizzle ORM schema definitions in `shared/schema.ts` — defines `mediaItems`, `pinAuth`, `users`, `sessions`, `collections`, and `collectionItems` tables
 - **Routes Contract**: `shared/routes.ts` defines the full API contract with Zod schemas, used by both client and server for type safety
 - **Models**: `shared/models/auth.ts` contains Replit Auth user/session models (kept for compatibility)
 
@@ -50,6 +54,8 @@ This is a personal **universal media vault** — a full-stack web application th
   - `pin_auth` — single-row table for PIN authentication (pin, must_reset flag, name)
   - `sessions` — express-session storage
   - `users` — kept from Replit Auth integration, not actively used by PIN auth
+  - `collections` — user-created albums/collections (name, description, coverMediaId)
+  - `collection_items` — junction table linking media_items to collections (collectionId, mediaItemId, addedAt)
 
 ### Build System
 - **Development**: `npm run dev` — runs tsx with Vite middleware for HMR

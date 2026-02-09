@@ -2,13 +2,19 @@ import { db } from "./db";
 import { 
   mediaItems, 
   pinAuth,
+  collections,
+  collectionItems,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
   type PinAuth,
-  type MediaCategory
+  type MediaCategory,
+  type Collection,
+  type InsertCollection,
+  type CollectionItem,
+  type CollectionWithCount
 } from "@shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 
 export interface IStorage {
   getMediaItems(category?: MediaCategory): Promise<MediaItem[]>;
@@ -20,6 +26,16 @@ export interface IStorage {
   getPinAuth(): Promise<PinAuth | undefined>;
   updatePin(pin: string, mustReset: boolean): Promise<PinAuth>;
   initializePinAuth(pin: string, name: string): Promise<PinAuth>;
+  getCollections(): Promise<CollectionWithCount[]>;
+  getCollection(id: number): Promise<Collection | undefined>;
+  createCollection(data: InsertCollection): Promise<Collection>;
+  updateCollection(id: number, data: Partial<InsertCollection>): Promise<Collection>;
+  deleteCollection(id: number): Promise<void>;
+  getCollectionItems(collectionId: number): Promise<MediaItem[]>;
+  addToCollection(collectionId: number, mediaItemIds: number[]): Promise<CollectionItem[]>;
+  removeFromCollection(collectionId: number, mediaItemIds: number[]): Promise<void>;
+  batchUpdateMedia(ids: number[], updates: Partial<{ isFavorite: boolean; label: string; tags: string[] }>): Promise<MediaItem[]>;
+  batchDeleteMedia(ids: number[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -92,6 +108,111 @@ export class DatabaseStorage implements IStorage {
       .values({ pin, name, mustReset: true })
       .returning();
     return auth;
+  }
+
+  async getCollections(): Promise<CollectionWithCount[]> {
+    const cols = await db.select().from(collections).orderBy(desc(collections.createdAt));
+    const results: CollectionWithCount[] = [];
+    for (const col of cols) {
+      const [countResult] = await db
+        .select({ count: count() })
+        .from(collectionItems)
+        .where(eq(collectionItems.collectionId, col.id));
+      let coverUrl: string | null = null;
+      if (col.coverMediaId) {
+        const [coverItem] = await db.select().from(mediaItems).where(eq(mediaItems.id, col.coverMediaId));
+        coverUrl = coverItem?.url || null;
+      } else {
+        const [firstItem] = await db
+          .select()
+          .from(collectionItems)
+          .innerJoin(mediaItems, eq(collectionItems.mediaItemId, mediaItems.id))
+          .where(eq(collectionItems.collectionId, col.id))
+          .limit(1);
+        coverUrl = firstItem?.media_items?.url || null;
+      }
+      results.push({ ...col, itemCount: countResult?.count || 0, coverUrl });
+    }
+    return results;
+  }
+
+  async getCollection(id: number): Promise<Collection | undefined> {
+    const [col] = await db.select().from(collections).where(eq(collections.id, id));
+    return col;
+  }
+
+  async createCollection(data: InsertCollection): Promise<Collection> {
+    const [created] = await db.insert(collections).values(data).returning();
+    return created;
+  }
+
+  async updateCollection(id: number, data: Partial<InsertCollection>): Promise<Collection> {
+    const [updated] = await db
+      .update(collections)
+      .set(data)
+      .where(eq(collections.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCollection(id: number): Promise<void> {
+    await db.delete(collectionItems).where(eq(collectionItems.collectionId, id));
+    await db.delete(collections).where(eq(collections.id, id));
+  }
+
+  async getCollectionItems(collectionId: number): Promise<MediaItem[]> {
+    const rows = await db
+      .select({ media: mediaItems })
+      .from(collectionItems)
+      .innerJoin(mediaItems, eq(collectionItems.mediaItemId, mediaItems.id))
+      .where(eq(collectionItems.collectionId, collectionId))
+      .orderBy(desc(collectionItems.addedAt));
+    return rows.map(r => r.media);
+  }
+
+  async addToCollection(collectionId: number, mediaItemIds: number[]): Promise<CollectionItem[]> {
+    const existing = await db
+      .select()
+      .from(collectionItems)
+      .where(
+        and(
+          eq(collectionItems.collectionId, collectionId),
+          inArray(collectionItems.mediaItemId, mediaItemIds)
+        )
+      );
+    const existingIds = new Set(existing.map(e => e.mediaItemId));
+    const newIds = mediaItemIds.filter(id => !existingIds.has(id));
+    if (newIds.length === 0) return existing;
+    const inserted = await db
+      .insert(collectionItems)
+      .values(newIds.map(mediaItemId => ({ collectionId, mediaItemId })))
+      .returning();
+    return [...existing, ...inserted];
+  }
+
+  async removeFromCollection(collectionId: number, mediaItemIds: number[]): Promise<void> {
+    await db
+      .delete(collectionItems)
+      .where(
+        and(
+          eq(collectionItems.collectionId, collectionId),
+          inArray(collectionItems.mediaItemId, mediaItemIds)
+        )
+      );
+  }
+
+  async batchUpdateMedia(ids: number[], updates: Partial<{ isFavorite: boolean; label: string; tags: string[] }>): Promise<MediaItem[]> {
+    const updated = await db
+      .update(mediaItems)
+      .set(updates)
+      .where(inArray(mediaItems.id, ids))
+      .returning();
+    return updated;
+  }
+
+  async batchDeleteMedia(ids: number[]): Promise<void> {
+    await db.delete(collectionItems).where(inArray(collectionItems.mediaItemId, ids));
+    await db.delete(mediaItems).where(inArray(mediaItems.id, ids));
   }
 }
 

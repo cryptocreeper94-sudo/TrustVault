@@ -65,6 +65,38 @@ export type ToggleFavoriteRequest = { isFavorite: boolean };
 export type MediaItemResponse = MediaItem;
 export type MediaListResponse = MediaItem[];
 
+export const collections = pgTable("collections", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  coverMediaId: integer("cover_media_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const collectionItems = pgTable("collection_items", {
+  id: serial("id").primaryKey(),
+  collectionId: integer("collection_id").notNull(),
+  mediaItemId: integer("media_item_id").notNull(),
+  addedAt: timestamp("added_at").defaultNow(),
+});
+
+export const insertCollectionSchema = createInsertSchema(collections).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCollectionItemSchema = createInsertSchema(collectionItems).omit({
+  id: true,
+  addedAt: true,
+});
+
+export type Collection = typeof collections.$inferSelect;
+export type InsertCollection = z.infer<typeof insertCollectionSchema>;
+export type CollectionItem = typeof collectionItems.$inferSelect;
+export type InsertCollectionItem = z.infer<typeof insertCollectionItemSchema>;
+
+export type CollectionWithCount = Collection & { itemCount: number; coverUrl?: string | null };
+
 export type UploadUrlRequest = {
   name: string;
   size: number;

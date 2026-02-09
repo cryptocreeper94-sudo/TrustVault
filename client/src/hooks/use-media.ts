@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type MediaInput, type MediaResponse } from "@shared/routes";
 import { apiRequest } from "@/lib/queryClient";
-import type { MediaCategory, UpdateMediaRequest } from "@shared/schema";
+import type { MediaCategory, UpdateMediaRequest, CollectionWithCount } from "@shared/schema";
 
 export function useMediaItems(category?: MediaCategory) {
   const path = category ? `${api.media.list.path}?category=${category}` : api.media.list.path;
@@ -66,6 +66,127 @@ export function useDeleteMedia() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.media.list.path] });
+    },
+  });
+}
+
+export function useBatchUpdateMedia() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { ids: number[]; updates: { isFavorite?: boolean; label?: string; tags?: string[] } }) => {
+      const res = await apiRequest("PATCH", api.media.batchUpdate.path, data);
+      return res.json() as Promise<MediaResponse[]>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.media.list.path] });
+    },
+  });
+}
+
+export function useBatchDeleteMedia() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: number[]) => {
+      await apiRequest("DELETE", api.media.batchDelete.path, { ids });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.media.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+    },
+  });
+}
+
+export function useCollections() {
+  return useQuery({
+    queryKey: [api.collections.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.collections.list.path, { credentials: "include" });
+      if (res.status === 401) throw new Error("Unauthorized");
+      if (!res.ok) throw new Error("Failed to fetch collections");
+      return res.json() as Promise<CollectionWithCount[]>;
+    },
+  });
+}
+
+export function useCollectionItems(collectionId: number | null) {
+  return useQuery({
+    queryKey: [api.collections.list.path, collectionId, "items"],
+    queryFn: async () => {
+      if (!collectionId) return [];
+      const url = buildUrl(api.collections.items.path, { id: collectionId });
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch collection items");
+      return res.json() as Promise<MediaResponse[]>;
+    },
+    enabled: !!collectionId,
+  });
+}
+
+export function useCreateCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { name: string; description?: string }) => {
+      const res = await apiRequest("POST", api.collections.create.path, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+    },
+  });
+}
+
+export function useUpdateCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { name?: string; description?: string; coverMediaId?: number } }) => {
+      const url = buildUrl(api.collections.update.path, { id });
+      const res = await apiRequest("PATCH", url, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+    },
+  });
+}
+
+export function useDeleteCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.collections.delete.path, { id });
+      await apiRequest("DELETE", url);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+    },
+  });
+}
+
+export function useAddToCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ collectionId, mediaItemIds }: { collectionId: number; mediaItemIds: number[] }) => {
+      const url = buildUrl(api.collections.addItems.path, { id: collectionId });
+      const res = await apiRequest("POST", url, { mediaItemIds });
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path, variables.collectionId, "items"] });
+    },
+  });
+}
+
+export function useRemoveFromCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ collectionId, mediaItemIds }: { collectionId: number; mediaItemIds: number[] }) => {
+      const url = buildUrl(api.collections.removeItems.path, { id: collectionId });
+      await apiRequest("DELETE", url, { mediaItemIds });
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path, variables.collectionId, "items"] });
     },
   });
 }

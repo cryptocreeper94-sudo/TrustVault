@@ -127,6 +127,33 @@ export async function registerRoutes(
 
   // --- Media Routes ---
 
+  // Batch routes must come before parameterized :id routes
+  app.patch(api.media.batchUpdate.path, isAuthenticated, async (req, res) => {
+    try {
+      const input = api.media.batchUpdate.input.parse(req.body);
+      const updated = await storage.batchUpdateMedia(input.ids, input.updates);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.media.batchDelete.path, isAuthenticated, async (req, res) => {
+    try {
+      const input = api.media.batchDelete.input.parse(req.body);
+      await storage.batchDeleteMedia(input.ids);
+      res.sendStatus(204);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
   app.get(api.media.list.path, isAuthenticated, async (req, res) => {
     const category = req.query.category as MediaCategory | undefined;
     if (category && !MEDIA_CATEGORIES.includes(category)) {
@@ -194,6 +221,72 @@ export async function registerRoutes(
 
   app.delete(api.media.delete.path, isAuthenticated, async (req, res) => {
     await storage.deleteMediaItem(Number(req.params.id));
+    res.sendStatus(204);
+  });
+
+  // --- Collection Routes ---
+
+  app.get(api.collections.list.path, isAuthenticated, async (_req, res) => {
+    const cols = await storage.getCollections();
+    res.json(cols);
+  });
+
+  app.get(api.collections.get.path, isAuthenticated, async (req, res) => {
+    const col = await storage.getCollection(Number(req.params.id));
+    if (!col) return res.status(404).json({ message: "Collection not found" });
+    res.json(col);
+  });
+
+  app.post(api.collections.create.path, isAuthenticated, async (req, res) => {
+    try {
+      const input = api.collections.create.input.parse(req.body);
+      const col = await storage.createCollection(input);
+      res.status(201).json(col);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.patch(api.collections.update.path, isAuthenticated, async (req, res) => {
+    try {
+      const input = api.collections.update.input.parse(req.body);
+      const col = await storage.updateCollection(Number(req.params.id), input);
+      if (!col) return res.status(404).json({ message: "Collection not found" });
+      res.json(col);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.collections.delete.path, isAuthenticated, async (req, res) => {
+    await storage.deleteCollection(Number(req.params.id));
+    res.sendStatus(204);
+  });
+
+  app.get(api.collections.items.path, isAuthenticated, async (req, res) => {
+    const items = await storage.getCollectionItems(Number(req.params.id));
+    res.json(items);
+  });
+
+  app.post(api.collections.addItems.path, isAuthenticated, async (req, res) => {
+    try {
+      const { mediaItemIds } = req.body;
+      const result = await storage.addToCollection(Number(req.params.id), mediaItemIds);
+      res.json({ added: result.length });
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  app.delete(api.collections.removeItems.path, isAuthenticated, async (req, res) => {
+    const { mediaItemIds } = req.body;
+    await storage.removeFromCollection(Number(req.params.id), mediaItemIds);
     res.sendStatus(204);
   });
 
