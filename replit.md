@@ -53,6 +53,7 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **WebSocket Chat Server**: ws library at /ws/chat with noServer mode (shares HTTP server with Vite HMR). JWT-authenticated join, channel switching, message broadcast, typing indicators, presence tracking.
 - **File Storage Interaction**: Generates presigned URLs for direct client uploads to Replit Object Storage, then stores metadata in the database.
 - **Ecosystem API (TrustHome Connectivity)**: Inter-service API for DarkWave ecosystem integration, featuring HMAC authentication, tenant scoping, project management, and webhook callbacks with retry mechanisms.
+- **ORBIT Ecosystem Client**: Outbound integration to ORBIT Staffing OS Financial Hub (`server/services/orbitClient.ts`). Trust Vault is registered as `dw_app_trustvault` with 100% Jason royalty split. Client class supports connection status, financial statements, transaction reporting, worker/contractor/timesheet sync, code snippets, and activity logs. Webhook receiver at `/webhooks/orbit` with HMAC signature verification. Admin-only API routes at `/api/orbit/*` for status, financial statements, transaction reporting, logs, and snippets.
 - **Stripe Integration**: Subscription management with Checkout Sessions, Customer Portal, and webhook event handling (`server/stripe/routes.ts`).
 
 ### Shared Code (`shared/`)
@@ -84,6 +85,10 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - `STRIPE_WEBHOOK_SECRET`: (Optional) Stripe webhook signing secret for signature verification.
 - `ELEVENLABS_API_KEY`: ElevenLabs API key for Spinny TTS voice.
 - `JWT_SECRET`: Shared JWT signing secret for TrustLayer SSO (must be identical across all ecosystem apps).
+- `ORBIT_HUB_URL`: ORBIT Staffing OS hub URL (default: https://orbitstaffing.replit.app).
+- `ORBIT_ECOSYSTEM_API_KEY`: API key for ORBIT ecosystem authentication.
+- `ORBIT_ECOSYSTEM_API_SECRET`: API secret for ORBIT ecosystem authentication.
+- `ORBIT_WEBHOOK_SECRET`: (Optional) HMAC secret for verifying ORBIT webhook signatures.
 
 ### Key NPM Dependencies
 - **Server**: `express`, `drizzle-orm`, `pg`, `express-session`, `connect-pg-simple`, `@google-cloud/storage`, `zod`, `jsonwebtoken`, `ws`.

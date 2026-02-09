@@ -1,0 +1,257 @@
+ORBIT ECOSYSTEM HANDOFF — Trust Home + Trust Vault
+Apps Registered in ORBIT
+App	App ID	Royalty Split	Category
+Trust Home	dw_app_trusthome	51% Jennifer Lambert / 49% Jason	Real Estate
+Trust Vault	dw_app_trustvault	100% Jason	Financial Services
+Both apps are live in the ORBIT Financial Hub and ecosystem. Jennifer Lambert's 51% split on Trust Home is enforced at both the transaction sync layer and the royalty calculation engine.
+
+STEP 1: AUTHENTICATION
+Each app needs its own API key and secret. To register, POST to ORBIT:
+
+POST https://orbitstaffing.replit.app/api/admin/ecosystem/register-app
+Content-Type: application/json
+Trust Home registration payload:
+
+{
+  "appName": "Trust Home",
+  "appSlug": "trusthome",
+  "appUrl": "https://trusthome.io",
+  "description": "Real estate management platform - property listings, tenant management, maintenance tracking",
+  "permissions": ["read:workers", "write:workers", "read:timesheets", "write:timesheets", "read:payroll", "write:1099", "write:certifications"],
+  "category": "real-estate",
+  "tags": ["real-estate", "property-management", "tenant-management"]
+}
+Trust Vault registration payload:
+
+{
+  "appName": "Trust Vault",
+  "appSlug": "trustvault",
+  "appUrl": "https://trustvault.io",
+  "description": "Secure financial document vault - tax forms, contracts, compliance storage",
+  "permissions": ["read:workers", "read:timesheets", "read:payroll", "read:1099"],
+  "category": "financial",
+  "tags": ["document-vault", "tax-forms", "compliance", "secure-storage"]
+}
+Both return an apiKey and apiSecret. Store them as environment variables:
+
+ORBIT_ECOSYSTEM_API_KEY=<returned apiKey>
+ORBIT_ECOSYSTEM_API_SECRET=<returned apiSecret>
+ORBIT_HUB_URL=https://orbitstaffing.replit.app
+Every request to ORBIT requires these headers:
+
+X-API-Key: ${ORBIT_ECOSYSTEM_API_KEY}
+X-API-Secret: ${ORBIT_ECOSYSTEM_API_SECRET}
+X-App-Name: Trust Home   (or "Trust Vault")
+Content-Type: application/json
+Test connection:
+
+GET /api/ecosystem/status
+→ { connected: true, permissions: [...], hubName: "ORBIT Staffing OS" }
+STEP 2: DROP-IN CLIENT CLASS
+Copy this into your app's codebase as services/orbitClient.ts:
+
+// ═══════════════════════════════════════════════════════════
+// FILE: services/orbitClient.ts
+// UNIVERSAL ORBIT ECOSYSTEM CLIENT
+// Works for Trust Home, Trust Vault, or any DarkWave app
+// ═══════════════════════════════════════════════════════════
+interface WorkerData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  status: string;
+  payRate?: number;
+  workState?: string;
+  certifications?: string[];
+}
+interface TimesheetData {
+  id: string;
+  workerId: string;
+  date: string; // YYYY-MM-DD
+  hoursWorked: number;
+  overtimeHours?: number;
+  jobId?: string;
+  status: string;
+}
+interface ContractorData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  ein?: string;
+  businessName?: string;
+  payRate: number;
+  workState: string;
+}
+interface FinancialTransaction {
+  transactionId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  category: string;
+  timestamp: string;
+}
+export class OrbitEcosystemClient {
+  private hubUrl: string;
+  private apiKey: string;
+  private apiSecret: string;
+  private appName: string;
+  constructor(appName: string) {
+    this.hubUrl = process.env.ORBIT_HUB_URL || "https://orbitstaffing.replit.app";
+    this.apiKey = process.env.ORBIT_ECOSYSTEM_API_KEY || "";
+    this.apiSecret = process.env.ORBIT_ECOSYSTEM_API_SECRET || "";
+    this.appName = appName;
+  }
+  private get headers() {
+    return {
+      "Content-Type": "application/json",
+      "X-API-Key": this.apiKey,
+      "X-API-Secret": this.apiSecret,
+      "X-App-Name": this.appName,
+    };
+  }
+  private async request(method: string, path: string, body?: any) {
+    const url = `${this.hubUrl}${path}`;
+    const res = await fetch(url, {
+      method,
+      headers: this.headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(`ORBIT API ${method} ${path} failed: ${JSON.stringify(err)}`);
+    }
+    return res.json();
+  }
+  // ── Connection ──
+  async checkConnection() { return this.request("GET", "/api/ecosystem/status"); }
+  // ── Worker Sync ──
+  async syncWorkers(workers: WorkerData[]) { return this.request("POST", "/api/ecosystem/sync/workers", { workers }); }
+  // ── Contractor Sync ──
+  async syncContractors(contractors: ContractorData[]) { return this.request("POST", "/api/ecosystem/sync/contractors", { contractors }); }
+  // ── Timesheet Sync ──
+  async syncTimesheets(timesheets: TimesheetData[]) { return this.request("POST", "/api/ecosystem/sync/timesheets", { timesheets }); }
+  // ── Certifications Sync ──
+  async syncCertifications(certs: { workerId: string; name: string; issuedDate: string; expirationDate?: string }[]) {
+    return this.request("POST", "/api/ecosystem/sync/certifications", { certifications: certs });
+  }
+  // ── W-2 Sync ──
+  async syncW2(w2Data: any[]) { return this.request("POST", "/api/ecosystem/sync/w2", { w2Data }); }
+  // ── 1099 Sync ──
+  async sync1099(data1099: any[]) { return this.request("POST", "/api/ecosystem/sync/1099", { contractors: data1099 }); }
+  // ── Shop Queries ──
+  async getShopWorkers(shopId: string) { return this.request("GET", `/api/ecosystem/shops/${shopId}/workers`); }
+  async getShopPayroll(shopId: string) { return this.request("GET", `/api/ecosystem/shops/${shopId}/payroll`); }
+  // ── Financial Transactions (Royalty Tracking) ──
+  async reportTransaction(tx: FinancialTransaction) {
+    return this.request("POST", "/api/ecosystem/sync/financial-transaction", tx);
+  }
+  // ── Financial Statement ──
+  async getFinancialStatement(params?: { period?: string; format?: string }) {
+    const query = params ? "?" + new URLSearchParams(params as any).toString() : "";
+    return this.request("GET", `/api/ecosystem/financial-statement${query}`);
+  }
+  // ── Code Snippets ──
+  async getSnippets() { return this.request("GET", "/api/ecosystem/snippets"); }
+  async pushSnippet(snippet: { title: string; language: string; code: string; description?: string }) {
+    return this.request("POST", "/api/ecosystem/snippets", snippet);
+  }
+  // ── Activity Logs ──
+  async getLogs() { return this.request("GET", "/api/ecosystem/logs"); }
+  async pushLog(log: { action: string; details?: any }) {
+    return this.request("POST", "/api/ecosystem/logs", log);
+  }
+}
+Usage for Trust Home:
+
+const orbit = new OrbitEcosystemClient("Trust Home");
+await orbit.checkConnection();
+Usage for Trust Vault:
+
+const orbit = new OrbitEcosystemClient("Trust Vault");
+await orbit.checkConnection();
+STEP 3: COMPLETE ENDPOINT MATRIX
+Method	Endpoint	Purpose
+GET	/api/ecosystem/status	Verify connection and permissions
+POST	/api/ecosystem/sync/workers	Push worker records to ORBIT
+POST	/api/ecosystem/sync/contractors	Push 1099 contractor records
+POST	/api/ecosystem/sync/timesheets	Push timesheet/hours data
+POST	/api/ecosystem/sync/certifications	Push licenses/certifications
+POST	/api/ecosystem/sync/w2	Push W-2 employee tax data
+POST	/api/ecosystem/sync/1099	Push 1099-NEC contractor data
+GET	/api/ecosystem/shops/:id/workers	Query workers by tenant/shop
+GET	/api/ecosystem/shops/:id/payroll	Query payroll by tenant/shop
+POST	/api/ecosystem/sync/financial-transaction	Report revenue for royalty tracking
+GET	/api/ecosystem/financial-statement	Pull financial statements
+GET	/api/ecosystem/snippets	Get shared code snippets
+POST	/api/ecosystem/snippets	Share a code snippet
+GET	/api/ecosystem/logs	Get activity logs
+POST	/api/ecosystem/logs	Push an activity log entry
+STEP 4: FINANCIAL HUB / ROYALTY SPLITS
+Trust Home (dw_app_trusthome):
+
+51% → Jennifer Lambert (woman-owned business majority)
+49% → Jason
+Jennifer will connect her own Stripe account
+All revenue reported via reportTransaction() automatically splits at 51/49
+Trust Vault (dw_app_trustvault):
+
+100% → Jason
+No partner split
+Financial transactions are blockchain-stamped on Solana and tracked in the DarkWave Financial Hub ledger.
+
+STEP 5: WEBHOOK NOTIFICATIONS
+ORBIT sends webhook events for payroll activity. Set up a receiving endpoint:
+
+import crypto from "crypto";
+function verifyOrbitWebhook(payload: string, signature: string, secret: string): boolean {
+  const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+app.post("/webhooks/orbit", (req, res) => {
+  const signature = req.headers["x-orbit-signature"] as string;
+  const secret = process.env.ORBIT_WEBHOOK_SECRET!;
+  if (!verifyOrbitWebhook(JSON.stringify(req.body), signature, secret)) {
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+  const { event, data } = req.body;
+  switch (event) {
+    case "payroll.completed": break;
+    case "payroll.payment.sent": break;
+    case "payroll.payment.failed": break;
+    case "worker.created": break;
+    case "worker.updated": break;
+    case "document.generated": break;
+    case "tax.form.ready": break;
+  }
+  res.json({ received: true });
+});
+Store the webhook secret as TRUSTHOME_WEBHOOK_SECRET or TRUSTVAULT_WEBHOOK_SECRET in your env.
+
+STEP 6: QUICK START CHECKLIST
+For Trust Home:
+
+[ ] Set ORBIT_HUB_URL, ORBIT_ECOSYSTEM_API_KEY, ORBIT_ECOSYSTEM_API_SECRET in env
+[ ] Copy OrbitEcosystemClient class into services/orbitClient.ts
+[ ] Initialize: const orbit = new OrbitEcosystemClient("Trust Home")
+[ ] Call orbit.checkConnection() to verify connectivity
+[ ] Sync property maintenance workers: orbit.syncWorkers([...])
+[ ] Sync contractor data (handymen, inspectors): orbit.syncContractors([...])
+[ ] Hook up work logs → orbit.syncTimesheets([...])
+[ ] Sync certifications (real estate licenses, HVAC, plumbing): orbit.syncCertifications([...])
+[ ] Report revenue: orbit.reportTransaction({...})  → auto 51/49 split
+[ ] Set up webhook endpoint for payroll notifications
+[ ] Done - ORBIT handles payroll, tax filing, and compliance automatically
+For Trust Vault:
+
+[ ] Set ORBIT_HUB_URL, ORBIT_ECOSYSTEM_API_KEY, ORBIT_ECOSYSTEM_API_SECRET in env
+[ ] Copy OrbitEcosystemClient class into services/orbitClient.ts
+[ ] Initialize: const orbit = new OrbitEcosystemClient("Trust Vault")
+[ ] Call orbit.checkConnection() to verify connectivity
+[ ] Pull financial statements: orbit.getFinancialStatement({...})
+[ ] Report revenue: orbit.reportTransaction({...})  → 100% Jason
+[ ] Set up webhook endpoint for document notifications
+[ ] Done - ORBIT handles the rest
