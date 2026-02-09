@@ -63,6 +63,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useHaptic } from "@/hooks/use-haptic";
 import { format, parseISO } from "date-fns";
 import type { CollectionWithCount } from "@shared/schema";
+import { OnboardingGuide, HelpTooltip, useOnboarding } from "@/components/OnboardingGuide";
+import { HelpCircle } from "lucide-react";
 
 function getGreeting(): string {
   const now = new Date();
@@ -712,6 +714,7 @@ export default function Home() {
   const [activeCollectionId, setActiveCollectionId] = useState<number | null>(null);
   const [showNewCollectionDialog, setShowNewCollectionDialog] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const { showOnboarding, setShowOnboarding, openGuide } = useOnboarding(user?.name);
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
 
@@ -904,6 +907,15 @@ export default function Home() {
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-3"
+                      onClick={() => openGuide()}
+                      data-testid="nav-link-help-guide"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      Help Guide
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
                       onClick={() => setShowChangePassword(true)}
                       data-testid="nav-link-change-password"
                     >
@@ -986,9 +998,12 @@ export default function Home() {
               </>
             ) : (
               <>
-                <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-1" data-testid="text-collection-title">
-                  Your Vault
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-1" data-testid="text-collection-title">
+                    Your Vault
+                  </h2>
+                  <HelpTooltip content="This is your personal media vault. All your uploaded files appear here. Use the filter tabs to browse by type, or search to find specific files." side="right" />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {categoryCounts.all} {categoryCounts.all === 1 ? "file" : "files"} secured
                 </p>
@@ -1030,6 +1045,7 @@ export default function Home() {
                 Upload
               </Button>
             </UploadDialog>
+            <HelpTooltip content="Tap Upload to add files to your vault. You can upload videos, photos, music, and documents. Use Select to pick multiple files for batch actions." side="bottom" />
           </div>
         </div>
 
@@ -1250,6 +1266,11 @@ export default function Home() {
       <ChangePasswordDialog
         open={showChangePassword}
         onOpenChange={setShowChangePassword}
+      />
+
+      <OnboardingGuide
+        open={showOnboarding}
+        onOpenChange={setShowOnboarding}
       />
     </div>
   );
