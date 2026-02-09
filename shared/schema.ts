@@ -203,6 +203,36 @@ export const insertEcosystemProjectSchema = createInsertSchema(ecosystemProjects
   updatedAt: true,
 });
 
+// --- Blog Tables ---
+
+export const BLOG_STATUSES = ["draft", "published", "archived"] as const;
+export type BlogStatus = typeof BLOG_STATUSES[number];
+
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  metaDescription: text("meta_description"),
+  keywords: text("keywords").array(),
+  category: text("category"),
+  coverImageUrl: text("cover_image_url"),
+  status: text("status").notNull().default("draft"),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+
 export function detectCategory(contentType: string): MediaCategory {
   if (contentType.startsWith("video/")) return "video";
   if (contentType.startsWith("audio/")) return "audio";

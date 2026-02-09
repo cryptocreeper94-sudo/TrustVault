@@ -9,6 +9,9 @@ import ImageEditor from "@/pages/ImageEditor";
 import AudioEditor from "@/pages/AudioEditor";
 import VideoEditor from "@/pages/VideoEditor";
 import MergeEditor from "@/pages/MergeEditor";
+import Blog from "@/pages/Blog";
+import BlogPostPage from "@/pages/BlogPost";
+import BlogAdmin from "@/pages/BlogAdmin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +22,9 @@ function Router() {
       <Route path="/editor/audio/:id" component={AudioEditor} />
       <Route path="/editor/video/:id" component={VideoEditor} />
       <Route path="/merge" component={MergeEditor} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/admin" component={BlogAdmin} />
+      <Route path="/blog/:slug" component={BlogPostPage} />
       <Route component={NotFound} />
     </Switch>
   );

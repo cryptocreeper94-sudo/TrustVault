@@ -10,6 +10,7 @@ import { detectCategory, type MediaCategory, MEDIA_CATEGORIES } from "@shared/sc
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { processTrimJob, processMergeJob } from "./videoProcessor";
 import { registerEcosystemRoutes } from "./ecosystem/routes";
+import { registerBlogRoutes } from "./blog/routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -60,6 +61,7 @@ export async function registerRoutes(
 
   registerObjectStorageRoutes(app);
   registerEcosystemRoutes(app);
+  registerBlogRoutes(app);
 
   // --- Auth Routes ---
 

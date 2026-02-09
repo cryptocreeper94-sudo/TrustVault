@@ -22,7 +22,7 @@ import {
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
-  UserPlus,
+  UserPlus, BookOpen,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -842,6 +842,20 @@ export default function Home() {
                 {greeting}, {user.name}
               </span>
               <ThemeSwitcher />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a href="/blog/admin">
+                    <Button
+                      data-testid="button-blog-admin"
+                      variant="ghost"
+                      size="icon"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                    </Button>
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Blog Manager</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
