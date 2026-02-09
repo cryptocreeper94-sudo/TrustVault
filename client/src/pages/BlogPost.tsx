@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowLeft, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -63,21 +64,19 @@ export default function BlogPostPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {post.metaDescription && (
-        <head>
-          <title>{post.title} | DW Media Studio Blog</title>
-          <meta name="description" content={post.metaDescription} />
-          {post.keywords && (
-            <meta name="keywords" content={post.keywords.join(", ")} />
-          )}
-          <meta property="og:title" content={post.title} />
-          <meta property="og:description" content={post.metaDescription} />
-          <meta property="og:type" content="article" />
-          {post.coverImageUrl && (
-            <meta property="og:image" content={post.coverImageUrl} />
-          )}
-        </head>
-      )}
+      <Helmet>
+        <title>{post.title} | DW Media Studio Blog</title>
+        <meta name="description" content={post.metaDescription || post.excerpt || ""} />
+        {post.keywords && (
+          <meta name="keywords" content={post.keywords.join(", ")} />
+        )}
+        <meta property="og:title" content={post.title} />
+        <meta property="og:description" content={post.metaDescription || post.excerpt || ""} />
+        <meta property="og:type" content="article" />
+        {post.coverImageUrl && (
+          <meta property="og:image" content={post.coverImageUrl} />
+        )}
+      </Helmet>
 
       <header className="border-b border-border/50">
         <div className="max-w-3xl mx-auto px-4 py-4">

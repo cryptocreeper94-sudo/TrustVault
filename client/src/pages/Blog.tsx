@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowRight, Tag, ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -29,6 +30,13 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>DW Media Studio Blog | Insights for Digital Creators</title>
+        <meta name="description" content="Expert insights, tutorials, and industry knowledge for digital creators. Learn about media management, video production, audio editing, and creative workflows." />
+        <meta property="og:title" content="DW Media Studio Blog" />
+        <meta property="og:description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <header className="border-b border-border/50">
         <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between gap-4 flex-wrap">
           <div>

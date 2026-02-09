@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a personal **universal media vault** — a full-stack web application that allows a user (Madeline) to upload, store, organize, and preview any type of digital media: videos, audio, images, documents (PDF, DOC, etc.), and other files. The app features password-based authentication (SSO-compatible: 8+ chars, 1 uppercase, 1 special character), file upload via presigned URLs to Replit Object Storage, a dark-themed media-focused UI with category filtering and tagging, and multi-format preview in a modal viewer. It's a single-user/personal app with a password login flow and mandatory password reset on first use.
+This project is a personal **universal media vault**, a full-stack web application designed for a single user (Madeline) to upload, store, organize, and preview various digital media types including videos, audio, images, and documents. Key features include password-based authentication, file uploads to Replit Object Storage via presigned URLs, a dark-themed UI with category filtering and tagging, and a multi-format modal media viewer. It emphasizes a premium user experience and is envisioned as a core component within a broader ecosystem (TrustLayer / Dark Wave Studios), with future plans for blockchain integration and native mobile applications. The project aims to provide robust media management capabilities, including advanced editing tools and smart organization features, making it a comprehensive solution for digital content.
 
 ## User Preferences
 
@@ -14,101 +14,56 @@ This is a personal **universal media vault** — a full-stack web application th
 - A full master roadmap exists at `MASTER_ROADMAP.md` covering phases from current MVP through blockchain integration and native app deployment.
 - A strategic architecture plan exists at `ARCHITECTURE_PLAN.md` covering the modular architecture strategy, build order, workspace separation, and how the media vault fits into the broader TrustLayer ecosystem (Dark Wave Studios, TrustShield, Signal asset).
 
-## Recent Changes
-
-- **PWA Conversion** (Feb 2026) — Converted app to Progressive Web App:
-  - **Web App Manifest**: `client/public/manifest.json` — standalone display, dark theme (#0a0a0f background, #7c3aed theme), maskable icons
-  - **Icons**: 192x192 and 512x512 PWA icons, Apple Touch icon — all in `client/public/`
-  - **Service Worker**: `client/public/sw.js` — stale-while-revalidate caching strategy, offline SPA navigation fallback, excludes API/upload routes
-  - **Splash Screen**: Native HTML splash in `index.html` with animated logo, progress bar, fade-out transition (1.2s before dismiss)
-  - **iOS Support**: apple-mobile-web-app-capable, black-translucent status bar, apple-touch-icon
-  - **Service Worker Registration**: In `client/src/main.tsx`, registers on window load
-- **Ecosystem API: TrustHome Connectivity** (Feb 2026) — Added inter-service API for DarkWave ecosystem integration:
-  - **HMAC Authentication**: `Authorization: DW <apiKey>:<timestamp>:<signature>` scheme with HMAC-SHA256, 5-minute timestamp tolerance, constant-time signature comparison
-  - **Tenant Scoping**: All ecosystem data isolated by `tenantId`; API key tied to specific tenant
-  - **New tables**: `api_keys` (tenant credentials, webhook URL, capabilities), `ecosystem_projects` (tenant-scoped projects with status tracking)
-  - **Ecosystem API module**: `server/ecosystem/` — auth.ts (HMAC middleware + signature utilities), storage.ts (project/tenant CRUD), routes.ts (all endpoints), webhook.ts (callback with retry)
-  - **Endpoints**: GET `/api/ecosystem/status`, GET `/api/ecosystem/projects`, GET `/api/ecosystem/projects/:id`, GET `/api/ecosystem/projects/:id/status`, POST `/api/ecosystem/walkthrough-request`, POST `/api/ecosystem/projects/:id/cancel`, POST `/api/ecosystem/provision` (vault-auth-protected)
-  - **Webhook callbacks**: POST to tenant webhook URL on job completion/cancellation with HMAC-signed requests, 3 retries with exponential backoff
-  - **Capabilities**: video_walkthrough, video_editing, audio_editing, media_combining, branded_intros, voiceover, multi_angle_stitch, thumbnail_generation
-- **Auth System Redesign** (Feb 2026) — Removed pre-seeded default password; users create own account via 3-step setup flow (name, password, confirm). Added change-password feature via key icon in vault header.
-- **Phase 1 Expansion: Media Editors & Merge** (Feb 2026) — Added full-featured standalone editors:
-  - **Image Editor** (`/editor/image/:id`): Crop, rotate, resize, 7 filters (grayscale/sepia/vintage/cool/vivid/fade), brightness/contrast/saturation/blur adjustments, canvas-based processing, saves as new media item
-  - **Audio Editor** (`/editor/audio/:id`): Waveform visualization, trim/cut with draggable handles, fade in/out, volume control, playback speed, WAV encoding via OfflineAudioContext, saves as new media item
-  - **Video Editor** (`/editor/video/:id`): Timeline/trim bar, custom playback controls, frame capture (saves as new image), visual adjustments (brightness/contrast), saves clip info as new media item
-  - **Merge/Combine** (`/merge`): 4-step guided workflow — select type (image collage/audio concat/video concat), select items, configure, process & save. Image collage uses canvas, audio concat uses Web Audio API with crossfade support
-  - **Batch Upload**: Multi-file queue with per-file progress, client-side thumbnail extraction for images/videos, duration detection for videos, event detail fields (artist/venue/tour)
-  - **Schema additions**: thumbnailUrl, durationSeconds, artist, venue, tour, eventDate fields on media_items
-  - **Media cards**: Show thumbnails, duration badges, artist info; "Open in editor" button (Wand2 icon) navigates to appropriate editor
-  - **Edit dialog**: Added artist/venue/tour/eventDate fields
-  - **Mobile polish**: All pages audited and fixed for responsive layouts, touch targets, stacking panels on small screens
-- **Phase 1: Smart Browsing & Organization** (Feb 2026) — Added collections system (create/manage albums), timeline view (group media by year/month), grid/timeline view toggle, sort options (date/name/size), date range filtering, bulk select mode with floating action bar (batch favorite/unfavorite, batch delete, set label, add/remove from collections). Collections use junction table (`collection_items`). Batch API routes (`PATCH /api/media/batch`, `DELETE /api/media/batch`). React hooks for all CRUD operations in `client/src/hooks/use-media.ts`.
-
 ## System Architecture
 
 ### Frontend (React SPA)
-- **Framework**: React 18 with TypeScript, bundled by Vite
-- **Routing**: Wouter (lightweight client-side router) — routes: `/` (home), `/editor/image/:id`, `/editor/audio/:id`, `/editor/video/:id`, `/merge`, plus 404 page
-- **State Management**: TanStack React Query for server state (data fetching, caching, mutations)
-- **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, styled with Tailwind CSS and CSS variables for theming
-- **Animations**: Framer Motion for page transitions and micro-interactions
-- **Styling**: Tailwind CSS with a dark-mode-first design using CSS custom properties. Custom fonts: Outfit (display) and Plus Jakarta Sans (body)
-- **File Upload**: Uppy library with AWS S3 plugin for presigned URL uploads, plus a custom `useUpload` hook for simpler cases
-- **Icons**: Lucide React
-- **Path aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
+- **Framework**: React 18 with TypeScript, bundled by Vite.
+- **Routing**: Wouter for client-side navigation.
+- **State Management**: TanStack React Query for server state.
+- **UI Components**: shadcn/ui (new-york style) built on Radix UI, styled with Tailwind CSS and CSS variables.
+- **Animations**: Framer Motion for transitions and micro-interactions.
+- **Styling**: Tailwind CSS, dark-mode-first design, custom fonts (Outfit, Plus Jakarta Sans).
+- **File Upload**: Uppy library with AWS S3 plugin for presigned URL uploads.
+- **Progressive Web App (PWA)**: Implemented with web app manifest, service worker for offline capabilities (stale-while-revalidate caching), and native splash screen.
+- **Media Editors**: Dedicated pages for image, audio, and video editing (crop, rotate, filters, trim, frame capture, etc.), allowing saves as new media items.
+- **Media Merge/Combine**: Guided workflow for creating image collages, audio concatenations, and video concatenations.
+- **Smart Browsing & Organization**: Collections system, timeline view, grid/timeline toggle, various sort options, date range filtering, and bulk selection with batch actions.
+- **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.
 
 ### Backend (Express + Node.js)
-- **Runtime**: Node.js with TypeScript (tsx for development, esbuild for production builds)
-- **Framework**: Express.js serving both API routes and the static SPA
-- **API Design**: RESTful JSON API under `/api/` prefix. API contracts are defined in `shared/routes.ts` using Zod schemas for request/response validation
-- **Session Management**: express-session with connect-pg-simple (PostgreSQL-backed sessions), 30-day TTL
-- **Authentication**: Custom password-based auth (SSO-compatible). A single password stored (bcrypt hashed) in a `pin_auth` table. Password requirements: 8+ chars, 1 uppercase, 1 special character. Supports password reset flow on first login. Session cookie tracks authentication state. Login endpoint: POST `/api/auth/login` (body: `{password}`). Reset endpoint: POST `/api/auth/reset-password` (body: `{newPassword}`). There is also a Replit Auth integration present in `server/replit_integrations/auth/` but the active auth system is the password-based one.
-- **File Storage**: Replit Object Storage (Google Cloud Storage under the hood) accessed via `@google-cloud/storage`. Files are uploaded using presigned URLs — the backend generates a presigned upload URL, the client uploads directly to storage, then saves metadata to the database.
-- **Dev Server**: Vite dev server is used as middleware in development for HMR
+- **Runtime**: Node.js with TypeScript (tsx/esbuild).
+- **Framework**: Express.js, serving API routes and static SPA.
+- **API Design**: RESTful JSON API using Zod for contract validation (`shared/routes.ts`).
+- **Authentication**: Custom password-based authentication (8+ chars, 1 uppercase, 1 special character) with bcrypt hashing and password reset flow. Express-session with PostgreSQL-backed storage.
+- **File Storage Interaction**: Generates presigned URLs for direct client uploads to Replit Object Storage, then stores metadata in the database.
+- **Ecosystem API (TrustHome Connectivity)**: Inter-service API for DarkWave ecosystem integration, featuring HMAC authentication, tenant scoping, project management, and webhook callbacks with retry mechanisms.
 
 ### Shared Code (`shared/`)
-- **Schema**: Drizzle ORM schema definitions in `shared/schema.ts` — defines `mediaItems`, `pinAuth`, `users`, `sessions`, `collections`, and `collectionItems` tables
-- **Routes Contract**: `shared/routes.ts` defines the full API contract with Zod schemas, used by both client and server for type safety
-- **Models**: `shared/models/auth.ts` contains Replit Auth user/session models (kept for compatibility)
+- **Schema**: Drizzle ORM schema definitions (`shared/schema.ts`) for all database tables.
+- **API Contract**: Zod schemas defining the full API contract (`shared/routes.ts`) for type safety.
 
 ### Database
-- **Database**: PostgreSQL (required, via `DATABASE_URL` environment variable)
-- **ORM**: Drizzle ORM with `drizzle-kit` for migrations
-- **Schema Push**: Use `npm run db:push` to push schema changes to the database (uses `drizzle-kit push`)
-- **Tables**:
-  - `media_items` — stores all media metadata (title, description, url/object path, filename, content type, category, size, label, tags, file_date, favorite flag, thumbnailUrl, durationSeconds, artist, venue, tour, eventDate)
-  - `pin_auth` — single-row table for PIN authentication (pin, must_reset flag, name)
-  - `sessions` — express-session storage
-  - `users` — kept from Replit Auth integration, not actively used by PIN auth
-  - `collections` — user-created albums/collections (name, description, coverMediaId)
-  - `collection_items` — junction table linking media_items to collections (collectionId, mediaItemId, addedAt)
-  - `api_keys` — ecosystem tenant API credentials (tenantId, appName, apiKey, apiSecret, webhookUrl, capabilities, active)
-  - `ecosystem_projects` — tenant-scoped media projects (tenantId, title, status, propertyAddress, propertyId, requestType, notes, agentId, thumbnailUrl, outputUrl, duration, timeline, assets, renderStatus, errorMessage, estimatedTurnaround)
-
-### Build System
-- **Development**: `npm run dev` — runs tsx with Vite middleware for HMR
-- **Production Build**: `npm run build` — runs `script/build.ts` which builds the client with Vite and bundles the server with esbuild. Key server dependencies are bundled (allowlisted) to reduce cold start times; others are externalized.
-- **Production Start**: `npm run start` — runs the built `dist/index.cjs`
-- **Type Checking**: `npm run check` — runs tsc with noEmit
+- **Database**: PostgreSQL.
+- **ORM**: Drizzle ORM for schema management and migrations.
+- **Key Tables**: `media_items` (media metadata), `pin_auth` (authentication), `sessions`, `collections`, `collection_items` (for media organization), `api_keys` (ecosystem credentials), `ecosystem_projects` (tenant-scoped projects), `blog_posts` (blog content).
 
 ### Key Design Patterns
-- **Presigned URL Upload Flow**: Client requests a presigned URL from `/api/uploads/request-url` (sending only JSON metadata), then uploads the file directly to the presigned URL, then saves media metadata to the database via `/api/media`
-- **Contract-First API**: Shared Zod schemas in `shared/routes.ts` define the API contract, enabling type-safe API calls on both client and server
-- **Storage Abstraction**: `IStorage` interface in `server/storage.ts` with `DatabaseStorage` implementation, making it possible to swap storage backends
+- **Presigned URL Upload Flow**: Efficient file upload by offloading direct file transfer to cloud storage.
+- **Contract-First API**: Ensures type-safe communication between client and server.
+- **Storage Abstraction**: Facilitates swapping storage backends via an `IStorage` interface.
 
 ## External Dependencies
 
 ### Required Services
-- **PostgreSQL Database**: Required. Connection via `DATABASE_URL` environment variable. Used for media metadata, session storage, and PIN authentication.
-- **Replit Object Storage**: Used for storing uploaded media files. Accessed via Google Cloud Storage client library through Replit's sidecar service at `http://127.0.0.1:1106`. Configured via environment (no explicit credentials needed in Replit environment).
+- **PostgreSQL Database**: Essential for all application data; connected via `DATABASE_URL`.
+- **Replit Object Storage**: Primary storage for uploaded media files; accessed via Google Cloud Storage client library.
+- **OpenAI API**: Used for AI-driven blog content generation.
 
 ### Environment Variables
-- `DATABASE_URL` — PostgreSQL connection string (required)
-- `SESSION_SECRET` — Secret for express-session signing (falls back to a default in development)
-- `PUBLIC_OBJECT_SEARCH_PATHS` — Configures public object storage paths (optional)
+- `DATABASE_URL`: PostgreSQL connection string.
+- `SESSION_SECRET`: Secret for `express-session` signing.
 
 ### Key NPM Dependencies
-- **Server**: express, drizzle-orm, pg, express-session, connect-pg-simple, @google-cloud/storage, zod
-- **Client**: react, @tanstack/react-query, wouter, framer-motion, date-fns, lucide-react, @uppy/core, @uppy/aws-s3, @uppy/dashboard, @uppy/react
-- **UI**: Full shadcn/ui component library (Radix UI primitives, tailwindcss, class-variance-authority, cmdk, vaul, embla-carousel, recharts, react-day-picker, react-resizable-panels, input-otp)
-- **Build**: vite, esbuild, tsx, drizzle-kit, typescript
+- **Server**: `express`, `drizzle-orm`, `pg`, `express-session`, `connect-pg-simple`, `@google-cloud/storage`, `zod`.
+- **Client**: `react`, `@tanstack/react-query`, `wouter`, `framer-motion`, `@uppy/core`, `@uppy/aws-s3`, `@uppy/react`, `shadcn/ui` components.
+- **Build**: `vite`, `esbuild`, `tsx`, `drizzle-kit`, `typescript`.
