@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Check, ArrowLeft, Shield, Zap, Crown, Sparkles, Loader2, Award, ExternalLink, Users } from "lucide-react";
+import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -344,9 +345,7 @@ export default function Pricing() {
             <div className="p-1">
               <div className="rounded-lg theme-gradient p-5 sm:p-6">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-white" />
-                  </div>
+                  <img src={trustlayerEmblem} alt="TrustLayer" className="w-11 h-11 rounded-xl object-cover" />
                   <div>
                     <h3 className="text-lg font-bold text-white font-display">Become a TrustLayer Member</h3>
                     <p className="text-xs text-white/70">Part of the Dark Wave Studios ecosystem</p>
@@ -392,7 +391,7 @@ export default function Pricing() {
                   data-testid="link-trustlayer-pricing"
                 >
                   <Button variant="outline" className="gap-2">
-                    <Shield className="w-4 h-4" />
+                    <img src={trustlayerEmblem} alt="" className="w-4 h-4 rounded-sm object-cover" />
                     Visit TrustLayer Dashboard
                     <ExternalLink className="w-3 h-3" />
                   </Button>

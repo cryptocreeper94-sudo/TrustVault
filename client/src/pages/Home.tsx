@@ -22,7 +22,7 @@ import {
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
-  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail,
+  UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail, Fingerprint,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +66,7 @@ import { format, parseISO } from "date-fns";
 import type { CollectionWithCount } from "@shared/schema";
 import { OnboardingGuide, HelpTooltip, useOnboarding } from "@/components/OnboardingGuide";
 import { TrustLayerBadge } from "@/components/TrustLayerBadge";
+import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
 import { HelpCircle } from "lucide-react";
 
 function getGreeting(): string {
@@ -826,9 +827,7 @@ export default function Home() {
             className="flex items-center gap-2.5 group shrink-0"
             data-testid="link-home"
           >
-            <div className="w-8 h-8 rounded-lg theme-gradient flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-              <Shield className="w-4.5 h-4.5 text-white" />
-            </div>
+            <img src={trustlayerEmblem} alt="TrustLayer" className="w-8 h-8 rounded-lg object-cover transition-transform duration-200 group-hover:scale-105" />
             <h1 className="font-display font-bold text-lg tracking-tight hidden sm:block group-hover:text-primary transition-colors" data-testid="text-app-title">
               Media Vault
             </h1>
@@ -865,9 +864,7 @@ export default function Home() {
                 <SheetContent side="right" className="flex flex-col">
                   <SheetHeader className="text-left">
                     <SheetTitle className="font-display flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg theme-gradient flex items-center justify-center">
-                        <Shield className="w-3.5 h-3.5 text-white" />
-                      </div>
+                      <img src={trustlayerEmblem} alt="TrustLayer" className="w-7 h-7 rounded-lg object-cover" />
                       DW Media Studio
                     </SheetTitle>
                     <p className="text-xs text-muted-foreground">
@@ -938,36 +935,42 @@ export default function Home() {
 
                   <div className="mt-auto pt-6">
                     <Separator className="mb-4" />
-                    <div className="space-y-3">
-                      <a
-                        href="https://dwtl.io"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground group"
-                        data-testid="link-trustlayer"
-                      >
-                        <Zap className="w-3.5 h-3.5 text-primary" />
-                        <span>Trust Layer</span>
-                        <span className="text-xs text-muted-foreground/60">dwtl.io</span>
-                        <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                      <a
-                        href="https://darkwavestudios.io"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground group"
-                        data-testid="link-darkwavestudios"
-                      >
-                        <Shield className="w-3.5 h-3.5 text-primary" />
-                        <span>Dark Wave Studios</span>
-                        <span className="text-xs text-muted-foreground/60">.io</span>
-                        <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                      <div className="pt-2 border-t border-border/50">
-                        <p className="text-[11px] text-muted-foreground/50 text-center">
-                          Powered by <a href="https://trustshield.tech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/70 hover:text-primary transition-colors" data-testid="link-trustshield">TrustShield.tech</a>
-                        </p>
+
+                    <div className="rounded-lg theme-gradient p-3 mb-3">
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <img src={trustlayerEmblem} alt="TrustLayer" className="w-9 h-9 rounded-lg object-cover" />
+                        <div>
+                          <p className="text-sm font-bold text-white font-display">TrustLayer</p>
+                          <p className="text-[10px] text-white/60">Your Ecosystem Membership</p>
+                        </div>
                       </div>
+                      <p className="text-[11px] text-white/80 leading-relaxed mb-3">
+                        Set up your dashboard and get your membership card at dwtl.io
+                      </p>
+                      <Button asChild variant="outline" size="sm" data-testid="link-trustlayer-menu-cta">
+                        <a href="https://dwtl.io" target="_blank" rel="noopener noreferrer" className="gap-2 bg-white/10 border-white/20 text-white">
+                          <img src={trustlayerEmblem} alt="" className="w-4 h-4 rounded-sm object-cover" />
+                          Open TrustLayer
+                          <ExternalLink className="w-3 h-3 ml-auto" />
+                        </a>
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Button asChild variant="ghost" size="sm" data-testid="link-darkwavestudios">
+                        <a href="https://darkwavestudios.io" target="_blank" rel="noopener noreferrer" className="gap-2 justify-start text-muted-foreground">
+                          <Globe className="w-3.5 h-3.5" />
+                          Dark Wave Studios
+                          <ExternalLink className="w-3 h-3 ml-auto" />
+                        </a>
+                      </Button>
+                      <Button asChild variant="ghost" size="sm" data-testid="link-trustshield">
+                        <a href="https://trustshield.tech" target="_blank" rel="noopener noreferrer" className="gap-2 justify-start text-muted-foreground">
+                          <Fingerprint className="w-3.5 h-3.5" />
+                          TrustShield
+                          <ExternalLink className="w-3 h-3 ml-auto" />
+                        </a>
+                      </Button>
                     </div>
                   </div>
                 </SheetContent>
@@ -1335,9 +1338,7 @@ function PasswordLogin() {
       <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-8 bg-card border-l border-white/5">
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
-            <div className="w-14 h-14 rounded-xl theme-gradient flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
-              <Lock className="w-7 h-7 text-white" />
-            </div>
+            <img src={trustlayerEmblem} alt="TrustLayer" className="w-14 h-14 rounded-xl object-cover mb-6 mx-auto shadow-lg shadow-primary/20" />
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">Welcome Back</h1>
             <p className="text-sm text-muted-foreground">
               {multiUser ? "Enter your name and password to continue" : "Enter your password to continue"}

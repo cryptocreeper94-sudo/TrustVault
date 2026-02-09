@@ -1,10 +1,11 @@
-import { Shield, ExternalLink, Award, Users, CreditCard } from "lucide-react";
+import { ExternalLink, Award, Users, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
 
 export function TrustLayerBadge() {
   return (
@@ -16,9 +17,11 @@ export function TrustLayerBadge() {
           className="gap-1.5"
           data-testid="button-trustlayer-badge"
         >
-          <div className="w-5 h-5 rounded-md theme-gradient flex items-center justify-center shrink-0">
-            <Shield className="w-3 h-3 text-white" />
-          </div>
+          <img
+            src={trustlayerEmblem}
+            alt="TrustLayer"
+            className="w-5 h-5 rounded-md object-cover shrink-0"
+          />
           <span className="text-[11px] font-semibold tracking-wide hidden sm:inline">
             TRUSTLAYER
           </span>
@@ -34,9 +37,11 @@ export function TrustLayerBadge() {
         <div className="p-1">
           <div className="rounded-lg theme-gradient p-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
+              <img
+                src={trustlayerEmblem}
+                alt="TrustLayer Emblem"
+                className="w-10 h-10 rounded-lg object-cover"
+              />
               <div>
                 <h3 className="text-sm font-bold text-white font-display">TrustLayer</h3>
                 <p className="text-[11px] text-white/70">Verified Ecosystem Member</p>
@@ -80,32 +85,20 @@ export function TrustLayerBadge() {
           </div>
 
           <div className="pt-2 border-t border-border/50 flex flex-col gap-1.5">
-            <a
-              href="https://dwtl.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full"
-              data-testid="link-trustlayer-dashboard"
-            >
-              <Button variant="outline" size="sm" className="w-full gap-2 justify-start">
-                <Shield className="w-3.5 h-3.5" />
+            <Button asChild variant="outline" size="sm" data-testid="link-trustlayer-dashboard">
+              <a href="https://dwtl.io" target="_blank" rel="noopener noreferrer" className="gap-2 justify-start">
+                <img src={trustlayerEmblem} alt="" className="w-4 h-4 rounded-sm object-cover" />
                 TrustLayer Dashboard
                 <ExternalLink className="w-3 h-3 ml-auto" />
-              </Button>
-            </a>
-            <a
-              href="https://darkwavestudios.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full"
-              data-testid="link-darkwavestudios-badge"
-            >
-              <Button variant="ghost" size="sm" className="w-full gap-2 justify-start">
+              </a>
+            </Button>
+            <Button asChild variant="ghost" size="sm" data-testid="link-darkwavestudios-badge">
+              <a href="https://darkwavestudios.io" target="_blank" rel="noopener noreferrer" className="gap-2 justify-start">
                 <Award className="w-3.5 h-3.5" />
                 Dark Wave Studios
                 <ExternalLink className="w-3 h-3 ml-auto" />
-              </Button>
-            </a>
+              </a>
+            </Button>
           </div>
         </div>
       </PopoverContent>

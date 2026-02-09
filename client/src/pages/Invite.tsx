@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import { Shield, Lock, ExternalLink, Layers, Zap, ArrowRight, Fingerprint, Globe } from "lucide-react";
+import { Lock, ExternalLink, Layers, Zap, ArrowRight, Fingerprint, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
+import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
 
 export default function Invite() {
   return (
@@ -30,9 +31,7 @@ export default function Invite() {
             transition={{ duration: 0.5 }}
             className="flex items-center gap-2 mb-10"
           >
-            <div className="w-8 h-8 rounded-lg theme-gradient flex items-center justify-center">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
+            <img src={trustlayerEmblem} alt="TrustLayer" className="w-8 h-8 rounded-lg object-cover" />
             <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Dark Wave Studios</span>
           </motion.div>
 
@@ -42,9 +41,7 @@ export default function Invite() {
             transition={{ delay: 0.1, duration: 0.6 }}
             className="text-center mb-8"
           >
-            <div className="w-20 h-20 rounded-2xl theme-gradient flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary/30">
-              <Lock className="w-10 h-10 text-white" />
-            </div>
+            <img src={trustlayerEmblem} alt="TrustLayer Emblem" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6 shadow-2xl shadow-primary/30" />
             <h1 className="text-3xl sm:text-4xl font-display font-bold tracking-tight mb-3" data-testid="text-invite-title">
               You're Invited
             </h1>
@@ -127,7 +124,7 @@ export default function Invite() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
                 <Button asChild variant="ghost" size="sm" data-testid="link-invite-trustlayer">
                   <a href="https://dwtl.io" target="_blank" rel="noopener noreferrer" className="gap-2 text-muted-foreground">
-                    <Shield className="w-4 h-4" />
+                    <img src={trustlayerEmblem} alt="" className="w-4 h-4 rounded-sm object-cover" />
                     TrustLayer
                     <ExternalLink className="w-3 h-3" />
                   </a>
