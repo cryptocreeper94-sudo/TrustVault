@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 function getGreeting(): string {
   const now = new Date();
@@ -94,7 +96,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5">
+      <header className="fixed top-0 left-0 right-0 z-40 glass-morphism">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a
             href="https://darkwavestudios.io"
@@ -103,7 +105,7 @@ export default function Home() {
             className="flex items-center gap-2.5 group shrink-0"
             data-testid="link-home"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+            <div className="w-8 h-8 rounded-lg theme-gradient flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
               <Shield className="w-4.5 h-4.5 text-white" />
             </div>
             <h1 className="font-display font-bold text-lg tracking-tight hidden sm:block group-hover:text-primary transition-colors" data-testid="text-app-title">
@@ -123,18 +125,24 @@ export default function Home() {
               />
             </div>
 
-            <div className="flex items-center gap-2 pl-3 border-l border-white/10">
-              <span className="text-sm font-medium hidden lg:block text-muted-foreground" data-testid="text-greeting">
+            <div className="flex items-center gap-1 pl-3 border-l border-white/10">
+              <span className="text-sm font-medium hidden lg:block text-muted-foreground mr-1" data-testid="text-greeting">
                 {greeting}, {user.name}
               </span>
-              <Button
-                data-testid="button-logout"
-                variant="ghost"
-                size="icon"
-                onClick={() => logout()}
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
+              <ThemeSwitcher />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    data-testid="button-logout"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => logout()}
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Sign out</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -204,7 +212,13 @@ export default function Home() {
         {mediaLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-card/40 border border-white/5 rounded-xl aspect-[4/3] animate-pulse" />
+              <div key={i} className="rounded-xl overflow-hidden glass-card">
+                <div className="aspect-[4/3] shimmer" />
+                <div className="p-3 sm:p-4 space-y-2">
+                  <div className="h-4 w-3/4 rounded shimmer" />
+                  <div className="h-3 w-1/2 rounded shimmer" />
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -295,7 +309,7 @@ function PinLogin() {
           <div className="max-w-md">
             <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4 leading-tight">
               Your digital assets,<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-300">
+              <span className="theme-gradient-text">
                 secured forever.
               </span>
             </h2>
@@ -309,7 +323,7 @@ function PinLogin() {
       <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-8 bg-card border-l border-white/5">
         <div className="max-w-xs w-full space-y-8">
           <div className="text-center">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
+            <div className="w-14 h-14 rounded-xl theme-gradient flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
               <Lock className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">Welcome Back</h1>
@@ -481,7 +495,7 @@ function PinReset() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-xs w-full space-y-8">
         <div className="text-center">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
+          <div className="w-14 h-14 rounded-xl theme-gradient flex items-center justify-center mb-6 mx-auto shadow-lg shadow-primary/20">
             <KeyRound className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-reset-title">

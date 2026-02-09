@@ -4,6 +4,7 @@ import { type MediaCategory } from "@shared/schema";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, Loader2, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 interface MediaViewerProps {
   item: MediaResponse | null;
@@ -57,9 +58,17 @@ export function MediaViewer({ item, open, onOpenChange }: MediaViewerProps) {
 
           {cat === "audio" && (
             <div className="relative z-10 flex flex-col items-center justify-center gap-8 p-12 w-full">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/10 flex items-center justify-center border border-green-500/20">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/30 to-emerald-500/20 flex items-center justify-center animate-pulse">
-                  <div className="w-8 h-8 rounded-full bg-green-500/50" />
+              <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/10 flex items-center justify-center border border-green-500/20">
+                <div className="absolute inset-0 rounded-full bg-green-500/5 animate-ping" style={{ animationDuration: "2s" }} />
+                <div className="flex items-end gap-1 h-12">
+                  {[0.6, 1, 0.4, 0.8, 0.5, 0.9, 0.3].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1.5 rounded-full bg-gradient-to-t from-green-500 to-emerald-300"
+                      animate={{ height: [`${h * 100}%`, `${h * 40}%`, `${h * 100}%`] }}
+                      transition={{ duration: 0.6 + i * 0.1, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  ))}
                 </div>
               </div>
               <div className="text-center space-y-2">
@@ -138,7 +147,7 @@ export function MediaViewer({ item, open, onOpenChange }: MediaViewerProps) {
           )}
         </div>
 
-        <div className="p-4 bg-black/90 border-t border-white/5">
+        <div className="p-4 bg-black/80 backdrop-blur-xl border-t border-white/5">
           <h2 className="text-lg font-display font-bold text-white">{item.title}</h2>
           {item.description && <p className="text-white/60 text-sm mt-1">{item.description}</p>}
         </div>

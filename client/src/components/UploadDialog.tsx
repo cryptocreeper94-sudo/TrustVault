@@ -89,7 +89,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
         size: uploadResult.metadata.size,
         label: label || undefined,
         tags: tags.length > 0 ? tags : undefined,
-        fileDate: fileDate ? new Date(fileDate).toISOString() : undefined,
+        fileDate: fileDate ? new Date(fileDate) : undefined,
       });
 
       toast({ title: "Uploaded", description: `${title} has been added to your vault.` });
@@ -124,7 +124,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
       }
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-white/10 text-foreground">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto glass-morphism text-foreground">
         <DialogHeader>
           <DialogTitle className="text-2xl font-display font-bold">
             Upload to Vault
