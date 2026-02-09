@@ -1320,19 +1320,17 @@ function PasswordLogin() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen" />
 
-        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 z-10 bg-gradient-to-t from-black via-transparent to-transparent">
-          <div className="max-w-md">
-            <img src={trustlayerEmblem} alt="DW Media Studio" className="w-14 h-14 md:w-20 md:h-20 rounded-2xl object-cover mb-6 shadow-2xl shadow-black/50 ring-2 ring-white/10" />
-            <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4 leading-tight">
-              Your digital assets,<br />
-              <span className="theme-gradient-text">
-                secured forever.
-              </span>
-            </h2>
-            <p className="text-white/60 text-lg hidden md:block">
-              A private vault for your most valuable media and memories.
-            </p>
-          </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 md:p-16 z-10 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+          <img src={trustlayerEmblem} alt="DW Media Studio" className="w-32 h-32 md:w-44 md:h-44 object-cover mb-8" />
+          <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4 leading-tight text-center">
+            Your digital assets,<br />
+            <span className="theme-gradient-text">
+              secured forever.
+            </span>
+          </h2>
+          <p className="text-white/60 text-lg hidden md:block text-center max-w-md">
+            A private vault for your most valuable media and memories.
+          </p>
         </div>
       </div>
 
