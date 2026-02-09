@@ -16,6 +16,13 @@ This is a personal **universal media vault** — a full-stack web application th
 
 ## Recent Changes
 
+- **PWA Conversion** (Feb 2026) — Converted app to Progressive Web App:
+  - **Web App Manifest**: `client/public/manifest.json` — standalone display, dark theme (#0a0a0f background, #7c3aed theme), maskable icons
+  - **Icons**: 192x192 and 512x512 PWA icons, Apple Touch icon — all in `client/public/`
+  - **Service Worker**: `client/public/sw.js` — stale-while-revalidate caching strategy, offline SPA navigation fallback, excludes API/upload routes
+  - **Splash Screen**: Native HTML splash in `index.html` with animated logo, progress bar, fade-out transition (1.2s before dismiss)
+  - **iOS Support**: apple-mobile-web-app-capable, black-translucent status bar, apple-touch-icon
+  - **Service Worker Registration**: In `client/src/main.tsx`, registers on window load
 - **Ecosystem API: TrustHome Connectivity** (Feb 2026) — Added inter-service API for DarkWave ecosystem integration:
   - **HMAC Authentication**: `Authorization: DW <apiKey>:<timestamp>:<signature>` scheme with HMAC-SHA256, 5-minute timestamp tolerance, constant-time signature comparison
   - **Tenant Scoping**: All ecosystem data isolated by `tenantId`; API key tied to specific tenant
