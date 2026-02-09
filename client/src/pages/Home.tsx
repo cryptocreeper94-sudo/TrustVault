@@ -1322,6 +1322,7 @@ function PasswordLogin() {
 
         <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 z-10 bg-gradient-to-t from-black via-transparent to-transparent">
           <div className="max-w-md">
+            <img src={trustlayerEmblem} alt="DW Media Studio" className="w-14 h-14 md:w-20 md:h-20 rounded-2xl object-cover mb-6 shadow-2xl shadow-black/50 ring-2 ring-white/10" />
             <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4 leading-tight">
               Your digital assets,<br />
               <span className="theme-gradient-text">
@@ -1338,7 +1339,6 @@ function PasswordLogin() {
       <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-8 bg-card border-l border-white/5">
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
-            <img src={trustlayerEmblem} alt="TrustLayer" className="w-14 h-14 rounded-xl object-cover mb-6 mx-auto shadow-lg shadow-primary/20" />
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">Welcome Back</h1>
             <p className="text-sm text-muted-foreground">
               {multiUser ? "Enter your name and password to continue" : "Enter your password to continue"}
