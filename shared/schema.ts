@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -28,11 +28,38 @@ export const pinAuth = pgTable("pin_auth", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// --- Tenants Table ---
+
+export const TENANT_STATUSES = ["active", "suspended", "deleted"] as const;
+export type TenantStatus = typeof TENANT_STATUSES[number];
+
+export const tenants = pgTable("tenants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  storagePrefix: text("storage_prefix").notNull(),
+  tier: text("tier").notNull().default("free"),
+  status: text("status").notNull().default("active"),
+  pinAuthId: integer("pin_auth_id"),
+  stripeCustomerId: text("stripe_customer_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
+
 export const MEDIA_CATEGORIES = ["video", "audio", "image", "document", "other"] as const;
 export type MediaCategory = typeof MEDIA_CATEGORIES[number];
 
 export const mediaItems = pgTable("media_items", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id"),
   title: text("title").notNull(),
   description: text("description"),
   url: text("url").notNull(),
@@ -73,6 +100,7 @@ export type MediaListResponse = MediaItem[];
 
 export const collections = pgTable("collections", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id"),
   name: text("name").notNull(),
   description: text("description"),
   coverMediaId: integer("cover_media_id"),
@@ -243,6 +271,7 @@ export type SubscriptionStatus = typeof SUBSCRIPTION_STATUSES[number];
 
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id"),
   stripeCustomerId: text("stripe_customer_id").notNull().unique(),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
   tier: text("tier").notNull().default("free"),
