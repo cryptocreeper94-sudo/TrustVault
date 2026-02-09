@@ -347,6 +347,46 @@ export const insertWhitelistSchema = createInsertSchema(whitelist).omit({
 export type WhitelistEntry = typeof whitelist.$inferSelect;
 export type InsertWhitelistEntry = z.infer<typeof insertWhitelistSchema>;
 
+// --- Feature Requests / Community Voice ---
+
+export const FEATURE_CATEGORIES = ["music_services", "media_tools", "storage", "social", "integrations", "other"] as const;
+export type FeatureCategory = typeof FEATURE_CATEGORIES[number];
+
+export const FEATURE_STATUSES = ["open", "under_review", "planned", "in_progress", "completed", "declined"] as const;
+export type FeatureStatus = typeof FEATURE_STATUSES[number];
+
+export const featureRequests = pgTable("feature_requests", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull().default("other"),
+  status: text("status").notNull().default("open"),
+  adminNote: text("admin_note"),
+  votes: integer("votes").notNull().default(0),
+  submittedBy: text("submitted_by"),
+  tenantId: varchar("tenant_id"),
+  isSeeded: boolean("is_seeded").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const featureVotes = pgTable("feature_votes", {
+  id: serial("id").primaryKey(),
+  featureRequestId: integer("feature_request_id").notNull(),
+  tenantId: varchar("tenant_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertFeatureRequestSchema = createInsertSchema(featureRequests).omit({
+  id: true,
+  votes: true,
+  isSeeded: true,
+  createdAt: true,
+});
+
+export type FeatureRequest = typeof featureRequests.$inferSelect;
+export type InsertFeatureRequest = z.infer<typeof insertFeatureRequestSchema>;
+export type FeatureVote = typeof featureVotes.$inferSelect;
+
 export function detectCategory(contentType: string): MediaCategory {
   if (contentType.startsWith("video/")) return "video";
   if (contentType.startsWith("audio/")) return "audio";
