@@ -1,64 +1,71 @@
 import { db } from "./db";
 import { 
-  videos, 
+  mediaItems, 
   pinAuth,
-  type Video, 
-  type InsertVideo, 
-  type UpdateVideoRequest,
-  type PinAuth
+  type MediaItem, 
+  type InsertMediaItem, 
+  type UpdateMediaRequest,
+  type PinAuth,
+  type MediaCategory
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
-  getVideos(): Promise<Video[]>;
-  getVideo(id: number): Promise<Video | undefined>;
-  createVideo(video: InsertVideo & { uploadedBy?: string }): Promise<Video>;
-  updateVideo(id: number, updates: UpdateVideoRequest): Promise<Video>;
-  deleteVideo(id: number): Promise<void>;
-  toggleFavorite(id: number, isFavorite: boolean): Promise<Video | undefined>;
+  getMediaItems(category?: MediaCategory): Promise<MediaItem[]>;
+  getMediaItem(id: number): Promise<MediaItem | undefined>;
+  createMediaItem(item: InsertMediaItem & { uploadedBy?: string }): Promise<MediaItem>;
+  updateMediaItem(id: number, updates: UpdateMediaRequest): Promise<MediaItem>;
+  deleteMediaItem(id: number): Promise<void>;
+  toggleFavorite(id: number, isFavorite: boolean): Promise<MediaItem | undefined>;
   getPinAuth(): Promise<PinAuth | undefined>;
   updatePin(pin: string, mustReset: boolean): Promise<PinAuth>;
   initializePinAuth(pin: string, name: string): Promise<PinAuth>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getVideos(): Promise<Video[]> {
-    return await db.select().from(videos).orderBy(desc(videos.createdAt));
+  async getMediaItems(category?: MediaCategory): Promise<MediaItem[]> {
+    if (category) {
+      return await db.select().from(mediaItems)
+        .where(eq(mediaItems.category, category))
+        .orderBy(desc(mediaItems.fileDate), desc(mediaItems.createdAt));
+    }
+    return await db.select().from(mediaItems)
+      .orderBy(desc(mediaItems.fileDate), desc(mediaItems.createdAt));
   }
 
-  async getVideo(id: number): Promise<Video | undefined> {
-    const [video] = await db.select().from(videos).where(eq(videos.id, id));
-    return video;
+  async getMediaItem(id: number): Promise<MediaItem | undefined> {
+    const [item] = await db.select().from(mediaItems).where(eq(mediaItems.id, id));
+    return item;
   }
 
-  async createVideo(insertVideo: InsertVideo & { uploadedBy?: string }): Promise<Video> {
-    const [video] = await db
-      .insert(videos)
-      .values(insertVideo)
+  async createMediaItem(item: InsertMediaItem & { uploadedBy?: string }): Promise<MediaItem> {
+    const [created] = await db
+      .insert(mediaItems)
+      .values(item)
       .returning();
-    return video;
+    return created;
   }
 
-  async updateVideo(id: number, updates: UpdateVideoRequest): Promise<Video> {
-    const [video] = await db
-      .update(videos)
+  async updateMediaItem(id: number, updates: UpdateMediaRequest): Promise<MediaItem> {
+    const [updated] = await db
+      .update(mediaItems)
       .set(updates)
-      .where(eq(videos.id, id))
+      .where(eq(mediaItems.id, id))
       .returning();
-    return video;
+    return updated;
   }
 
-  async deleteVideo(id: number): Promise<void> {
-    await db.delete(videos).where(eq(videos.id, id));
+  async deleteMediaItem(id: number): Promise<void> {
+    await db.delete(mediaItems).where(eq(mediaItems.id, id));
   }
 
-  async toggleFavorite(id: number, isFavorite: boolean): Promise<Video | undefined> {
-    const [video] = await db
-      .update(videos)
+  async toggleFavorite(id: number, isFavorite: boolean): Promise<MediaItem | undefined> {
+    const [item] = await db
+      .update(mediaItems)
       .set({ isFavorite })
-      .where(eq(videos.id, id))
+      .where(eq(mediaItems.id, id))
       .returning();
-    return video;
+    return item;
   }
 
   async getPinAuth(): Promise<PinAuth | undefined> {

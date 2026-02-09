@@ -3,14 +3,12 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 
-// Sessions table for express-session
 export const sessions = pgTable("sessions", {
   sid: varchar("sid").primaryKey(),
   sess: text("sess").notNull(),
   expire: timestamp("expire").notNull(),
 });
 
-// Users table (kept from auth integration but simplified)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
@@ -21,7 +19,6 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// PIN auth table - single row for Madeline's PIN
 export const pinAuth = pgTable("pin_auth", {
   id: serial("id").primaryKey(),
   pin: text("pin").notNull(),
@@ -31,46 +28,43 @@ export const pinAuth = pgTable("pin_auth", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Video table
-export const videos = pgTable("videos", {
+export const MEDIA_CATEGORIES = ["video", "audio", "image", "document", "other"] as const;
+export type MediaCategory = typeof MEDIA_CATEGORIES[number];
+
+export const mediaItems = pgTable("media_items", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
   url: text("url").notNull(),
   filename: text("filename").notNull(),
   contentType: text("content_type").notNull(),
+  category: text("category").notNull().default("other"),
   size: integer("size"),
+  label: text("label"),
+  tags: text("tags").array(),
   uploadedBy: varchar("uploaded_by"),
+  fileDate: timestamp("file_date"),
   createdAt: timestamp("created_at").defaultNow(),
   isFavorite: boolean("is_favorite").default(false),
 });
 
-// === BASE SCHEMAS ===
-export const insertVideoSchema = createInsertSchema(videos).omit({ 
-  id: true, 
-  createdAt: true, 
-  uploadedBy: true
+export const insertMediaSchema = createInsertSchema(mediaItems).omit({
+  id: true,
+  createdAt: true,
+  uploadedBy: true,
 });
 
-// === EXPLICIT API CONTRACT TYPES ===
-
-// PIN Auth types
 export type PinAuth = typeof pinAuth.$inferSelect;
 
-// Base types
-export type Video = typeof videos.$inferSelect;
-export type InsertVideo = z.infer<typeof insertVideoSchema>;
+export type MediaItem = typeof mediaItems.$inferSelect;
+export type InsertMediaItem = z.infer<typeof insertMediaSchema>;
 
-// Request types
-export type CreateVideoRequest = InsertVideo;
-export type UpdateVideoRequest = Partial<InsertVideo>; 
-export type ToggleVideoFavoriteRequest = { isFavorite: boolean };
+export type UpdateMediaRequest = Partial<Pick<InsertMediaItem, "title" | "description" | "label" | "tags">>;
+export type ToggleFavoriteRequest = { isFavorite: boolean };
 
-// Response types
-export type VideoResponse = Video;
-export type VideosListResponse = Video[];
+export type MediaItemResponse = MediaItem;
+export type MediaListResponse = MediaItem[];
 
-// Upload presigned URL types
 export type UploadUrlRequest = {
   name: string;
   size: number;
@@ -86,3 +80,19 @@ export type UploadUrlResponse = {
     contentType: string;
   };
 };
+
+export function detectCategory(contentType: string): MediaCategory {
+  if (contentType.startsWith("video/")) return "video";
+  if (contentType.startsWith("audio/")) return "audio";
+  if (contentType.startsWith("image/")) return "image";
+  if (
+    contentType === "application/pdf" ||
+    contentType.startsWith("text/") ||
+    contentType.includes("document") ||
+    contentType.includes("spreadsheet") ||
+    contentType.includes("presentation") ||
+    contentType.includes("msword") ||
+    contentType.includes("officedocument")
+  ) return "document";
+  return "other";
+}

@@ -1,9 +1,6 @@
 import { z } from 'zod';
-import { insertVideoSchema, videos } from './schema';
+import { insertMediaSchema, mediaItems } from './schema';
 
-// ============================================
-// SHARED ERROR SCHEMAS
-// ============================================
 export const errorSchemas = {
   validation: z.object({
     message: z.string(),
@@ -20,41 +17,53 @@ export const errorSchemas = {
   }),
 };
 
-// ============================================
-// API CONTRACT
-// ============================================
 export const api = {
-  videos: {
+  media: {
     list: {
       method: 'GET' as const,
-      path: '/api/videos' as const,
+      path: '/api/media' as const,
       responses: {
-        200: z.array(z.custom<typeof videos.$inferSelect>()),
+        200: z.array(z.custom<typeof mediaItems.$inferSelect>()),
         401: errorSchemas.unauthorized,
       },
     },
     get: {
       method: 'GET' as const,
-      path: '/api/videos/:id' as const,
+      path: '/api/media/:id' as const,
       responses: {
-        200: z.custom<typeof videos.$inferSelect>(),
+        200: z.custom<typeof mediaItems.$inferSelect>(),
         404: errorSchemas.notFound,
         401: errorSchemas.unauthorized,
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/videos' as const,
-      input: insertVideoSchema,
+      path: '/api/media' as const,
+      input: insertMediaSchema,
       responses: {
-        201: z.custom<typeof videos.$inferSelect>(),
+        201: z.custom<typeof mediaItems.$inferSelect>(),
         400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/media/:id' as const,
+      input: z.object({
+        title: z.string().optional(),
+        description: z.string().optional(),
+        label: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      }),
+      responses: {
+        200: z.custom<typeof mediaItems.$inferSelect>(),
+        404: errorSchemas.notFound,
         401: errorSchemas.unauthorized,
       },
     },
     delete: {
       method: 'DELETE' as const,
-      path: '/api/videos/:id' as const,
+      path: '/api/media/:id' as const,
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
@@ -63,21 +72,15 @@ export const api = {
     },
     toggleFavorite: {
       method: 'PATCH' as const,
-      path: '/api/videos/:id/favorite' as const,
+      path: '/api/media/:id/favorite' as const,
       input: z.object({ isFavorite: z.boolean() }),
       responses: {
-        200: z.custom<typeof videos.$inferSelect>(),
+        200: z.custom<typeof mediaItems.$inferSelect>(),
         404: errorSchemas.notFound,
         401: errorSchemas.unauthorized,
       },
     }
   },
-  // Upload routes are handled by object storage integration but we can document them or add wrappers if needed.
-  // The object storage blueprint provides /api/uploads/request-url. 
-  // We'll use a wrapper route 'create' above to save metadata AFTER upload or separate flow.
-  // Actually, standard flow: 
-  // 1. Frontend requests presigned URL -> Uploads file.
-  // 2. Frontend calls POST /api/videos with the objectPath and metadata to save the record in DB.
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {
@@ -92,5 +95,5 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
   return url;
 }
 
-export type VideoInput = z.infer<typeof api.videos.create.input>;
-export type VideoResponse = z.infer<typeof api.videos.create.responses[201]>;
+export type MediaInput = z.infer<typeof api.media.create.input>;
+export type MediaResponse = z.infer<typeof api.media.create.responses[201]>;

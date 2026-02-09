@@ -1,14 +1,19 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useVideos } from "@/hooks/use-videos";
-import { CreateVideoDialog } from "@/components/CreateVideoDialog";
-import { VideoGrid } from "@/components/VideoGrid";
-import { VideoPlayerModal } from "@/components/VideoPlayerModal";
+import { useMediaItems } from "@/hooks/use-media";
+import { UploadDialog } from "@/components/UploadDialog";
+import { MediaGrid } from "@/components/MediaGrid";
+import { MediaViewer } from "@/components/MediaViewer";
+import { EditMediaDialog } from "@/components/EditMediaDialog";
 import { Button } from "@/components/ui/button";
-import { VideoResponse } from "@shared/routes";
-import { Loader2, Plus, LogOut, Music2, Search, Lock, KeyRound, Eye, EyeOff } from "lucide-react";
+import { type MediaResponse } from "@shared/routes";
+import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
+import {
+  Loader2, Plus, LogOut, Shield, Search, Lock, KeyRound, Eye, EyeOff,
+  Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -28,11 +33,22 @@ function getGreeting(): string {
   return "Good evening";
 }
 
+const FILTER_TABS: { key: string; label: string; icon: any }[] = [
+  { key: "all", label: "All", icon: LayoutGrid },
+  { key: "video", label: "Video", icon: Film },
+  { key: "audio", label: "Audio", icon: Music },
+  { key: "image", label: "Images", icon: ImageIcon },
+  { key: "document", label: "Docs", icon: FileText },
+  { key: "favorites", label: "Favorites", icon: Heart },
+];
+
 export default function Home() {
   const { user, isLoading: authLoading, logout } = useAuth();
-  const { data: videos, isLoading: videosLoading } = useVideos();
-  const [playingVideo, setPlayingVideo] = useState<VideoResponse | null>(null);
+  const { data: mediaItems, isLoading: mediaLoading } = useMediaItems();
+  const [viewingItem, setViewingItem] = useState<MediaResponse | null>(null);
+  const [editingItem, setEditingItem] = useState<MediaResponse | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
 
   if (authLoading) {
     return (
@@ -50,106 +66,174 @@ export default function Home() {
     return <PinReset />;
   }
 
-  const filteredVideos = videos?.filter(v =>
-    v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  let filtered = mediaItems || [];
+
+  if (activeFilter === "favorites") {
+    filtered = filtered.filter(m => m.isFavorite);
+  } else if (activeFilter !== "all") {
+    filtered = filtered.filter(m => m.category === activeFilter);
+  }
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(m =>
+      m.title.toLowerCase().includes(q) ||
+      m.description?.toLowerCase().includes(q) ||
+      m.label?.toLowerCase().includes(q) ||
+      m.tags?.some(t => t.toLowerCase().includes(q))
+    );
+  }
 
   const greeting = getGreeting();
+
+  const categoryCounts: Record<string, number> = { all: mediaItems?.length || 0, favorites: 0 };
+  mediaItems?.forEach(m => {
+    categoryCounts[m.category] = (categoryCounts[m.category] || 0) + 1;
+    if (m.isFavorite) categoryCounts.favorites++;
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a
             href="https://darkwavestudios.io"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 group"
+            className="flex items-center gap-2.5 group shrink-0"
             data-testid="link-home"
           >
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-              <Music2 className="w-5 h-5 text-white" />
+              <Shield className="w-4.5 h-4.5 text-white" />
             </div>
-            <h1 className="font-display font-bold text-xl tracking-tight hidden sm:block group-hover:text-primary transition-colors" data-testid="text-app-title">
-              Concert Memories
+            <h1 className="font-display font-bold text-lg tracking-tight hidden sm:block group-hover:text-primary transition-colors" data-testid="text-app-title">
+              Media Vault
             </h1>
           </a>
 
-          <div className="flex items-center gap-4">
-            <div className="relative hidden md:block w-64">
+          <div className="flex items-center gap-3 flex-1 justify-end">
+            <div className="relative hidden md:block w-56 lg:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 data-testid="input-search"
-                placeholder="Search videos..."
+                placeholder="Search files..."
                 className="pl-9 bg-white/5 border-white/10 rounded-full h-9 focus:ring-primary/20"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-              <span className="text-sm font-medium hidden sm:block text-muted-foreground" data-testid="text-greeting">
+            <div className="flex items-center gap-2 pl-3 border-l border-white/10">
+              <span className="text-sm font-medium hidden lg:block text-muted-foreground" data-testid="text-greeting">
                 {greeting}, {user.name}
               </span>
               <Button
                 data-testid="button-logout"
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => logout()}
               >
-                <LogOut className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+      <main className="pt-20 sm:pt-24 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-3xl font-display font-bold text-white mb-2" data-testid="text-collection-title">Your Collection</h2>
-            <p className="text-muted-foreground">Relive your favorite live music moments.</p>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-white mb-1" data-testid="text-collection-title">
+              Your Vault
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {categoryCounts.all} {categoryCounts.all === 1 ? "file" : "files"} secured
+            </p>
           </div>
 
-          <CreateVideoDialog>
-            <Button data-testid="button-upload" size="lg" className="bg-primary text-white shadow-lg shadow-primary/25 rounded-full px-6">
-              <Plus className="w-5 h-5 mr-2" />
-              Upload Video
+          <UploadDialog>
+            <Button data-testid="button-upload" className="bg-primary text-white shadow-lg shadow-primary/25 rounded-full px-5 gap-2">
+              <Plus className="w-4 h-4" />
+              Upload
             </Button>
-          </CreateVideoDialog>
+          </UploadDialog>
         </div>
 
-        <div className="mb-8 md:hidden relative">
+        <div className="mb-5 md:hidden relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             data-testid="input-search-mobile"
-            placeholder="Search videos..."
-            className="pl-9 bg-white/5 border-white/10 rounded-full h-11"
+            placeholder="Search files..."
+            className="pl-9 bg-white/5 border-white/10 rounded-full h-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        {videosLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card/40 border border-white/5 rounded-2xl h-72 animate-pulse" />
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          {FILTER_TABS.map(tab => {
+            const isActive = activeFilter === tab.key;
+            const count = categoryCounts[tab.key] || 0;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveFilter(tab.key)}
+                className={`
+                  flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium
+                  whitespace-nowrap transition-all duration-200 shrink-0
+                  ${isActive
+                    ? "bg-primary text-white shadow-md shadow-primary/20"
+                    : "bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10 border border-white/5"
+                  }
+                `}
+                data-testid={`button-filter-${tab.key}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {tab.label}
+                {count > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-0.5 ${isActive ? "bg-white/20" : "bg-white/10"}`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {mediaLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-card/40 border border-white/5 rounded-xl aspect-[4/3] animate-pulse" />
             ))}
           </div>
         ) : (
-          <VideoGrid
-            videos={filteredVideos}
-            onPlay={setPlayingVideo}
+          <MediaGrid
+            items={filtered}
+            onPlay={setViewingItem}
+            onEdit={setEditingItem}
           />
         )}
       </main>
 
-      <VideoPlayerModal
-        video={playingVideo}
-        open={!!playingVideo}
-        onOpenChange={(open) => !open && setPlayingVideo(null)}
+      <div className="fixed bottom-4 right-4 sm:hidden z-30">
+        <UploadDialog>
+          <Button size="icon" data-testid="button-upload-fab" className="w-14 h-14 rounded-full bg-primary text-white shadow-xl shadow-primary/30">
+            <Plus className="w-6 h-6" />
+          </Button>
+        </UploadDialog>
+      </div>
+
+      <MediaViewer
+        item={viewingItem}
+        open={!!viewingItem}
+        onOpenChange={(open) => !open && setViewingItem(null)}
+      />
+
+      <EditMediaDialog
+        item={editingItem}
+        open={!!editingItem}
+        onOpenChange={(open) => !open && setEditingItem(null)}
       />
     </div>
   );
@@ -210,13 +294,13 @@ function PinLogin() {
         <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 z-10 bg-gradient-to-t from-black via-transparent to-transparent">
           <div className="max-w-md">
             <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4 leading-tight">
-              Every concert,<br />
+              Your digital assets,<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-300">
-                relived forever.
+                secured forever.
               </span>
             </h2>
             <p className="text-white/60 text-lg hidden md:block">
-              A private vault for your most cherished live music memories.
+              A private vault for your most valuable media and memories.
             </p>
           </div>
         </div>
