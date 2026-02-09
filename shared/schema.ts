@@ -103,6 +103,26 @@ export type InsertCollectionItem = z.infer<typeof insertCollectionItemSchema>;
 
 export type CollectionWithCount = Collection & { itemCount: number; coverUrl?: string | null };
 
+export const JOB_STATUSES = ["queued", "downloading", "processing", "uploading", "complete", "failed"] as const;
+export type JobStatus = typeof JOB_STATUSES[number];
+export const JOB_TYPES = ["trim", "merge"] as const;
+export type JobType = typeof JOB_TYPES[number];
+
+export const processingJobs = pgTable("processing_jobs", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(),
+  status: text("status").notNull().default("queued"),
+  progress: integer("progress").default(0),
+  inputData: text("input_data").notNull(),
+  outputMediaId: integer("output_media_id"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ProcessingJob = typeof processingJobs.$inferSelect;
+export type InsertProcessingJob = typeof processingJobs.$inferInsert;
+
 export type UploadUrlRequest = {
   name: string;
   size: number;

@@ -4,6 +4,7 @@ import {
   pinAuth,
   collections,
   collectionItems,
+  processingJobs,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
@@ -12,7 +13,9 @@ import {
   type Collection,
   type InsertCollection,
   type CollectionItem,
-  type CollectionWithCount
+  type CollectionWithCount,
+  type ProcessingJob,
+  type JobStatus,
 } from "@shared/schema";
 import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 
@@ -36,6 +39,9 @@ export interface IStorage {
   removeFromCollection(collectionId: number, mediaItemIds: number[]): Promise<void>;
   batchUpdateMedia(ids: number[], updates: Partial<{ isFavorite: boolean; label: string; tags: string[] }>): Promise<MediaItem[]>;
   batchDeleteMedia(ids: number[]): Promise<void>;
+  createProcessingJob(type: string, inputData: string): Promise<ProcessingJob>;
+  getProcessingJob(id: number): Promise<ProcessingJob | undefined>;
+  updateProcessingJob(id: number, updates: Partial<{ status: JobStatus; progress: number; outputMediaId: number; errorMessage: string }>): Promise<ProcessingJob>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -213,6 +219,25 @@ export class DatabaseStorage implements IStorage {
   async batchDeleteMedia(ids: number[]): Promise<void> {
     await db.delete(collectionItems).where(inArray(collectionItems.mediaItemId, ids));
     await db.delete(mediaItems).where(inArray(mediaItems.id, ids));
+  }
+
+  async createProcessingJob(type: string, inputData: string): Promise<ProcessingJob> {
+    const [job] = await db.insert(processingJobs).values({ type, inputData, status: "queued", progress: 0 }).returning();
+    return job;
+  }
+
+  async getProcessingJob(id: number): Promise<ProcessingJob | undefined> {
+    const [job] = await db.select().from(processingJobs).where(eq(processingJobs.id, id));
+    return job;
+  }
+
+  async updateProcessingJob(id: number, updates: Partial<{ status: JobStatus; progress: number; outputMediaId: number; errorMessage: string }>): Promise<ProcessingJob> {
+    const [updated] = await db
+      .update(processingJobs)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(processingJobs.id, id))
+      .returning();
+    return updated;
   }
 }
 

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { buildUrl, api } from "@shared/routes";
 import type { MediaResponse } from "@shared/routes";
 import { detectCategory } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -29,6 +30,8 @@ import {
   Loader2,
   Undo,
   Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 type VideoTool = "trim" | "adjustments" | "capture";
@@ -56,6 +59,11 @@ export default function VideoEditor() {
 
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [processingJobId, setProcessingJobId] = useState<number | null>(null);
+  const [processingStatus, setProcessingStatus] = useState<string>("");
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingError, setProcessingError] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -345,37 +353,63 @@ export default function VideoEditor() {
     }
   };
 
-  const handleSaveClipInfo = async () => {
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  const pollJobStatus = useCallback((jobId: number) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/video/jobs/${jobId}`, { credentials: "include" });
+        if (!res.ok) return;
+        const job = await res.json();
+        setProcessingStatus(job.status);
+        setProcessingProgress(job.progress || 0);
+
+        if (job.status === "complete") {
+          if (pollRef.current) clearInterval(pollRef.current);
+          queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+          toast({ title: "Video trimmed successfully!" });
+          setTimeout(() => navigate("/"), 1500);
+        } else if (job.status === "failed") {
+          if (pollRef.current) clearInterval(pollRef.current);
+          setProcessingError(job.errorMessage || "Processing failed");
+          setSaving(false);
+        }
+      } catch {}
+    }, 2000);
+  }, [navigate, toast]);
+
+  const handleSaveTrimmedVideo = async () => {
     if (!mediaItem) return;
+    if (trimStart === 0 && trimEnd === duration) {
+      toast({ title: "No trim applied", description: "Adjust the trim handles first", variant: "destructive" });
+      return;
+    }
     setSaving(true);
+    setProcessingError(null);
+    setProcessingStatus("queued");
+    setProcessingProgress(0);
+
     try {
-      const editInfo = [
-        `Trim: ${formatTime(trimStart)} - ${formatTime(trimEnd)}`,
-        `Brightness: ${brightness}%`,
-        `Contrast: ${contrast}%`,
-      ].join(" | ");
-
-      await createMedia.mutateAsync({
-        title: `${mediaItem.title} (edited)`,
-        description: `${mediaItem.description || ""}\n${editInfo}`.trim(),
-        url: mediaItem.url,
-        filename: mediaItem.filename,
-        contentType: mediaItem.contentType,
-        category: "video",
-        size: mediaItem.size || undefined,
-        tags: [...(mediaItem.tags || []), "edited"],
-        label: mediaItem.label || undefined,
+      const res = await apiRequest("POST", "/api/video/trim", {
+        mediaId: mediaItem.id,
+        trimStart,
+        trimEnd,
+        title: `${mediaItem.title} (trimmed)`,
       });
-
-      toast({ title: "Clip info saved" });
-      navigate("/");
+      const job = await res.json();
+      setProcessingJobId(job.id);
+      pollJobStatus(job.id);
     } catch (err) {
       toast({
-        title: "Failed to save clip info",
+        title: "Failed to start trim",
         description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });
-    } finally {
       setSaving(false);
     }
   };
@@ -441,27 +475,60 @@ export default function VideoEditor() {
           </Tooltip>
           <Button
             variant="outline"
-            onClick={handleSaveClipInfo}
+            onClick={handleSaveTrimmedVideo}
             disabled={saving || isUploading}
             data-testid="button-save-clip"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Scissors className="w-4 h-4 mr-2" />
             )}
-            Save Clip Info
+            Save Trimmed Video
           </Button>
         </div>
       </div>
 
-      {(saving || isUploading) && (
-        <div className="h-1 bg-white/10">
-          <div
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${progress}%` }}
-            data-testid="progress-bar"
-          />
+      {processingJobId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" data-testid="processing-overlay">
+          <div className="bg-card border border-white/10 rounded-lg p-8 max-w-md w-full mx-4 text-center space-y-4">
+            {processingError ? (
+              <>
+                <XCircle className="w-12 h-12 text-destructive mx-auto" />
+                <h3 className="text-lg font-semibold text-foreground">Processing Failed</h3>
+                <p className="text-sm text-muted-foreground">{processingError}</p>
+                <Button onClick={() => { setSaving(false); setProcessingJobId(null); setProcessingError(null); }} data-testid="button-dismiss-error">
+                  Try Again
+                </Button>
+              </>
+            ) : processingStatus === "complete" ? (
+              <>
+                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
+                <h3 className="text-lg font-semibold text-foreground">Video Trimmed!</h3>
+                <p className="text-sm text-muted-foreground">Redirecting to your vault...</p>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+                <h3 className="text-lg font-semibold text-foreground">Processing Video</h3>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {processingStatus === "queued" ? "Preparing..." :
+                   processingStatus === "downloading" ? "Downloading source..." :
+                   processingStatus === "processing" ? "Trimming video..." :
+                   processingStatus === "uploading" ? "Saving to vault..." :
+                   "Working..."}
+                </p>
+                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${processingProgress}%` }}
+                    data-testid="processing-progress-bar"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">{processingProgress}%</p>
+              </>
+            )}
+          </div>
         </div>
       )}
 

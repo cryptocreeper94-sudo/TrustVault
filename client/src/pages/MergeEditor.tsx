@@ -5,6 +5,7 @@ import { useMediaItems, useCreateMedia } from "@/hooks/use-media";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
 import { detectCategory } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MediaResponse } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,8 @@ import {
   Trash2,
   Layers,
   Plus,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 type MergeType = "image-collage" | "audio-concat" | "video-concat";
@@ -109,6 +112,12 @@ export default function MergeEditor() {
   const [searchQuery, setSearchQuery] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  const [videoJobId, setVideoJobId] = useState<number | null>(null);
+  const [videoJobStatus, setVideoJobStatus] = useState<string>("");
+  const [videoJobProgress, setVideoJobProgress] = useState(0);
+  const [videoJobError, setVideoJobError] = useState<string | null>(null);
+  const videoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [collageLayout, setCollageLayout] = useState<CollageLayout>("2x2");
   const [collageGap, setCollageGap] = useState(4);
   const [collageBg, setCollageBg] = useState<BgColor>("black");
@@ -121,6 +130,12 @@ export default function MergeEditor() {
       navigate("/");
     }
   }, [authLoading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (videoPollRef.current) clearInterval(videoPollRef.current);
+    };
+  }, []);
 
   const categoryFilter = useMemo(() => {
     if (mergeType === "image-collage") return "image";
@@ -392,24 +407,39 @@ export default function MergeEditor() {
         toast({ title: "Audio merged successfully" });
         navigate("/");
       } else if (mergeType === "video-concat") {
-        const sourceTitles = selectedItems.map((i) => i.title).join(", ");
-        const sourceIds = selectedItems.map((i) => String(i.id));
+        setVideoJobError(null);
+        setVideoJobStatus("queued");
+        setVideoJobProgress(0);
 
-        await createMedia.mutateAsync({
-          title: `Video Compilation (${selectedItems.length} clips)`,
-          description: `Compilation of: ${sourceTitles}\n\nSource IDs: ${sourceIds.join(", ")}`,
-          url: selectedItems[0].url,
-          filename: selectedItems[0].filename,
-          contentType: selectedItems[0].contentType,
-          category: "video",
-          size: selectedItems[0].size || 0,
-          tags: ["compilation", "merge", ...sourceIds.map((id) => `source:${id}`)],
-          durationSeconds: totalDuration || undefined,
-          thumbnailUrl: selectedItems[0].thumbnailUrl || undefined,
+        const res = await apiRequest("POST", "/api/video/merge", {
+          mediaIds: selectedItems.map((i) => i.id),
+          title: `Merged Video (${selectedItems.length} clips)`,
         });
+        const job = await res.json();
+        setVideoJobId(job.id);
 
-        toast({ title: "Video compilation saved" });
-        navigate("/");
+        if (videoPollRef.current) clearInterval(videoPollRef.current);
+        videoPollRef.current = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`/api/video/jobs/${job.id}`, { credentials: "include" });
+            if (!statusRes.ok) return;
+            const jobData = await statusRes.json();
+            setVideoJobStatus(jobData.status);
+            setVideoJobProgress(jobData.progress || 0);
+
+            if (jobData.status === "complete") {
+              if (videoPollRef.current) clearInterval(videoPollRef.current);
+              queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+              toast({ title: "Videos merged successfully!" });
+              setTimeout(() => navigate("/"), 1500);
+            } else if (jobData.status === "failed") {
+              if (videoPollRef.current) clearInterval(videoPollRef.current);
+              setVideoJobError(jobData.errorMessage || "Processing failed");
+              setProcessing(false);
+            }
+          } catch {}
+        }, 2000);
+        return;
       }
     } catch (err) {
       toast({
@@ -434,6 +464,48 @@ export default function MergeEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden" data-testid="merge-editor">
+      {videoJobId && (processing || videoJobStatus) && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" data-testid="merge-processing-overlay">
+          <div className="bg-card border border-white/10 rounded-lg p-8 max-w-md w-full mx-4 text-center space-y-4">
+            {videoJobError ? (
+              <>
+                <XCircle className="w-12 h-12 text-destructive mx-auto" />
+                <h3 className="text-lg font-semibold text-foreground">Merge Failed</h3>
+                <p className="text-sm text-muted-foreground">{videoJobError}</p>
+                <Button onClick={() => { setProcessing(false); setVideoJobId(null); setVideoJobError(null); setVideoJobStatus(""); }} data-testid="button-dismiss-merge-error">
+                  Try Again
+                </Button>
+              </>
+            ) : videoJobStatus === "complete" ? (
+              <>
+                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
+                <h3 className="text-lg font-semibold text-foreground">Videos Merged!</h3>
+                <p className="text-sm text-muted-foreground">Redirecting to your vault...</p>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+                <h3 className="text-lg font-semibold text-foreground">Merging Videos</h3>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {videoJobStatus === "queued" ? "Preparing..." :
+                   videoJobStatus === "downloading" ? "Downloading clips..." :
+                   videoJobStatus === "processing" ? "Concatenating videos..." :
+                   videoJobStatus === "uploading" ? "Saving to vault..." :
+                   "Working..."}
+                </p>
+                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${videoJobProgress}%` }}
+                    data-testid="merge-progress-bar"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">{videoJobProgress}%</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3 px-4 py-2 border-b glass-morphism z-50" data-testid="merge-topbar">
         <div className="flex items-center gap-3 flex-wrap">
           <Tooltip>

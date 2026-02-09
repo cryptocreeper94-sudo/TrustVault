@@ -8,6 +8,7 @@ import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { detectCategory, type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { processTrimJob, processMergeJob } from "./videoProcessor";
 
 declare module "express-session" {
   interface SessionData {
@@ -292,6 +293,64 @@ export async function registerRoutes(
     const { mediaItemIds } = req.body;
     await storage.removeFromCollection(Number(req.params.id), mediaItemIds);
     res.sendStatus(204);
+  });
+
+  app.post("/api/video/trim", isAuthenticated, async (req, res) => {
+    try {
+      const schema = z.object({
+        mediaId: z.number(),
+        trimStart: z.number().min(0),
+        trimEnd: z.number().min(0),
+        title: z.string().optional(),
+      });
+      const input = schema.parse(req.body);
+      if (input.trimEnd <= input.trimStart) {
+        return res.status(400).json({ message: "trimEnd must be greater than trimStart" });
+      }
+      const mediaItem = await storage.getMediaItem(input.mediaId);
+      if (!mediaItem) return res.status(404).json({ message: "Media item not found" });
+      if (mediaItem.category !== "video") return res.status(400).json({ message: "Item is not a video" });
+
+      const job = await storage.createProcessingJob("trim", JSON.stringify(input));
+      processTrimJob(job.id).catch(err => console.error("[VideoProcessor] Background trim error:", err));
+      res.status(201).json(job);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.post("/api/video/merge", isAuthenticated, async (req, res) => {
+    try {
+      const schema = z.object({
+        mediaIds: z.array(z.number()).min(2),
+        title: z.string().optional(),
+      });
+      const input = schema.parse(req.body);
+
+      for (const id of input.mediaIds) {
+        const item = await storage.getMediaItem(id);
+        if (!item) return res.status(404).json({ message: `Media item ${id} not found` });
+        if (item.category !== "video") return res.status(400).json({ message: `Item "${item.title}" is not a video` });
+      }
+
+      const job = await storage.createProcessingJob("merge", JSON.stringify(input));
+      processMergeJob(job.id).catch(err => console.error("[VideoProcessor] Background merge error:", err));
+      res.status(201).json(job);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.get("/api/video/jobs/:id", isAuthenticated, async (req, res) => {
+    const job = await storage.getProcessingJob(Number(req.params.id));
+    if (!job) return res.status(404).json({ message: "Job not found" });
+    res.json(job);
   });
 
   return httpServer;
