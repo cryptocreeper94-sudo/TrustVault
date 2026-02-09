@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a personal **concert video memory vault** — a full-stack web application that allows a user (Madeline) to upload, store, organize, and play back concert videos. The app features PIN-based authentication (not traditional user/password), video upload via presigned URLs to Replit Object Storage, a dark-themed media-focused UI, and video playback in a modal player. It's a single-user/personal app with a simple PIN login flow and optional PIN reset on first use.
+This is a personal **universal media vault** — a full-stack web application that allows a user (Madeline) to upload, store, organize, and preview any type of digital media: videos, audio, images, documents (PDF, DOC, etc.), and other files. The app features PIN-based authentication (not traditional user/password), file upload via presigned URLs to Replit Object Storage, a dark-themed media-focused UI with category filtering and tagging, and multi-format preview in a modal viewer. It's a single-user/personal app with a simple PIN login flow and optional PIN reset on first use.
 
 ## User Preferences
 
@@ -45,7 +45,7 @@ This is a personal **concert video memory vault** — a full-stack web applicati
 - **ORM**: Drizzle ORM with `drizzle-kit` for migrations
 - **Schema Push**: Use `npm run db:push` to push schema changes to the database (uses `drizzle-kit push`)
 - **Tables**:
-  - `videos` — stores video metadata (title, description, url/object path, filename, content type, size, favorite flag)
+  - `media_items` — stores all media metadata (title, description, url/object path, filename, content type, category, size, label, tags, file_date, favorite flag)
   - `pin_auth` — single-row table for PIN authentication (pin, must_reset flag, name)
   - `sessions` — express-session storage
   - `users` — kept from Replit Auth integration, not actively used by PIN auth
@@ -57,15 +57,15 @@ This is a personal **concert video memory vault** — a full-stack web applicati
 - **Type Checking**: `npm run check` — runs tsc with noEmit
 
 ### Key Design Patterns
-- **Presigned URL Upload Flow**: Client requests a presigned URL from `/api/uploads/request-url` (sending only JSON metadata), then uploads the file directly to the presigned URL, then saves video metadata to the database via `/api/videos`
+- **Presigned URL Upload Flow**: Client requests a presigned URL from `/api/uploads/request-url` (sending only JSON metadata), then uploads the file directly to the presigned URL, then saves media metadata to the database via `/api/media`
 - **Contract-First API**: Shared Zod schemas in `shared/routes.ts` define the API contract, enabling type-safe API calls on both client and server
 - **Storage Abstraction**: `IStorage` interface in `server/storage.ts` with `DatabaseStorage` implementation, making it possible to swap storage backends
 
 ## External Dependencies
 
 ### Required Services
-- **PostgreSQL Database**: Required. Connection via `DATABASE_URL` environment variable. Used for video metadata, session storage, and PIN authentication.
-- **Replit Object Storage**: Used for storing uploaded video files. Accessed via Google Cloud Storage client library through Replit's sidecar service at `http://127.0.0.1:1106`. Configured via environment (no explicit credentials needed in Replit environment).
+- **PostgreSQL Database**: Required. Connection via `DATABASE_URL` environment variable. Used for media metadata, session storage, and PIN authentication.
+- **Replit Object Storage**: Used for storing uploaded media files. Accessed via Google Cloud Storage client library through Replit's sidecar service at `http://127.0.0.1:1106`. Configured via environment (no explicit credentials needed in Replit environment).
 
 ### Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string (required)
