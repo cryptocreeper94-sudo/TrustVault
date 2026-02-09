@@ -69,9 +69,12 @@ async function ensureStripeProducts() {
 
     STRIPE_PRICE_MAP[monthlyPrice.id] = { tier, interval: "month" };
     STRIPE_PRICE_MAP[annualPrice.id] = { tier, interval: "year" };
+
+    console.log(`Stripe prices for ${tier}: monthly=${monthlyPrice.id}, annual=${annualPrice.id}`);
   }
 
   console.log("Stripe products and prices initialized");
+  console.log("STRIPE_PRICE_MAP:", JSON.stringify(STRIPE_PRICE_MAP, null, 2));
 }
 
 export function registerStripeRoutes(app: Express) {
@@ -85,9 +88,13 @@ export function registerStripeRoutes(app: Express) {
     });
   });
 
-  app.get("/api/subscription", isAuthenticated, async (_req, res) => {
+  app.get("/api/subscription", isAuthenticated, async (req, res) => {
     try {
-      const sub = await storage.getSubscription();
+      const tenantId = req.session.tenantId;
+      if (!tenantId) {
+        return res.json({ tier: "free", status: "active" });
+      }
+      const sub = await storage.getSubscription(tenantId);
       if (!sub) {
         return res.json({ tier: "free", status: "active" });
       }
@@ -101,6 +108,11 @@ export function registerStripeRoutes(app: Express) {
   app.post("/api/stripe/checkout", isAuthenticated, async (req, res) => {
     try {
       const { tier, interval } = req.body as { tier: SubscriptionTier; interval: "month" | "year" };
+      const tenantId = req.session.tenantId;
+
+      if (!tenantId) {
+        return res.status(400).json({ message: "No tenant space found. Please log in again." });
+      }
 
       if (!tier || !["personal", "pro", "studio"].includes(tier)) {
         return res.status(400).json({ message: "Invalid tier" });
@@ -109,17 +121,25 @@ export function registerStripeRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid interval" });
       }
 
-      let sub = await storage.getSubscription();
+      let sub = await storage.getSubscription(tenantId);
       let customerId: string;
 
       if (sub?.stripeCustomerId) {
         customerId = sub.stripeCustomerId;
       } else {
-        const customer = await stripe.customers.create({
-          metadata: { app: "dw-media-studio" },
-        });
-        customerId = customer.id;
+        const tenant = await storage.getTenant(tenantId);
+        if (tenant?.stripeCustomerId) {
+          customerId = tenant.stripeCustomerId;
+        } else {
+          const customer = await stripe.customers.create({
+            name: req.session.name,
+            metadata: { app: "dw-media-studio", tenantId },
+          });
+          customerId = customer.id;
+          await storage.updateTenant(tenantId, { stripeCustomerId: customerId });
+        }
         await storage.upsertSubscription({
+          tenantId,
           stripeCustomerId: customerId,
           tier: "free",
           status: "active",
@@ -144,7 +164,7 @@ export function registerStripeRoutes(app: Express) {
         line_items: [{ price: priceEntry[0], quantity: 1 }],
         success_url: `${baseUrl}/pricing?success=true`,
         cancel_url: `${baseUrl}/pricing?canceled=true`,
-        metadata: { tier, interval },
+        metadata: { tier, interval, tenantId },
       });
 
       res.json({ url: session.url });
@@ -156,7 +176,11 @@ export function registerStripeRoutes(app: Express) {
 
   app.post("/api/stripe/portal", isAuthenticated, async (req, res) => {
     try {
-      const sub = await storage.getSubscription();
+      const tenantId = req.session.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ message: "No tenant space found" });
+      }
+      const sub = await storage.getSubscription(tenantId);
       if (!sub?.stripeCustomerId) {
         return res.status(400).json({ message: "No subscription found" });
       }
@@ -206,9 +230,34 @@ export function registerStripeRoutes(app: Express) {
             );
             const priceId = subscription.items.data[0]?.price.id;
             const tierInfo = STRIPE_PRICE_MAP[priceId];
+            const customerId = session.customer as string;
+            const tenantId = session.metadata?.tenantId;
+
+            let tenant = await storage.getTenantByStripeCustomerId(customerId);
+            if (!tenant && tenantId) {
+              tenant = await storage.getTenant(tenantId);
+              if (tenant) {
+                await storage.updateTenant(tenant.id, { stripeCustomerId: customerId });
+              }
+            }
+            if (!tenant) {
+              const customerName = session.customer_details?.name || "Subscriber";
+              const storagePrefix = customerName.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_" + Date.now();
+              tenant = await storage.createTenant({
+                name: customerName,
+                storagePrefix,
+                tier: tierInfo?.tier || "personal",
+                status: "active",
+                stripeCustomerId: customerId,
+              });
+              console.log(`Auto-provisioned tenant space for new subscriber: ${tenant.name} (${tenant.id})`);
+            }
+
+            await storage.updateTenant(tenant.id, { tier: tierInfo?.tier || "personal" });
 
             await storage.upsertSubscription({
-              stripeCustomerId: session.customer as string,
+              tenantId: tenant.id,
+              stripeCustomerId: customerId,
               stripeSubscriptionId: subscription.id,
               tier: tierInfo?.tier || "personal",
               status: "active",
@@ -216,6 +265,8 @@ export function registerStripeRoutes(app: Express) {
               currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
             });
+
+            console.log(`Subscription activated for tenant ${tenant.name}: ${tierInfo?.tier || "personal"}`);
           }
           break;
         }
@@ -237,6 +288,12 @@ export function registerStripeRoutes(app: Express) {
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
               stripeSubscriptionId: subscription.id,
             });
+
+            if (existing.tenantId) {
+              await storage.updateTenant(existing.tenantId, {
+                tier: tierInfo?.tier || existing.tier as SubscriptionTier,
+              });
+            }
           }
           break;
         }
@@ -253,6 +310,10 @@ export function registerStripeRoutes(app: Express) {
               cancelAtPeriodEnd: false,
               stripeSubscriptionId: null as any,
             });
+
+            if (existing.tenantId) {
+              await storage.updateTenant(existing.tenantId, { tier: "free" });
+            }
           }
           break;
         }

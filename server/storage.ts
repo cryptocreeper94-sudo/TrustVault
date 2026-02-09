@@ -7,6 +7,7 @@ import {
   processingJobs,
   blogPosts,
   subscriptions,
+  tenants,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
@@ -22,20 +23,38 @@ import {
   type InsertBlogPost,
   type Subscription,
   type InsertSubscription,
+  type Tenant,
+  type InsertTenant,
 } from "@shared/schema";
 import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 
 export interface IStorage {
-  getMediaItems(category?: MediaCategory): Promise<MediaItem[]>;
+  // Tenant methods
+  getTenant(id: string): Promise<Tenant | undefined>;
+  getTenantByPinAuthId(pinAuthId: number): Promise<Tenant | undefined>;
+  getTenantByStripeCustomerId(customerId: string): Promise<Tenant | undefined>;
+  createTenant(data: InsertTenant): Promise<Tenant>;
+  updateTenant(id: string, updates: Partial<InsertTenant>): Promise<Tenant>;
+  getAllTenants(): Promise<Tenant[]>;
+
+  // Media methods (tenant-scoped)
+  getMediaItems(tenantId: string, category?: MediaCategory): Promise<MediaItem[]>;
   getMediaItem(id: number): Promise<MediaItem | undefined>;
-  createMediaItem(item: InsertMediaItem & { uploadedBy?: string }): Promise<MediaItem>;
+  createMediaItem(item: InsertMediaItem & { uploadedBy?: string; tenantId?: string }): Promise<MediaItem>;
   updateMediaItem(id: number, updates: UpdateMediaRequest): Promise<MediaItem>;
   deleteMediaItem(id: number): Promise<void>;
   toggleFavorite(id: number, isFavorite: boolean): Promise<MediaItem | undefined>;
+
+  // Auth methods (multi-user)
   getPinAuth(): Promise<PinAuth | undefined>;
-  updatePin(pin: string, mustReset: boolean): Promise<PinAuth>;
-  initializePinAuth(pin: string, name: string, mustReset?: boolean): Promise<PinAuth>;
-  getCollections(): Promise<CollectionWithCount[]>;
+  getPinAuthByName(name: string): Promise<PinAuth | undefined>;
+  getPinAuthById(id: number): Promise<PinAuth | undefined>;
+  getAllPinAuths(): Promise<PinAuth[]>;
+  updatePin(id: number, pin: string, mustReset: boolean): Promise<PinAuth>;
+  initializePinAuth(pin: string, name: string, mustReset?: boolean, tenantId?: string): Promise<PinAuth>;
+
+  // Collections (tenant-scoped)
+  getCollections(tenantId: string): Promise<CollectionWithCount[]>;
   getCollection(id: number): Promise<Collection | undefined>;
   createCollection(data: InsertCollection): Promise<Collection>;
   updateCollection(id: number, data: Partial<InsertCollection>): Promise<Collection>;
@@ -45,29 +64,73 @@ export interface IStorage {
   removeFromCollection(collectionId: number, mediaItemIds: number[]): Promise<void>;
   batchUpdateMedia(ids: number[], updates: Partial<{ isFavorite: boolean; label: string; tags: string[] }>): Promise<MediaItem[]>;
   batchDeleteMedia(ids: number[]): Promise<void>;
+
+  // Processing jobs
   createProcessingJob(type: string, inputData: string): Promise<ProcessingJob>;
   getProcessingJob(id: number): Promise<ProcessingJob | undefined>;
   updateProcessingJob(id: number, updates: Partial<{ status: JobStatus; progress: number; outputMediaId: number; errorMessage: string }>): Promise<ProcessingJob>;
+
+  // Blog
   getBlogPosts(status?: string): Promise<BlogPost[]>;
   getBlogPost(id: number): Promise<BlogPost | undefined>;
   getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, updates: Partial<InsertBlogPost>): Promise<BlogPost>;
   deleteBlogPost(id: number): Promise<void>;
-  getSubscription(): Promise<Subscription | undefined>;
+
+  // Subscriptions (tenant-scoped)
+  getSubscription(tenantId: string): Promise<Subscription | undefined>;
   getSubscriptionByCustomerId(customerId: string): Promise<Subscription | undefined>;
   upsertSubscription(data: InsertSubscription): Promise<Subscription>;
   updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getMediaItems(category?: MediaCategory): Promise<MediaItem[]> {
+  // --- Tenant Methods ---
+
+  async getTenant(id: string): Promise<Tenant | undefined> {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id));
+    return tenant;
+  }
+
+  async getTenantByPinAuthId(pinAuthId: number): Promise<Tenant | undefined> {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.pinAuthId, pinAuthId));
+    return tenant;
+  }
+
+  async getTenantByStripeCustomerId(customerId: string): Promise<Tenant | undefined> {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.stripeCustomerId, customerId));
+    return tenant;
+  }
+
+  async createTenant(data: InsertTenant): Promise<Tenant> {
+    const [created] = await db.insert(tenants).values(data).returning();
+    return created;
+  }
+
+  async updateTenant(id: string, updates: Partial<InsertTenant>): Promise<Tenant> {
+    const [updated] = await db
+      .update(tenants)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(tenants.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllTenants(): Promise<Tenant[]> {
+    return await db.select().from(tenants).orderBy(desc(tenants.createdAt));
+  }
+
+  // --- Media Methods (tenant-scoped) ---
+
+  async getMediaItems(tenantId: string, category?: MediaCategory): Promise<MediaItem[]> {
     if (category) {
       return await db.select().from(mediaItems)
-        .where(eq(mediaItems.category, category))
+        .where(and(eq(mediaItems.tenantId, tenantId), eq(mediaItems.category, category)))
         .orderBy(desc(mediaItems.fileDate), desc(mediaItems.createdAt));
     }
     return await db.select().from(mediaItems)
+      .where(eq(mediaItems.tenantId, tenantId))
       .orderBy(desc(mediaItems.fileDate), desc(mediaItems.createdAt));
   }
 
@@ -76,7 +139,7 @@ export class DatabaseStorage implements IStorage {
     return item;
   }
 
-  async createMediaItem(item: InsertMediaItem & { uploadedBy?: string }): Promise<MediaItem> {
+  async createMediaItem(item: InsertMediaItem & { uploadedBy?: string; tenantId?: string }): Promise<MediaItem> {
     const [created] = await db
       .insert(mediaItems)
       .values(item)
@@ -106,34 +169,50 @@ export class DatabaseStorage implements IStorage {
     return item;
   }
 
+  // --- Auth Methods (multi-user) ---
+
   async getPinAuth(): Promise<PinAuth | undefined> {
-    const [auth] = await db.select().from(pinAuth);
+    const [auth] = await db.select().from(pinAuth).limit(1);
     return auth;
   }
 
-  async updatePin(pin: string, mustReset: boolean): Promise<PinAuth> {
-    const existing = await this.getPinAuth();
-    if (existing) {
-      const [updated] = await db
-        .update(pinAuth)
-        .set({ pin, mustReset, updatedAt: new Date() })
-        .where(eq(pinAuth.id, existing.id))
-        .returning();
-      return updated;
-    }
-    return this.initializePinAuth(pin, "Madeline");
+  async getPinAuthByName(name: string): Promise<PinAuth | undefined> {
+    const allAuths = await db.select().from(pinAuth);
+    return allAuths.find(a => a.name.toLowerCase() === name.toLowerCase());
   }
 
-  async initializePinAuth(pin: string, name: string, mustReset: boolean = true): Promise<PinAuth> {
+  async getPinAuthById(id: number): Promise<PinAuth | undefined> {
+    const [auth] = await db.select().from(pinAuth).where(eq(pinAuth.id, id));
+    return auth;
+  }
+
+  async getAllPinAuths(): Promise<PinAuth[]> {
+    return await db.select().from(pinAuth);
+  }
+
+  async updatePin(id: number, pin: string, mustReset: boolean): Promise<PinAuth> {
+    const [updated] = await db
+      .update(pinAuth)
+      .set({ pin, mustReset, updatedAt: new Date() })
+      .where(eq(pinAuth.id, id))
+      .returning();
+    return updated;
+  }
+
+  async initializePinAuth(pin: string, name: string, mustReset: boolean = true, tenantId?: string): Promise<PinAuth> {
     const [auth] = await db
       .insert(pinAuth)
-      .values({ pin, name, mustReset })
+      .values({ pin, name, mustReset, tenantId: tenantId || null })
       .returning();
     return auth;
   }
 
-  async getCollections(): Promise<CollectionWithCount[]> {
-    const cols = await db.select().from(collections).orderBy(desc(collections.createdAt));
+  // --- Collections (tenant-scoped) ---
+
+  async getCollections(tenantId: string): Promise<CollectionWithCount[]> {
+    const cols = await db.select().from(collections)
+      .where(eq(collections.tenantId, tenantId))
+      .orderBy(desc(collections.createdAt));
     const results: CollectionWithCount[] = [];
     for (const col of cols) {
       const [countResult] = await db
@@ -237,6 +316,8 @@ export class DatabaseStorage implements IStorage {
     await db.delete(mediaItems).where(inArray(mediaItems.id, ids));
   }
 
+  // --- Processing Jobs ---
+
   async createProcessingJob(type: string, inputData: string): Promise<ProcessingJob> {
     const [job] = await db.insert(processingJobs).values({ type, inputData, status: "queued", progress: 0 }).returning();
     return job;
@@ -255,6 +336,9 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updated;
   }
+
+  // --- Blog ---
+
   async getBlogPosts(status?: string): Promise<BlogPost[]> {
     if (status) {
       return await db.select().from(blogPosts)
@@ -293,8 +377,10 @@ export class DatabaseStorage implements IStorage {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
   }
 
-  async getSubscription(): Promise<Subscription | undefined> {
-    const [sub] = await db.select().from(subscriptions).limit(1);
+  // --- Subscriptions (tenant-scoped) ---
+
+  async getSubscription(tenantId: string): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.tenantId, tenantId));
     return sub;
   }
 

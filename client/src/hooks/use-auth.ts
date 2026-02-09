@@ -4,10 +4,12 @@ import { apiRequest } from "@/lib/queryClient";
 interface AuthUser {
   name: string;
   mustReset: boolean;
+  tenantId?: string;
 }
 
 interface AuthStatus {
   accountExists: boolean;
+  accountCount: number;
 }
 
 async function fetchMe(): Promise<AuthUser | null> {
@@ -56,8 +58,8 @@ export function useAuth() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (password: string) => {
-      const res = await apiRequest("POST", "/api/auth/login", { password });
+    mutationFn: async ({ name, password }: { name?: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/auth/login", { name, password });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Login failed");
@@ -108,6 +110,7 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!user,
     accountExists: authStatus?.accountExists ?? true,
+    accountCount: authStatus?.accountCount ?? 0,
     isLoadingStatus,
     setup: setupMutation.mutateAsync,
     setupError: setupMutation.error,

@@ -17,6 +17,8 @@ declare module "express-session" {
   interface SessionData {
     authenticated: boolean;
     name: string;
+    tenantId: string;
+    pinAuthId: number;
   }
 }
 
@@ -69,8 +71,8 @@ export async function registerRoutes(
 
   app.get("/api/auth/status", async (_req, res) => {
     try {
-      const auth = await storage.getPinAuth();
-      return res.json({ accountExists: !!auth });
+      const allAuths = await storage.getAllPinAuths();
+      return res.json({ accountExists: allAuths.length > 0, accountCount: allAuths.length });
     } catch (err) {
       console.error("Auth status error:", err);
       return res.status(500).json({ message: "Failed to check auth status" });
@@ -79,23 +81,34 @@ export async function registerRoutes(
 
   app.post("/api/auth/setup", async (req, res) => {
     try {
-      const existing = await storage.getPinAuth();
-      if (existing) {
-        return res.status(400).json({ message: "Account already exists. Please log in." });
-      }
       const { name, password } = req.body;
       if (!name || !name.trim()) {
         return res.status(400).json({ message: "Name is required" });
+      }
+      const trimmedName = name.trim();
+      const existingByName = await storage.getPinAuthByName(trimmedName);
+      if (existingByName) {
+        return res.status(400).json({ message: "An account with that name already exists. Please log in." });
       }
       const validationError = validatePassword(password);
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
       const hashedPassword = await bcrypt.hash(password, 10);
-      const auth = await storage.initializePinAuth(hashedPassword, name.trim(), false);
+      const storagePrefix = trimmedName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const tenant = await storage.createTenant({
+        name: trimmedName,
+        storagePrefix,
+        tier: "free",
+        status: "active",
+      });
+      const auth = await storage.initializePinAuth(hashedPassword, trimmedName, false, tenant.id);
+      await storage.updateTenant(tenant.id, { pinAuthId: auth.id });
       req.session.authenticated = true;
       req.session.name = auth.name;
-      return res.json({ name: auth.name, mustReset: false });
+      req.session.tenantId = tenant.id;
+      req.session.pinAuthId = auth.id;
+      return res.json({ name: auth.name, mustReset: false, tenantId: tenant.id });
     } catch (err) {
       console.error("Setup error:", err);
       return res.status(500).json({ message: "Account setup failed" });
@@ -104,21 +117,54 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { password } = req.body;
+      const { name, password } = req.body;
       if (!password) {
         return res.status(400).json({ message: "Password is required" });
       }
-      const auth = await storage.getPinAuth();
+
+      let auth;
+      if (name) {
+        auth = await storage.getPinAuthByName(name.trim());
+      } else {
+        const allAuths = await storage.getAllPinAuths();
+        if (allAuths.length === 1) {
+          auth = allAuths[0];
+        } else {
+          return res.status(400).json({ message: "Please provide your name to log in" });
+        }
+      }
+
       if (!auth) {
-        return res.status(400).json({ message: "No account exists. Please create one first." });
+        return res.status(400).json({ message: "No account found with that name. Please create one first." });
       }
       const match = await bcrypt.compare(password, auth.pin);
       if (!match) {
         return res.status(401).json({ message: "Incorrect password" });
       }
+
+      let tenant;
+      if (auth.tenantId) {
+        tenant = await storage.getTenant(auth.tenantId);
+      }
+      if (!tenant) {
+        tenant = await storage.getTenantByPinAuthId(auth.id);
+      }
+      if (!tenant) {
+        const storagePrefix = auth.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        tenant = await storage.createTenant({
+          name: auth.name,
+          storagePrefix,
+          tier: "free",
+          status: "active",
+          pinAuthId: auth.id,
+        });
+      }
+
       req.session.authenticated = true;
       req.session.name = auth.name;
-      return res.json({ name: auth.name, mustReset: auth.mustReset });
+      req.session.tenantId = tenant.id;
+      req.session.pinAuthId = auth.id;
+      return res.json({ name: auth.name, mustReset: auth.mustReset, tenantId: tenant.id });
     } catch (err) {
       console.error("Login error:", err);
       return res.status(500).json({ message: "Login failed" });
@@ -133,7 +179,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: validationError });
       }
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      const updated = await storage.updatePin(hashedPassword, false);
+      const updated = await storage.updatePin(req.session.pinAuthId!, hashedPassword, false);
       return res.json({ success: true, name: updated.name });
     } catch (err) {
       console.error("Reset password error:", err);
@@ -147,7 +193,7 @@ export async function registerRoutes(
       if (!currentPassword) {
         return res.status(400).json({ message: "Current password is required" });
       }
-      const auth = await storage.getPinAuth();
+      const auth = await storage.getPinAuthById(req.session.pinAuthId!);
       if (!auth) {
         return res.status(500).json({ message: "Auth not configured" });
       }
@@ -160,7 +206,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: validationError });
       }
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      const updated = await storage.updatePin(hashedPassword, false);
+      const updated = await storage.updatePin(auth.id, hashedPassword, false);
       return res.json({ success: true, name: updated.name });
     } catch (err) {
       console.error("Change password error:", err);
@@ -172,10 +218,10 @@ export async function registerRoutes(
     if (!req.session || !req.session.authenticated) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    const auth = await storage.getPinAuth();
     return res.json({
-      name: auth?.name || "User",
-      mustReset: auth?.mustReset || false
+      name: req.session.name || "User",
+      mustReset: false,
+      tenantId: req.session.tenantId,
     });
   });
 
@@ -223,7 +269,8 @@ export async function registerRoutes(
     if (category && !MEDIA_CATEGORIES.includes(category)) {
       return res.status(400).json({ message: "Invalid category" });
     }
-    const items = await storage.getMediaItems(category);
+    const tenantId = req.session.tenantId!;
+    const items = await storage.getMediaItems(tenantId, category);
     res.json(items);
   });
 
@@ -239,9 +286,11 @@ export async function registerRoutes(
     try {
       const input = api.media.create.input.parse(req.body);
       const category = detectCategory(input.contentType);
+      const tenantId = req.session.tenantId!;
       const item = await storage.createMediaItem({
         ...input,
         category,
+        tenantId,
       });
       res.status(201).json(item);
     } catch (err) {
@@ -294,8 +343,9 @@ export async function registerRoutes(
 
   // --- Collection Routes ---
 
-  app.get(api.collections.list.path, isAuthenticated, async (_req, res) => {
-    const cols = await storage.getCollections();
+  app.get(api.collections.list.path, isAuthenticated, async (req, res) => {
+    const tenantId = req.session.tenantId!;
+    const cols = await storage.getCollections(tenantId);
     res.json(cols);
   });
 
@@ -308,7 +358,8 @@ export async function registerRoutes(
   app.post(api.collections.create.path, isAuthenticated, async (req, res) => {
     try {
       const input = api.collections.create.input.parse(req.body);
-      const col = await storage.createCollection(input);
+      const tenantId = req.session.tenantId!;
+      const col = await storage.createCollection({ ...input, tenantId });
       res.status(201).json(col);
     } catch (err) {
       if (err instanceof z.ZodError) {

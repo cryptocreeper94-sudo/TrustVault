@@ -1257,20 +1257,30 @@ export default function Home() {
 
 
 function PasswordLogin() {
-  const { login, isLoggingIn, loginError } = useAuth();
+  const { login, isLoggingIn, loginError, accountCount } = useAuth();
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const multiUser = accountCount > 1;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) return;
+    if (multiUser && !name.trim()) {
+      setErrorMsg("Please enter your name");
+      return;
+    }
+    setErrorMsg("");
 
     try {
-      await login(password);
+      await login({ name: multiUser ? name.trim() : undefined, password });
     } catch (err: any) {
       setShake(true);
       setTimeout(() => setShake(false), 600);
+      setErrorMsg(err.message || "Incorrect password. Try again.");
       setPassword("");
     }
   };
@@ -1304,11 +1314,28 @@ function PasswordLogin() {
               <Lock className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">Welcome Back</h1>
-            <p className="text-sm text-muted-foreground">Enter your password to continue</p>
+            <p className="text-sm text-muted-foreground">
+              {multiUser ? "Enter your name and password to continue" : "Enter your password to continue"}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className={`space-y-3 transition-transform ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}>
+              {multiUser && (
+                <div className="relative">
+                  <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                    data-testid="input-login-name"
+                    autoFocus
+                    disabled={isLoggingIn}
+                  />
+                </div>
+              )}
               <div className="relative">
                 <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -1318,7 +1345,7 @@ function PasswordLogin() {
                   placeholder="Enter password"
                   className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
                   data-testid="input-password"
-                  autoFocus
+                  autoFocus={!multiUser}
                   disabled={isLoggingIn}
                 />
                 <Button
@@ -1334,9 +1361,9 @@ function PasswordLogin() {
                 </Button>
               </div>
 
-              {loginError && (
+              {(loginError || errorMsg) && (
                 <p className="text-center text-sm text-destructive" data-testid="text-login-error">
-                  Incorrect password. Try again.
+                  {errorMsg || "Incorrect credentials. Try again."}
                 </p>
               )}
             </div>
