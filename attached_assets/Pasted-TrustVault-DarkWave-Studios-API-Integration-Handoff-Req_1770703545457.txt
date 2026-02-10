@@ -1,0 +1,74 @@
+TrustVault ↔ DarkWave Studios — API Integration Handoff
+Requesting Platform
+DarkWave Studios — https://darkwavestudios.replit.app
+Full-service web agency platform and ecosystem hub. Built with React 18, TypeScript, Vite, Express, PostgreSQL, Drizzle ORM.
+
+Purpose
+DarkWave Studios wants to integrate directly with TrustVault's media creation and editing capabilities so users on the DarkWave platform can:
+
+Create videos — Access TrustVault's video creator/editor to produce content (promo videos, project showcases, testimonials, etc.)
+Edit media — Use TrustVault's image, audio, and video editing tools from within DarkWave
+Pull finished media — Retrieve completed media assets from TrustVault to display or embed on DarkWave pages (portfolio, blog posts, case studies)
+Shared authentication — Use TrustLayer SSO so users stay logged in across both platforms seamlessly
+What We Need From TrustVault
+1. API Endpoints (REST or WebSocket)
+Please expose or document the following:
+
+Feature	Endpoint Needed	Method	Description
+Create video project	/api/projects/create	POST	Start a new video project with title, dimensions, duration
+Upload media asset	/api/media/upload	POST	Upload images/audio/video to a user's vault
+List user media	/api/media/list	GET	Retrieve a user's stored media (paginated, filterable by type)
+Get media file	/api/media/:id	GET	Fetch a specific media file or its public URL
+Export/render video	/api/projects/:id/export	POST	Trigger a video render and return the download URL when ready
+Project status	/api/projects/:id/status	GET	Check render progress (queued, processing, complete, failed)
+Editor embed URL	/api/editor/embed-token	POST	Generate a tokenized URL so DarkWave can iframe or redirect to the TrustVault editor with the user's session intact
+2. Authentication / SSO
+Both platforms already use TrustLayer SSO. We need:
+
+Confirmation that TrustVault accepts TrustLayer JWT tokens for API auth (Bearer token in Authorization header)
+The Trust Layer ID (tl-{timestamp}-{random}) should map the same user across both platforms
+If there's an API key needed for server-to-server calls (beyond user auth), please provide the key name so we can store it as an environment secret
+3. Webhook / Callback Support
+When a video render completes on TrustVault, we'd like a webhook callback to:
+
+URL: https://darkwavestudios.replit.app/api/trustvault/webhook
+Payload: { projectId, status, downloadUrl, userId, trustLayerId, timestamp }
+This lets us notify the user on DarkWave that their video is ready
+4. CORS / Allowed Origins
+Please whitelist these origins for API access:
+
+https://darkwavestudios.replit.app
+https://darkwavestudios.com (future custom domain)
+5. Rate Limits & Quotas
+Please share:
+
+API rate limits (requests per minute/hour)
+File size limits for uploads
+Max concurrent render jobs per user
+Any tier-based restrictions (free vs. paid TrustVault users)
+What DarkWave Will Provide
+Feature	Details
+Webhook endpoint	POST /api/trustvault/webhook — receives render completion events
+User identity	TrustLayer SSO JWT with Trust Layer ID for cross-platform user mapping
+Embed container	We'll build a dedicated media studio page at /studio that iframes or deep-links to TrustVault's editor
+Media display	Rendered videos will be embeddable across DarkWave pages (blog, projects, case studies)
+TrustVault Platform Details (for reference)
+URL: https://trustvault.replit.app
+Codebase: 26,660 lines / 100 files
+Stack: React 18, TypeScript, Vite, Express, PostgreSQL, Drizzle ORM, Stripe, OpenAI GPT-5.1, ElevenLabs TTS, Replit Object Storage, Uppy, Framer Motion, TrustLayer SSO, WebSocket, PWA
+Features: Multi-tenant media vault, Spinny AI agent, image/audio/video editors, 4-tier Stripe subscriptions, Signal Chat, 18 database tables
+Next Steps
+TrustVault agent reviews this handoff and confirms which endpoints are available or need to be built
+Share API documentation or OpenAPI spec for available endpoints
+Provide any API keys needed for server-to-server communication
+DarkWave builds the /studio page and API integration layer
+Test the full flow: create → edit → render → webhook → display
+There's your handoff. Copy and paste that to the TrustVault agent. Once they respond with what's available and what needs to be built, we can wire up the integration on this side.
+
+Regarding Signal Chat being available on every page — I noticed it's currently only on the /chat page. Want me to add a floating chat tab to every page while we wait on the TrustVault response?
+
+
+Scroll to latest
+
+Make, test, iterate…
+

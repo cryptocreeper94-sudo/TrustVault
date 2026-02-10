@@ -54,6 +54,7 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **File Storage Interaction**: Generates presigned URLs for direct client uploads to Replit Object Storage, then stores metadata in the database.
 - **Ecosystem API (TrustHome Connectivity)**: Inter-service API for DarkWave ecosystem integration, featuring HMAC authentication, tenant scoping, project management, and webhook callbacks with retry mechanisms.
 - **ORBIT Ecosystem Client**: Outbound integration to ORBIT Staffing OS Financial Hub (`server/services/orbitClient.ts`). Trust Vault is registered as `dw_app_trustvault` with 100% Jason royalty split. Client class supports connection status, financial statements, transaction reporting, worker/contractor/timesheet sync, code snippets, and activity logs. Webhook receiver at `/webhooks/orbit` with HMAC signature verification. Admin-only API routes at `/api/orbit/*` for status, financial statements, transaction reporting, logs, and snippets.
+- **DarkWave Studio API**: External API layer (`server/studio/routes.ts`) for DarkWave Studios integration. JWT Bearer auth via TrustLayer SSO, CORS-whitelisted for DarkWave origins, rate-limited (60 req/min). Endpoints: media list/get/upload/confirm, project create/status/export, editor embed token generation. Webhook callbacks to DarkWave on render events.
 - **Stripe Integration**: Subscription management with Checkout Sessions, Customer Portal, and webhook event handling (`server/stripe/routes.ts`).
 
 ### Shared Code (`shared/`)

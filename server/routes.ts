@@ -16,6 +16,7 @@ import { registerAgentRoutes } from "./agent/routes";
 import { registerChatAuthRoutes } from "./chat/auth-routes";
 import { setupChatWebSocket } from "./chat/ws-server";
 import { registerOrbitRoutes } from "./orbit/routes";
+import { registerStudioRoutes } from "./studio/routes";
 import { generateTrustLayerId, generateJWT, hashPassword } from "./trustlayer-sso";
 
 declare module "express-session" {
@@ -77,6 +78,7 @@ export async function registerRoutes(
   registerAgentRoutes(app);
   registerChatAuthRoutes(app);
   registerOrbitRoutes(app);
+  registerStudioRoutes(app);
   setupChatWebSocket(httpServer);
 
   storage.seedDefaultChannels().then(() => {
