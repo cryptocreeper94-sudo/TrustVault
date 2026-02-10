@@ -466,20 +466,20 @@ export function SignalChatPanel() {
             exit={{ x: -80 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             onClick={() => setIsOpen(true)}
-            className="fixed left-0 bottom-24 z-[90] flex items-center gap-0 cursor-pointer group"
+            className="fixed left-0 bottom-20 sm:bottom-24 z-[90] flex items-center gap-0 cursor-pointer group"
             data-testid="button-open-signal-chat"
             aria-label="Open Signal Chat"
           >
-            <div className="w-10 h-10 rounded-r-xl bg-primary flex items-center justify-center shadow-lg relative">
-              <MessageSquare className="w-5 h-5 text-primary-foreground" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-r-xl bg-primary flex items-center justify-center shadow-lg relative">
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 shadow-md">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
             </div>
-            <div className="bg-card border border-l-0 rounded-r-xl px-2 py-3 shadow-lg flex flex-col items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground [writing-mode:vertical-lr]">
+            <div className="bg-card border border-l-0 rounded-r-xl px-1.5 py-2 sm:px-2 sm:py-3 shadow-lg flex flex-col items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground [writing-mode:vertical-lr]">
                 Signal
               </span>
             </div>

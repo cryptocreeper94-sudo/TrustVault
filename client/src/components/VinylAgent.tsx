@@ -223,20 +223,20 @@ export function VinylAgent() {
             exit={{ x: 80 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             onClick={() => setIsOpen(true)}
-            className="fixed right-0 bottom-24 z-[90] flex items-center gap-0 cursor-pointer group"
+            className="fixed right-0 bottom-20 sm:bottom-24 z-[90] flex items-center gap-0 cursor-pointer group"
             data-testid="button-open-agent"
             aria-label="Open AI Assistant"
           >
-            <div className="bg-card border border-r-0 rounded-l-xl px-2 py-3 shadow-lg flex flex-col items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground [writing-mode:vertical-lr] rotate-180">
+            <div className="bg-card border border-r-0 rounded-l-xl px-1.5 py-2 sm:px-2 sm:py-3 shadow-lg flex flex-col items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground [writing-mode:vertical-lr] rotate-180">
                 Spinny
               </span>
             </div>
-            <div className="w-14 h-14 rounded-l-xl overflow-visible relative -ml-1">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-l-xl overflow-visible relative -ml-1">
               <img
                 src={vinylMascot}
                 alt="Spinny - AI Assistant"
-                className="w-14 h-14 object-contain drop-shadow-lg"
+                className="w-10 h-10 sm:w-14 sm:h-14 object-contain drop-shadow-lg"
               />
             </div>
           </motion.button>
