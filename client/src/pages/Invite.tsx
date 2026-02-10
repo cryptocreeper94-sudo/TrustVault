@@ -4,7 +4,7 @@ import { Lock, ExternalLink, Layers, Zap, ArrowRight, Fingerprint, Globe } from 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
-import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
+import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 
 export default function Invite() {
   return (

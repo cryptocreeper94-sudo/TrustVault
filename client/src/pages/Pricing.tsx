@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Check, ArrowLeft, Shield, Zap, Crown, Sparkles, Loader2, Award, ExternalLink, Users } from "lucide-react";
-import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
+import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

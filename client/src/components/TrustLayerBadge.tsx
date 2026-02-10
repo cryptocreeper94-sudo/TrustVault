@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
+import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 
 export function TrustLayerBadge() {
   return (

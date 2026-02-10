@@ -69,7 +69,7 @@ import { format, parseISO } from "date-fns";
 import type { CollectionWithCount } from "@shared/schema";
 import { OnboardingGuide, HelpTooltip, useOnboarding } from "@/components/OnboardingGuide";
 import { TrustLayerBadge } from "@/components/TrustLayerBadge";
-import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
+import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 import { HelpCircle } from "lucide-react";
 
 function getGreeting(): string {

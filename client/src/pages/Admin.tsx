@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import trustlayerEmblem from "@assets/images/trustlayer-emblem.jpg";
+import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 
 type WhitelistEntry = {
   id: number;
