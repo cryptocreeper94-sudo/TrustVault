@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import { ArrowRight, Lock, Eye, EyeOff, UserPlus, Mail, KeyRound, Loader2 } from "lucide-react";
+import { ArrowRight, Lock, Eye, EyeOff, UserPlus, Mail, Loader2, Heart, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Join() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { claimAccount, isClaimingAccount } = useAuth();
   const urlCode = new URLSearchParams(window.location.search).get("code") || "";
+  const [inviteMode, setInviteMode] = useState(!!urlCode);
   const [inviteCode, setInviteCode] = useState(urlCode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -27,12 +30,12 @@ export default function Join() {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!inviteCode.trim()) {
-      setErrorMsg("Please enter your invite code");
-      return;
-    }
     if (!name.trim()) {
       setErrorMsg("Please enter your name");
+      return;
+    }
+    if (!email.trim()) {
+      setErrorMsg("Please enter your email");
       return;
     }
     if (!password) {
@@ -44,29 +47,51 @@ export default function Join() {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      await apiRequest("POST", "/api/join", {
-        inviteCode: inviteCode.trim(),
-        name: name.trim(),
-        password,
-        email: email.trim() || undefined,
-      });
-      toast({ title: "Welcome!", description: "Your vault is ready." });
-      navigate("/");
-    } catch (err: any) {
-      const msg = err?.message || "Something went wrong. Please try again.";
-      setErrorMsg(msg);
-    } finally {
-      setIsSubmitting(false);
+    if (inviteMode) {
+      if (!inviteCode.trim()) {
+        setErrorMsg("Please enter your invite code");
+        return;
+      }
+      setIsSubmitting(true);
+      try {
+        await apiRequest("POST", "/api/join", {
+          inviteCode: inviteCode.trim(),
+          name: name.trim(),
+          password,
+          email: email.trim() || undefined,
+        });
+        toast({ title: "Welcome!", description: "Your vault is ready." });
+        navigate("/");
+      } catch (err: any) {
+        const msg = err?.message || "Something went wrong. Please try again.";
+        const cleaned = msg.includes(":") ? msg.split(": ").slice(1).join(": ") : msg;
+        setErrorMsg(cleaned);
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      setIsSubmitting(true);
+      try {
+        await claimAccount({ name: name.trim(), password, email: email.trim() });
+        toast({ title: "Welcome to the family vault!", description: "Your private space is ready." });
+        navigate("/");
+      } catch (err: any) {
+        const msg = err?.message || "Something went wrong. Please try again.";
+        const cleaned = msg.includes(":") ? msg.split(": ").slice(1).join(": ") : msg;
+        setErrorMsg(cleaned);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
+
+  const isBusy = isSubmitting || isClaimingAccount;
 
   return (
     <>
       <Helmet>
-        <title>Join | DW Media Studio</title>
-        <meta name="description" content="Create your account on DW Media Studio with your invite code." />
+        <title>Join the Family Vault | DW Media Studio</title>
+        <meta name="description" content="Set up your private media vault — a personal space for your photos, videos, and memories." />
       </Helmet>
 
       <div className="min-h-screen bg-background relative overflow-hidden">
@@ -82,7 +107,7 @@ export default function Join() {
             transition={{ duration: 0.5 }}
             className="flex items-center gap-2 mb-8"
           >
-            <img src={trustlayerEmblem} alt="TrustLayer" className="w-8 h-8 rounded-lg object-cover" />
+            <img src={trustlayerEmblem} alt="DW Media Studio" className="w-8 h-8 rounded-lg object-cover" />
             <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">DW Media Studio</span>
           </motion.div>
 
@@ -92,12 +117,24 @@ export default function Join() {
             transition={{ delay: 0.1, duration: 0.5 }}
             className="text-center mb-8"
           >
-            <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight mb-2" data-testid="text-join-title">
-              Create Your Vault
+            <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight mb-3" data-testid="text-join-title">
+              {inviteMode ? "Create Your Vault" : "Welcome to the Family Vault"}
             </h1>
-            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              Enter your invite code to set up your private media space.
-            </p>
+            {inviteMode ? (
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Enter your invite code to set up your private media space.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
+                  I built this for us. A private place to store and share our photos, videos, music, and memories. Your own personal space, always secure.
+                </p>
+                <p className="text-sm text-muted-foreground/70 flex items-center justify-center gap-1.5" data-testid="text-join-love-dad">
+                  <Heart className="w-3.5 h-3.5 text-destructive" />
+                  <span>Love, Dad</span>
+                </p>
+              </>
+            )}
           </motion.div>
 
           <motion.div
@@ -108,19 +145,21 @@ export default function Join() {
           >
             <Card className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                    placeholder="Invite code"
-                    className="pl-10 h-12 text-base font-mono tracking-widest uppercase"
-                    data-testid="input-join-code"
-                    disabled={isSubmitting}
-                    autoFocus
-                  />
-                </div>
+                {inviteMode && (
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      placeholder="Invite code"
+                      className="pl-10 h-12 text-base font-mono tracking-widest uppercase"
+                      data-testid="input-join-code"
+                      disabled={isBusy}
+                      autoFocus
+                    />
+                  </div>
+                )}
 
                 <div className="relative">
                   <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -131,7 +170,8 @@ export default function Join() {
                     placeholder="Your first name"
                     className="pl-10 h-12 text-base"
                     data-testid="input-join-name"
-                    disabled={isSubmitting}
+                    disabled={isBusy}
+                    autoFocus={!inviteMode}
                   />
                 </div>
 
@@ -141,10 +181,10 @@ export default function Join() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email (optional)"
+                    placeholder="Your email"
                     className="pl-10 h-12 text-base"
                     data-testid="input-join-email"
-                    disabled={isSubmitting}
+                    disabled={isBusy}
                   />
                 </div>
 
@@ -157,12 +197,13 @@ export default function Join() {
                     placeholder="Create password"
                     className="pl-10 pr-10 h-12 text-base"
                     data-testid="input-join-password"
-                    disabled={isSubmitting}
+                    disabled={isBusy}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    data-testid="button-join-toggle-password"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -178,7 +219,7 @@ export default function Join() {
                     placeholder="Confirm password"
                     className="pl-10 h-12 text-base"
                     data-testid="input-join-confirm"
-                    disabled={isSubmitting}
+                    disabled={isBusy}
                   />
                 </div>
 
@@ -186,12 +227,12 @@ export default function Join() {
                   <p className="text-sm text-destructive text-center" data-testid="text-join-error">{errorMsg}</p>
                 )}
 
-                <Button type="submit" className="w-full h-12 gap-2" disabled={isSubmitting} data-testid="button-join-submit">
-                  {isSubmitting ? (
+                <Button type="submit" className="w-full h-12 gap-2" disabled={isBusy} data-testid="button-join-submit">
+                  {isBusy ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
-                      Create My Vault
+                      {inviteMode ? "Create My Vault" : "Set Up My Vault"}
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
@@ -203,12 +244,22 @@ export default function Join() {
               </form>
             </Card>
 
-            <p className="text-center text-xs text-muted-foreground mt-4">
-              Already have an account?{" "}
-              <Link href="/" className="text-primary hover:underline" data-testid="link-join-login">
-                Log in
-              </Link>
-            </p>
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-center text-xs text-muted-foreground">
+                Already set up your account?{" "}
+                <Link href="/" className="text-primary hover:underline" data-testid="link-join-login">
+                  Log in
+                </Link>
+              </p>
+              <button
+                type="button"
+                onClick={() => { setInviteMode(!inviteMode); setErrorMsg(""); setInviteCode(""); }}
+                className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors"
+                data-testid="button-join-toggle-mode"
+              >
+                {inviteMode ? "Family member? Set up here" : "Have an invite code?"}
+              </button>
+            </div>
           </motion.div>
         </div>
       </div>
