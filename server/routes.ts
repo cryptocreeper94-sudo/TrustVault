@@ -43,6 +43,51 @@ function validatePassword(password: string): string | null {
   return null;
 }
 
+async function bootstrapFamilyAccounts() {
+  const TEMP_PASSWORD = "Temp12345!";
+  const hashedPassword = await bcrypt.hash(TEMP_PASSWORD, 10);
+
+  const familyMembers = [
+    { name: "Jason", isAdmin: true, mustReset: false },
+    { name: "Madeline", isAdmin: false, mustReset: true },
+    { name: "Natalie", isAdmin: false, mustReset: true },
+    { name: "Avery", isAdmin: false, mustReset: true },
+    { name: "Jennifer", isAdmin: false, mustReset: true },
+    { name: "Will", isAdmin: false, mustReset: true },
+    { name: "Carley", isAdmin: false, mustReset: true },
+  ];
+
+  for (const member of familyMembers) {
+    const existing = await storage.getPinAuthByName(member.name);
+    if (existing) {
+      if (existing.mustReset) {
+        await storage.updatePin(existing.id, hashedPassword, true);
+        console.log(`[Bootstrap] Reset temp password for ${member.name}`);
+      } else {
+        console.log(`[Bootstrap] ${member.name} already set up, skipping`);
+      }
+    } else {
+      const storagePrefix = member.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const tenant = await storage.createTenant({
+        name: member.name,
+        storagePrefix,
+        tier: "free",
+        status: "active",
+      });
+      const auth = await storage.initializePinAuth(hashedPassword, member.name, member.mustReset, tenant.id);
+      if (member.isAdmin) {
+        const { pinAuth } = await import("@shared/schema");
+        const { db } = await import("./db");
+        const { eq } = await import("drizzle-orm");
+        await db.update(pinAuth).set({ isAdmin: true }).where(eq(pinAuth.id, auth.id));
+      }
+      await storage.updateTenant(tenant.id, { pinAuthId: auth.id });
+      console.log(`[Bootstrap] Created account for ${member.name} (admin: ${member.isAdmin})`);
+    }
+  }
+  console.log("[Bootstrap] Family accounts ready");
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -85,6 +130,10 @@ export async function registerRoutes(
     console.log("[Signal Chat] Default channels seeded");
   }).catch((err) => {
     console.error("[Signal Chat] Failed to seed channels:", err);
+  });
+
+  bootstrapFamilyAccounts().catch((err) => {
+    console.error("[Bootstrap] Failed to seed family accounts:", err);
   });
 
   // --- Auth Routes ---
