@@ -1345,7 +1345,7 @@ export default function Home() {
 
 
 function PasswordLogin() {
-  const { login, isLoggingIn, loginError, accountCount } = useAuth();
+  const { login, isLoggingIn, loginError, accountCount, claimAccount, isClaimingAccount } = useAuth();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -1354,11 +1354,44 @@ function PasswordLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const [devMode, setDevMode] = useState(false);
   const [devPin, setDevPin] = useState("");
+  const [claimMode, setClaimMode] = useState(false);
+  const [claimEmail, setClaimEmail] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const multiUser = accountCount > 1;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (claimMode) {
+      if (!name.trim()) {
+        setErrorMsg("Please enter your name");
+        return;
+      }
+      if (!claimEmail.trim()) {
+        setErrorMsg("Please enter your email");
+        return;
+      }
+      if (!password) {
+        setErrorMsg("Please create a password");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMsg("Passwords don't match");
+        return;
+      }
+      setErrorMsg("");
+      try {
+        await claimAccount({ name: name.trim(), password, email: claimEmail.trim() });
+      } catch (err: any) {
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+        const msg = err.message || "Account setup failed";
+        setErrorMsg(msg.includes(":") ? msg.split(": ").slice(1).join(": ") : msg);
+      }
+      return;
+    }
+
     if (devMode) {
       if (!devPin) return;
       setErrorMsg("");
@@ -1414,10 +1447,12 @@ function PasswordLogin() {
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">
-              {devMode ? "Developer Access" : "Welcome Back"}
+              {claimMode ? "Set Up Your Account" : devMode ? "Developer Access" : "Welcome Back"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {devMode
+              {claimMode
+                ? "Enter your name, email, and create a password"
+                : devMode
                 ? "Enter your developer PIN to continue"
                 : multiUser ? "Enter your name and password to continue" : "Enter your password to continue"}
             </p>
@@ -1425,7 +1460,72 @@ function PasswordLogin() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className={`space-y-3 transition-transform ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}>
-              {devMode ? (
+              {claimMode ? (
+                <>
+                  <div className="relative">
+                    <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your name (exactly as given to you)"
+                      className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                      data-testid="input-claim-name"
+                      autoFocus
+                      disabled={isClaimingAccount}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      value={claimEmail}
+                      onChange={(e) => setClaimEmail(e.target.value)}
+                      placeholder="Your email"
+                      className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                      data-testid="input-claim-email"
+                      disabled={isClaimingAccount}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a password"
+                      className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                      data-testid="input-claim-password"
+                      disabled={isClaimingAccount}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm password"
+                      className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                      data-testid="input-claim-confirm-password"
+                      disabled={isClaimingAccount}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                    Password must be at least 8 characters with 1 uppercase letter and 1 special character.
+                  </p>
+                </>
+              ) : devMode ? (
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -1491,7 +1591,7 @@ function PasswordLogin() {
               )}
             </div>
 
-            {!devMode && (
+            {!devMode && !claimMode && (
               <div className="flex items-center gap-3">
                 <Switch
                   id="remember-me"
@@ -1512,11 +1612,19 @@ function PasswordLogin() {
               type="submit"
               size="lg"
               data-testid="button-login-submit"
-              disabled={devMode ? devPin.length < 1 : password.length < 1 || isLoggingIn}
+              disabled={
+                claimMode
+                  ? (!name.trim() || !claimEmail.trim() || !password || !confirmPassword || isClaimingAccount)
+                  : devMode
+                  ? devPin.length < 1
+                  : (password.length < 1 || isLoggingIn)
+              }
               className="w-full text-base font-medium"
             >
-              {isLoggingIn ? (
+              {(isLoggingIn || isClaimingAccount) ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
+              ) : claimMode ? (
+                "Set Up Account"
               ) : devMode ? (
                 "Authenticate"
               ) : (
@@ -1524,16 +1632,28 @@ function PasswordLogin() {
               )}
             </Button>
 
-            <div className="flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => { setDevMode(!devMode); setErrorMsg(""); setDevPin(""); setPassword(""); }}
-                className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors flex items-center gap-1.5"
-                data-testid="button-dev-access-toggle"
-              >
-                <Monitor className="w-3 h-3" />
-                {devMode ? "Back to login" : "Developer access"}
-              </button>
+            <div className="flex flex-col items-center gap-2">
+              {!devMode && (
+                <button
+                  type="button"
+                  onClick={() => { setClaimMode(!claimMode); setErrorMsg(""); setPassword(""); setConfirmPassword(""); setClaimEmail(""); }}
+                  className="text-xs text-primary/70 hover:text-primary transition-colors"
+                  data-testid="button-claim-account-toggle"
+                >
+                  {claimMode ? "Already have a password? Log in" : "First time? Set up your account"}
+                </button>
+              )}
+              {!claimMode && (
+                <button
+                  type="button"
+                  onClick={() => { setDevMode(!devMode); setErrorMsg(""); setDevPin(""); setPassword(""); }}
+                  className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors flex items-center gap-1.5"
+                  data-testid="button-dev-access-toggle"
+                >
+                  <Monitor className="w-3 h-3" />
+                  {devMode ? "Back to login" : "Developer access"}
+                </button>
+              )}
             </div>
 
             <p className="text-[11px] text-muted-foreground/60 text-center leading-relaxed">

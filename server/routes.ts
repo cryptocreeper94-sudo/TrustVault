@@ -269,6 +269,69 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/auth/claim-account", async (req, res) => {
+    try {
+      const { name, password, email } = req.body;
+      if (!name || !name.trim()) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      if (!email || !email.trim()) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+      }
+      if (!password) {
+        return res.status(400).json({ message: "Password is required" });
+      }
+      const validationError = validatePassword(password);
+      if (validationError) {
+        return res.status(400).json({ message: validationError });
+      }
+
+      const auth = await storage.getPinAuthByName(name.trim());
+      if (!auth) {
+        return res.status(404).json({ message: "No account found with that name. Please check the spelling." });
+      }
+      if (!auth.mustReset) {
+        return res.status(400).json({ message: "This account already has a password. Please use the login form." });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await storage.updatePin(auth.id, hashedPassword, false, email.trim().toLowerCase());
+
+      let tenant;
+      if (auth.tenantId) {
+        tenant = await storage.getTenant(auth.tenantId);
+      }
+      if (!tenant) {
+        tenant = await storage.getTenantByPinAuthId(auth.id);
+      }
+      if (!tenant) {
+        const storagePrefix = auth.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        tenant = await storage.createTenant({
+          name: auth.name,
+          storagePrefix,
+          tier: "free",
+          status: "active",
+          pinAuthId: auth.id,
+        });
+      }
+
+      req.session.authenticated = true;
+      req.session.name = auth.name;
+      req.session.tenantId = tenant.id;
+      req.session.pinAuthId = auth.id;
+      req.session.isAdmin = auth.isAdmin ?? false;
+
+      return res.json({ name: auth.name, mustReset: false, tenantId: tenant.id, isAdmin: auth.isAdmin ?? false });
+    } catch (err) {
+      console.error("Claim account error:", err);
+      return res.status(500).json({ message: "Failed to set up account" });
+    }
+  });
+
   app.post("/api/auth/reset-password", isAuthenticated, async (req, res) => {
     try {
       const { newPassword, email } = req.body;

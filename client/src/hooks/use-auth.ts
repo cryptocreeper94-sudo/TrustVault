@@ -72,6 +72,21 @@ export function useAuth() {
     },
   });
 
+  const claimAccountMutation = useMutation({
+    mutationFn: async ({ name, password, email }: { name: string; password: string; email: string }) => {
+      const res = await apiRequest("POST", "/api/auth/claim-account", { name, password, email });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Account setup failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/status"] });
+    },
+  });
+
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ newPassword, email }: { newPassword: string; email: string }) => {
       const res = await apiRequest("POST", "/api/auth/reset-password", { newPassword, email });
@@ -119,6 +134,9 @@ export function useAuth() {
     login: loginMutation.mutateAsync,
     loginError: loginMutation.error,
     isLoggingIn: loginMutation.isPending,
+    claimAccount: claimAccountMutation.mutateAsync,
+    claimAccountError: claimAccountMutation.error,
+    isClaimingAccount: claimAccountMutation.isPending,
     resetPassword: resetPasswordMutation.mutateAsync,
     resetPasswordError: resetPasswordMutation.error,
     isResettingPassword: resetPasswordMutation.isPending,
