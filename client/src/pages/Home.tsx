@@ -1661,10 +1661,10 @@ function PasswordLogin() {
                 <button
                   type="button"
                   onClick={() => { setDevMode(!devMode); setErrorMsg(""); setDevPin(""); setPassword(""); }}
-                  className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors flex items-center gap-1.5"
+                  className="text-xs text-muted-foreground/70 hover:text-primary transition-colors flex items-center gap-1.5 mt-1"
                   data-testid="button-dev-access-toggle"
                 >
-                  <Monitor className="w-3 h-3" />
+                  <Monitor className="w-3.5 h-3.5" />
                   {devMode ? "Back to login" : "Developer access"}
                 </button>
               )}
