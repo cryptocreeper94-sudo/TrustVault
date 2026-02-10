@@ -1457,7 +1457,7 @@ function PasswordLogin() {
         </div>
       </div>
 
-      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-8 bg-card border-l border-white/5">
+      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-6 sm:p-8 bg-card border-l border-white/5 overflow-y-auto">
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">
