@@ -1,99 +1,187 @@
-# Master Roadmap — Concert Memory Vault / TrustLayer Media Platform
+# Master Roadmap — DW Media Studio / TrustVault
 
-**Project Origin**: Private concert video gallery for Madeline
+**Project**: DW Media Studio (TrustVault) — Universal IP Storage & Media Platform
 **Parent Ecosystem**: TrustLayer / Dark Wave Studios (darkwavestudios.io)
 **Blockchain Layer**: Layer One blockchain (TrustLayer)
 **Target Platform (Future)**: React Native + Expo (standalone native app)
 **Date Created**: February 8, 2026
+**Last Updated**: February 10, 2026
 
 ---
 
-## Current State (Phase 0 — MVP)
+## COMPLETED — What's Built & Working
 
-- Private video gallery web app (React + Express + PostgreSQL)
-- PIN-based authentication (bcrypt-hashed, session-backed)
-- Forced PIN reset on first login
-- Video upload via Replit Object Storage (presigned URL flow)
-- Video playback in modal player
-- Favorite/unfavorite videos
-- Search/filter videos
-- Time-of-day personalized greeting (Central Time)
-- Dark-themed, media-focused UI
-- Skeleton loading states, transitions, hover effects
-- Link back to darkwavestudios.io
+### Core Platform
+- [x] Full-stack React + Express + PostgreSQL web application
+- [x] PWA with web app manifest, service worker, splash screen, offline caching
+- [x] Dark-themed premium UI with Tailwind CSS, Framer Motion animations
+- [x] Custom fonts (Outfit, Plus Jakarta Sans), glassmorphism, micro-interactions
+- [x] SEO meta tags, Open Graph tags, and Helmet across all pages
+
+### Multi-Tenant Authentication
+- [x] Multi-user password-based authentication (bcrypt, express-session, PostgreSQL session store)
+- [x] Password policy enforcement (8+ chars, 1 uppercase, 1 special character)
+- [x] Family member accounts auto-seeded on server startup (Jason, Madeline, Natalie, Avery, Jennifer, Will, Carley)
+- [x] Family account claim flow ("First time? Set up your account" on login + /join page)
+- [x] Developer access mode with PIN entry (0424) for Jason's quick admin login
+- [x] 30-day session persistence toggle with privacy disclaimer
+- [x] Admin role with master access to all tenant spaces
+- [x] Tenant isolation — each user has their own private media vault
+
+### Invite System & Onboarding
+- [x] Developer Portal (/admin) for managing invites and users
+- [x] Personalized invite codes — admin can set custom codes (e.g., "NATALIE-24") or auto-generate
+- [x] One-time-use invite codes — marked as used after account creation
+- [x] Join page (/join) supports both invite-code signups and family claim flow
+- [x] Warm family welcome message on Join page with personal note from Dad
+- [x] Copy invite link button for easy sharing
+- [x] Full tenant auto-provisioning — new users get their own private vault space instantly
+
+### Media Management
+- [x] Upload any media type (video, audio, images, documents) via Replit Object Storage
+- [x] Presigned URL upload flow (Uppy + AWS S3 plugin)
+- [x] Category auto-detection from content type
+- [x] Grid view and timeline view with toggle
+- [x] Search, filter by category, sort by date/name/size
+- [x] Date range filtering
+- [x] Favorites system
+- [x] Tags, labels, and metadata (artist, venue, tour, event date)
+- [x] Bulk selection with batch actions (favorite, tag, delete)
+- [x] Collections system for organizing media into groups
+- [x] Multi-format modal media viewer (video, audio, image, document preview)
+- [x] Ambient mode for immersive media viewing
+- [x] Now Playing bar for audio with playlist support
+
+### Media Editors
+- [x] **Image Editor**: Crop, rotate, flip, resize, preset filters, brightness/contrast/saturation/blur adjustments, save as new
+- [x] **Audio Editor**: Trim with start/end points, fade in/out, volume adjustment, playback speed, full transport controls, save as new
+- [x] **Video Editor**: Trim, brightness/contrast adjustments, frame capture (grab still images from video), save as new
+- [x] **Merge/Combine Editor**: Image collages, audio concatenation, video concatenation
+
+### Stripe Subscription System
+- [x] 4-tier pricing: Free / Personal ($5.99/mo) / Pro ($12.99/mo) / Studio ($24.99/mo)
+- [x] Pricing page with monthly/annual toggle and feature comparison
+- [x] Stripe Checkout integration for payments
+- [x] Stripe Customer Portal for subscription management
+- [x] Webhook handling (checkout, subscription updates, cancellations, failed payments)
+- [x] Auto-provisioning of tenant spaces for new subscribers
+
+### Spinny AI Agent
+- [x] Vinyl record mascot with floating side tab
+- [x] Full chat panel powered by OpenAI (gpt-5.1) with streaming SSE responses
+- [x] Tenant-scoped conversations with media vault context awareness
+- [x] Voice output via ElevenLabs TTS (Sarah voice) with OpenAI fallback (nova voice)
+- [x] Auto-speak toggle and per-message speak buttons
+
+### Signal Chat
+- [x] Real-time ecosystem-wide chat system at /chat
+- [x] JWT-authenticated via TrustLayer SSO
+- [x] Channel-based messaging with WebSocket real-time delivery
+- [x] 6 default channels: general, announcements, darkwavestudios-support, garagebot-support, tlid-marketing, guardian-ai
+- [x] Typing indicators and user presence tracking (online count)
+- [x] Reply threading
+- [x] User join/leave notifications per channel
+
+### TrustLayer SSO
+- [x] Cross-app single sign-on via shared JWT_SECRET (HS256, 7-day expiry)
+- [x] Trust Layer ID generation (tl-{base36-timestamp}-{random-8-chars})
+- [x] Auth endpoints: register, login, me
+- [x] Bridge endpoint to create chat_users from existing TrustVault session users
+
+### AI-Driven Blog System
+- [x] Full blog platform with public listing and individual post pages
+- [x] Admin interface for creating/editing/publishing posts
+- [x] AI content generation via OpenAI
+- [x] SEO-optimized with meta descriptions, Open Graph tags
+- [x] Cover images, excerpts, slug-based URLs
+
+### Ecosystem Integrations
+- [x] **ORBIT Financial Hub**: Registered as dw_app_trustvault with 100% Jason royalty split. Connection status, financial statements, transaction reporting, webhook receiver with HMAC verification
+- [x] **DarkWave Studios API**: JWT Bearer auth, CORS-whitelisted, rate-limited (60 req/min). Media management, project/render system, editor embed tokens, webhook callbacks
+- [x] **Ecosystem API (TrustHome)**: Inter-service API with HMAC auth, tenant scoping, project management, webhook callbacks with retry
+
+### Community Voice (Feature Voting)
+- [x] Public feature request/voting system at /roadmap
+- [x] Category filtering, vote tracking per tenant
+- [x] Admin controls for status updates and notes
 
 ---
 
-## Phase 1 — Trust Layer SSO & Signal Chat (NEXT)
+## PLANNED — Next Up
 
-- [ ] Implement Trust Layer ID generation (tl-{base36-timestamp}-{random-8-chars}) at user registration
-- [ ] Add JWT-based SSO with shared JWT_SECRET across ecosystem apps (HS256, 7-day expiry)
-- [ ] Create cross-app auth endpoints: /api/chat/auth/register, /api/chat/auth/login, /api/chat/auth/me
-- [ ] Build chat_users, chat_channels, chat_messages database tables (Drizzle ORM)
-- [ ] Seed default channels: general, announcements, darkwavestudios-support, garagebot-support, tlid-marketing, guardian-ai
-- [ ] Implement WebSocket server at /ws/chat with JWT-authenticated join (no userId-based auth)
-- [ ] Build real-time chat features: message history, typing indicators, user presence, channel switching
-- [ ] Enforce password policy consistency (8+ chars, 1 uppercase, 1 special char, bcrypt 12 rounds)
-- [ ] Wire TrustVault auth to issue Trust Layer IDs + JWT tokens for ecosystem-wide identity
-- [ ] Build Signal Chat UI with channel list, message thread, reply support, and online indicators
-- [ ] Reference spec: attached_assets/Pasted--TRUST-LAYER-SSO-SIGNAL-CHAT-HANDOFF-*.txt
+### Phase Next: Media Sharing & Social Features
+- [ ] **Shared Folders & Collections** — Family members can create shared collections that multiple tenants can access and contribute to
+- [ ] **Media Sharing** — Share individual media items with specific family members or friends
+- [ ] **Collaborative Playlists** — Shared playlists (especially for audio/music) that multiple users can add to
+- [ ] **Shared Upload Folders** — Drop zones where everyone in a group can contribute photos, videos, or music
+- [ ] **Integration with Signal Chat** — Share media directly through chat conversations
 
----
+### Phase Next: Signal Chat Enhancements
+- [ ] **Online Member List with Name Indicators** — Show who's online by name with green dot indicators (Discord-style member sidebar)
+- [ ] **Per-channel member list** — See who's in each channel
+- [ ] **Browser push notifications** — Get notified when someone sends a message while you're away
+- [ ] **Direct messages** — Private 1:1 messaging between users
+- [ ] **Media sharing in chat** — Send images, videos, audio directly in conversations
 
-## Phase 2 — Polish & Foundation
-
-- [ ] Thumbnail generation (extract frame from uploaded video)
-- [ ] Video duration display on cards
-- [ ] Sorting options (date, name, favorites first)
-- [ ] Tags / categories (by artist, venue, tour, date)
-- [ ] Batch upload support
-- [ ] Mobile-responsive refinements
-- [ ] Establish core UI/UX design system documentation (colors, spacing, typography, component standards) to ensure consistency across all future builds
-
----
-
-## Phase 3 — Multi-User & Sharing
-
-- [ ] Multi-user support (multiple PINs or user accounts)
-- [ ] Role-based access (owner vs. viewer)
-- [ ] Shareable gallery links (trust-gated, expiring or permanent)
-- [ ] Shared collections between trusted users
-- [ ] Activity log (who viewed what, when)
+### Phase Next: Advanced Media Editing
+- [ ] **Background Removal (AI-powered)** — Remove backgrounds from images for product photos, thumbnails, design work
+- [ ] **Text Overlays** — Add text, titles, captions, watermarks to images and videos
+- [ ] **Drawing & Annotation Tools** — Draw, highlight, annotate on images
+- [ ] **Stickers & Graphics** — Add pre-built design elements to media
+- [ ] **Advanced Color Grading** — Professional color correction for photos and video
+- [ ] **Audio Effects** — Reverb, echo, noise reduction, equalization
+- [ ] **Video Transitions** — Add transition effects between clips when merging
+- [ ] **Template System** — Pre-built templates for social media posts, thumbnails, covers
 
 ---
 
-## Phase 4 — TrustLayer Blockchain Integration
+## FUTURE PHASES
 
+### Phase: Signal Chat as Standalone Platform
+- [ ] Spin Signal Chat into its own standalone app/domain (Telegram/Discord-style)
+- [ ] Shared TrustLayer SSO for seamless cross-app identity
+- [ ] Server/community creation (like Discord servers)
+- [ ] Voice channels and audio rooms
+- [ ] Bot framework for automated interactions
+- [ ] File sharing and media embedding
+- [ ] Moderation tools (roles, permissions, content filtering)
+- [ ] Mobile push notifications
+- [ ] Foundation for the broader social network
+
+### Phase: Website Builder Integration
+- [ ] Squarespace-style website builder for non-technical users
+- [ ] Media vault as the asset library for website content
+- [ ] Drag-and-drop page building
+- [ ] Template marketplace
+- [ ] Editor tools integrated directly (crop, resize, background removal for product photos)
+- [ ] Custom domain support
+- [ ] E-commerce capabilities
+
+### Phase: TrustLayer Blockchain Integration
 - [ ] Connect authentication to TrustLayer identity layer
-- [ ] On-chain identity verification for gallery access
+- [ ] On-chain identity verification for vault access
 - [ ] Trust-gated sharing: access based on trust scores or verified relationships
-- [ ] Verified attendee access: artists/venues share footage only with confirmed attendees
-- [ ] Business use case: private event clips shared only with confirmed partners
-- [ ] Media provenance: on-chain proof of ownership/origination for uploaded content
+- [ ] Media provenance: on-chain proof of ownership/origination
+- [ ] Immutable creation timestamps for IP disputes
+- [ ] Content licensing framework tied to blockchain provenance
 - [ ] Integration with Dark Wave Studios ecosystem (shared navigation, unified identity)
 
----
-
-## Phase 5 — React Native + Expo (Standalone Native App)
-
+### Phase: React Native + Expo (Standalone Native App)
 - [ ] Port frontend to React Native + Expo
-- [ ] Native video capture and upload (direct from phone camera)
+- [ ] Native video/photo capture and upload (direct from phone camera)
 - [ ] Offline viewing / downloaded favorites
-- [ ] Push notifications (new shared content, trust requests)
+- [ ] Push notifications (new shared content, messages, trust requests)
 - [ ] Native media player with gesture controls
 - [ ] App Store and Google Play deployment
-- [ ] Maintain consistent UI/UX standards from web version
+- [ ] Consistent UI/UX standards from web version
 
----
-
-## Phase 6 — Platform & Marketplace
-
-- [ ] Concert community features: organize clips by artist, venue, tour
-- [ ] Small venue / indie artist tools: offer fans private galleries as digital merch
-- [ ] Event keepsakes: weddings, graduations, reunions with private access
-- [ ] Content licensing framework tied to blockchain provenance
-- [ ] Creator monetization options (pay-per-view, subscription galleries)
-- [ ] API for third-party integrations within TrustLayer ecosystem
+### Phase: Platform & Marketplace
+- [ ] Creator monetization (pay-per-view, subscription galleries)
+- [ ] Concert/event community features (organize clips by artist, venue, tour)
+- [ ] Small venue / indie artist tools (private galleries as digital merch)
+- [ ] Event keepsakes (weddings, graduations, reunions with private access)
+- [ ] Content licensing framework
+- [ ] API marketplace for third-party integrations
 
 ---
 
@@ -124,177 +212,78 @@
 - Currently in early, quiet soft presale phase
 - Launch timing still being determined
 
-### Ecosystem Structure Summary
+### Ecosystem Structure
 ```
 TrustLayer (Master Brand / Ecosystem)
 ├── Dark Wave Studios (darkwavestudios.io) — Architecture & Product Development
 ├── TrustShield (trustshield.tech) — Security & Verification
 ├── Signal — Native Asset
-├── Media Vault (this product) — Trust-Gated IP Storage (name TBD)
+├── DW Media Studio / TrustVault — Trust-Gated IP Storage & Media Platform
+├── Signal Chat — Ecosystem Communication Platform (evolving to standalone)
+├── ORBIT Staffing OS — Financial Hub & Operations
 └── [Future products aligned to verticals]
 ```
-
-### Key Integration Points
-- Identity: TrustLayer blockchain identity replaces/extends PIN auth
-- Trust: Access control based on verified trust relationships
-- Provenance: Media ownership and origination tracked on-chain
-- Security: TrustShield infrastructure protects vaults and verifies access
-- Value: Signal asset may serve as the medium for transactions, licensing, access rights
-- Ecosystem: Shared UI/UX patterns, navigation, and user experience across all TrustLayer products
-
-### Founding Principles
-- Build something with real utility — not speculative hype
-- Trust is earned through personal responsibility and verified action
-- Every product must serve people and have genuine value
-- The ecosystem exists to help people, not extract from them
-- Provenance, presence, and purpose drive every decision
-
----
-
-## UI/UX Standards (To Be Defined)
-
-- Consistent design language across all TrustLayer / Dark Wave Studios products
-- Dark-themed, professional, tight layouts
-- Grid layouts, skeleton loading, smooth transitions, subtle hover effects
-- To be formally documented based on existing build patterns and preferences
 
 ---
 
 ## Industry Verticals & Stakeholder Map
 
-Every digital file that could be considered intellectual property — video, audio, visual art, documents — touches a web of people, companies, and industries. This product sits at the center of all of them. Below is the full vertical map.
+Every digital file that could be considered intellectual property — video, audio, visual art, documents — touches a web of people, companies, and industries. This product sits at the center of all of them.
 
 ### 1. Live Music & Concerts
-- **Fans / Attendees** — Personal memories, fan-shot footage, shared experiences
-- **Artists / Performers** — Controlled distribution of live performance footage, fan engagement
-- **Touring Crews** — Behind-the-scenes content, rehearsal footage, tour documentation
-- **Tour Managers / Booking Agents** — Event documentation, promotional material archiving
-- **Venues** — House recordings, event archives, marketing content libraries
-- **Promoters / Event Companies** — Multi-event archives, promotional reels, investor materials
-- **Ticketing Platforms** — Verified attendee access tied to ticket purchase (trust-gated content)
+- Fans / Attendees, Artists / Performers, Touring Crews, Tour Managers, Venues, Promoters, Ticketing Platforms
 
 ### 2. Music Production & Recording
-- **Producers / Engineers** — Session recordings, mix versions, stem archives
-- **Studios** — Client project vaults, master recording storage with provenance
-- **Session Musicians** — Performance archives, portfolio reels
-- **Songwriters / Composers** — Demo vaults, writing session recordings, timestamped proof of creation
-- **Labels / Distributors** — Master catalog management, licensing-ready asset libraries
-- **Music Publishers** — Sync licensing catalogs, rights documentation
+- Producers / Engineers, Studios, Session Musicians, Songwriters, Labels / Distributors, Music Publishers
 
 ### 3. Film, Video & Visual Production
-- **Filmmakers / Directors** — Rushes, dailies, cut archives, director's reels
-- **Cinematographers / DPs** — Portfolio vaults, shot libraries
-- **Editors / Post-Production** — Version control for edits, client review portals
-- **VFX / Animation Studios** — Asset libraries, project archives
-- **Production Companies** — Multi-project archives, client deliverables
-- **Actors / Talent** — Audition tapes, showreels, self-tape vaults
+- Filmmakers / Directors, Cinematographers, Editors, VFX Studios, Production Companies, Actors / Talent
 
 ### 4. Photography & Visual Art
-- **Photographers** — Client galleries, proof vaults, portfolio archives
-- **Digital Artists / Illustrators** — Portfolio storage, commission deliverables
-- **Galleries / Curators** — Digital exhibition archives, provenance tracking
-- **Art Directors / Creative Directors** — Campaign asset libraries, mood board vaults
+- Photographers, Digital Artists, Galleries / Curators, Art Directors
 
 ### 5. Audio & Podcasting
-- **Podcasters** — Episode archives, raw recording vaults, guest content libraries
-- **Voice Actors** — Demo reels, project deliverables
-- **Audiobook Narrators / Publishers** — Chapter archives, master recordings
-- **Sound Designers** — Sound libraries, project assets
-- **Radio / Broadcast** — Show archives, segment libraries
+- Podcasters, Voice Actors, Audiobook Publishers, Sound Designers, Radio / Broadcast
 
 ### 6. Education & Training
-- **Instructors / Coaches** — Lesson recordings, curriculum libraries
-- **Online Course Creators** — Module vaults, student-gated content
-- **Schools / Universities** — Lecture archives, recital recordings, student portfolios
-- **Corporate Training** — Onboarding video libraries, compliance training archives
+- Instructors / Coaches, Course Creators, Schools / Universities, Corporate Training
 
 ### 7. Legal & Intellectual Property
-- **IP Attorneys** — Timestamped proof of creation, chain of custody documentation
-- **Rights Management Organizations** — Catalog tracking, licensing documentation
-- **Copyright Registrars** — On-chain provenance as supplemental registration evidence
-- **Dispute Resolution** — Immutable creation timestamps for ownership disputes
+- IP Attorneys, Rights Management, Copyright Registrars, Dispute Resolution
 
 ### 8. Sports & Athletics
-- **Athletes** — Game film, highlight reels, training footage
-- **Coaches / Teams** — Practice archives, scouting footage, game breakdowns
-- **Sports Agencies** — Client recruitment reels, contract documentation
-- **Fans** — Personal recordings from games, tailgates, events
+- Athletes, Coaches / Teams, Sports Agencies, Fans
 
 ### 9. Corporate & Business
-- **Businesses** — Private event documentation, product demos, investor presentations
-- **Marketing / Ad Agencies** — Campaign asset vaults, client deliverables
-- **PR Firms** — Media appearance archives, press event footage
-- **Real Estate** — Property tour vaults, staging documentation
-- **Construction / Architecture** — Project documentation, time-lapse archives
+- Businesses, Marketing / Ad Agencies, PR Firms, Real Estate, Construction / Architecture
 
 ### 10. Personal & Family
-- **Families** — Milestone vaults (weddings, births, graduations, reunions)
-- **Memorial / Legacy** — Preserved memories for future generations
-- **Travel** — Trip documentation, personal travel reels
-- **Hobbyists / Creators** — Personal project archives
+- Families (milestone vaults), Memorial / Legacy, Travel, Hobbyists / Creators
 
 ### 11. Platform & Infrastructure Partners
-- **Cloud Storage Providers** — Backend storage infrastructure
-- **CDN / Streaming Services** — Content delivery for playback
-- **Blockchain / Web3 Infrastructure** — Provenance, identity, trust verification
-- **Payment Processors** — Subscription billing, pay-per-view transactions
-- **App Stores** — Distribution (Apple App Store, Google Play)
-- **Device Manufacturers** — Camera/phone integration, hardware encoding
+- Cloud Storage, CDN / Streaming, Blockchain / Web3, Payment Processors, App Stores, Device Manufacturers
 
 ### 12. Regulatory & Compliance
-- **Data Privacy (GDPR, CCPA)** — User content rights, data portability, deletion compliance
-- **Content Moderation** — Terms of service enforcement, flagging systems
-- **Age Verification** — Gated access for certain content categories
-- **Export Controls** — International content distribution compliance
+- Data Privacy (GDPR, CCPA), Content Moderation, Age Verification, Export Controls
 
 ---
 
-## Core Value Proposition Across All Verticals
+## Core Value Proposition
 
-The common thread: **any digital file that represents intellectual property needs a secure, immutable, trust-verified vault with provenance tracking — and the ability to showcase it when the creator chooses.**
-
-This product is not just a video gallery. It is not just storage. It is a **creator's permanent, immutable showcase and vault** — where:
-- **Ownership** is provable (blockchain provenance)
-- **Access** is controlled by trust relationships (TrustLayer)
-- **Identity** is verified (on-chain identity)
-- **Files** are stored securely (encrypted, private, with audit trails)
-- **Sharing** is intentional, not accidental (trust-gated, not public-by-default)
-- **Permanence** is guaranteed — immutable, cannot be erased, altered, or disputed
-- **Showcase mode** lets creators go public on their terms — editable presentation, curated galleries, professional portfolio view
-- **Vault mode** keeps everything locked, private, and protected until the creator decides otherwise
+**Any digital file that represents intellectual property needs a secure, immutable, trust-verified vault with provenance tracking — and the ability to showcase it when the creator chooses.**
 
 ### The Dual Nature: Vault + Showcase
-
-Every creator needs two things:
-1. A **vault** — where the raw work lives, protected, permanent, provable. Demos, drafts, masters, originals, contracts, session recordings. Private by default. Immutable.
-2. A **showcase** — where the finished work shines. A curated, editable, professional presentation the creator controls completely. Public when they choose. Their portfolio, their gallery, their storefront.
+1. A **vault** — where the raw work lives, protected, permanent, provable. Private by default. Immutable.
+2. A **showcase** — where the finished work shines. A curated, professional presentation the creator controls. Public when they choose.
 
 Most platforms force you to choose one or the other. This does both — and the creator controls the line between them.
 
-### What "Immutable and Permanent" Means
-- Once a file enters the vault, its existence and timestamp are recorded on-chain
-- The original file cannot be altered or deleted from the provenance record
-- The creator can choose to hide, archive, or remove from showcase — but the proof of creation remains forever
-- This protects creators in disputes, licensing negotiations, and rights management
-- This is not "cloud storage that might shut down" — this is permanent record, backed by blockchain
-
-### All Media Types
-The vault and showcase support every form of digital intellectual property:
-- Video (concerts, films, reels, demos, tutorials)
-- Audio (music, podcasts, voice work, sound design)
-- Images (photography, art, design, architecture)
-- Documents (contracts, scripts, manuscripts, blueprints)
-- Mixed media (presentations, portfolios, collections)
-
-This positions the product as infrastructure for the creator economy, the legal profession, corporate enterprise, education, sports, and personal use — all unified under the TrustLayer ecosystem.
-
 ---
 
-## Notes
+## Founding Principles
 
-- Current web version serves as functional prototype and Madeline's personal vault
-- React Native + Expo is the target for production standalone app
-- All future development should align with TrustLayer ecosystem architecture
-- UI/UX requirements are strict and consistent — document and enforce across builds
-- Every vertical identified above represents a potential market segment, partnership opportunity, or feature branch
-- The product name may evolve beyond "Concert Memories" as it expands to cover all verticals
+- Build something with real utility — not speculative hype
+- Trust is earned through personal responsibility and verified action
+- Every product must serve people and have genuine value
+- The ecosystem exists to help people, not extract from them
+- Provenance, presence, and purpose drive every decision
