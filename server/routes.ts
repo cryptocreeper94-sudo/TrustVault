@@ -45,23 +45,33 @@ function validatePassword(password: string): string | null {
 
 async function bootstrapFamilyAccounts() {
   const TEMP_PASSWORD = "Temp12345!";
-  const hashedPassword = await bcrypt.hash(TEMP_PASSWORD, 10);
+  const JASON_PIN = "0424";
+  const hashedTempPassword = await bcrypt.hash(TEMP_PASSWORD, 10);
+  const hashedJasonPin = await bcrypt.hash(JASON_PIN, 10);
 
   const familyMembers = [
-    { name: "Jason", isAdmin: true, mustReset: false },
-    { name: "Madeline", isAdmin: false, mustReset: true },
-    { name: "Natalie", isAdmin: false, mustReset: true },
-    { name: "Avery", isAdmin: false, mustReset: true },
-    { name: "Jennifer", isAdmin: false, mustReset: true },
-    { name: "Will", isAdmin: false, mustReset: true },
-    { name: "Carley", isAdmin: false, mustReset: true },
+    { name: "Jason", isAdmin: true, mustReset: false, password: hashedJasonPin },
+    { name: "Madeline", isAdmin: false, mustReset: true, password: hashedTempPassword },
+    { name: "Natalie", isAdmin: false, mustReset: true, password: hashedTempPassword },
+    { name: "Avery", isAdmin: false, mustReset: true, password: hashedTempPassword },
+    { name: "Jennifer", isAdmin: false, mustReset: true, password: hashedTempPassword },
+    { name: "Will", isAdmin: false, mustReset: true, password: hashedTempPassword },
+    { name: "Carley", isAdmin: false, mustReset: true, password: hashedTempPassword },
   ];
 
   for (const member of familyMembers) {
     const existing = await storage.getPinAuthByName(member.name);
     if (existing) {
-      if (existing.mustReset) {
-        await storage.updatePin(existing.id, hashedPassword, true);
+      if (member.name === "Jason") {
+        const pinMatch = await bcrypt.compare(JASON_PIN, existing.pin);
+        if (!pinMatch) {
+          await storage.updatePin(existing.id, member.password, false);
+          console.log(`[Bootstrap] Reset Jason's developer PIN`);
+        } else {
+          console.log(`[Bootstrap] Jason's PIN is correct, skipping`);
+        }
+      } else if (existing.mustReset) {
+        await storage.updatePin(existing.id, member.password, true);
         console.log(`[Bootstrap] Reset temp password for ${member.name}`);
       } else {
         console.log(`[Bootstrap] ${member.name} already set up, skipping`);
@@ -74,7 +84,7 @@ async function bootstrapFamilyAccounts() {
         tier: "free",
         status: "active",
       });
-      const auth = await storage.initializePinAuth(hashedPassword, member.name, member.mustReset, tenant.id);
+      const auth = await storage.initializePinAuth(member.password, member.name, member.mustReset, tenant.id);
       if (member.isAdmin) {
         const { pinAuth } = await import("@shared/schema");
         const { db } = await import("./db");

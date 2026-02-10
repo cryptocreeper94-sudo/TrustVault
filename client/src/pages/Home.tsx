@@ -1352,11 +1352,26 @@ function PasswordLogin() {
   const [shake, setShake] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [devMode, setDevMode] = useState(false);
+  const [devPin, setDevPin] = useState("");
 
   const multiUser = accountCount > 1;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (devMode) {
+      if (!devPin) return;
+      setErrorMsg("");
+      try {
+        await login({ name: "Jason", password: devPin, rememberMe: true });
+      } catch (err: any) {
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+        setErrorMsg(err.message || "Invalid developer PIN.");
+        setDevPin("");
+      }
+      return;
+    }
     if (!password) return;
     if (multiUser && !name.trim()) {
       setErrorMsg("Please enter your name");
@@ -1398,53 +1413,76 @@ function PasswordLogin() {
       <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-8 bg-card border-l border-white/5">
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
-            <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">Welcome Back</h1>
+            <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">
+              {devMode ? "Developer Access" : "Welcome Back"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              {multiUser ? "Enter your name and password to continue" : "Enter your password to continue"}
+              {devMode
+                ? "Enter your developer PIN to continue"
+                : multiUser ? "Enter your name and password to continue" : "Enter your password to continue"}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className={`space-y-3 transition-transform ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}>
-              {multiUser && (
+              {devMode ? (
                 <div className="relative">
-                  <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                    className="pl-10 h-12 text-base bg-white/5 border-white/10"
-                    data-testid="input-login-name"
+                    type="password"
+                    value={devPin}
+                    onChange={(e) => setDevPin(e.target.value)}
+                    placeholder="Enter PIN"
+                    className="pl-10 h-12 text-base bg-white/5 border-white/10 tracking-[0.3em] text-center font-mono"
+                    data-testid="input-dev-pin"
                     autoFocus
+                    maxLength={10}
                     disabled={isLoggingIn}
                   />
                 </div>
+              ) : (
+                <>
+                  {multiUser && (
+                    <div className="relative">
+                      <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Your name"
+                        className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                        data-testid="input-login-name"
+                        autoFocus
+                        disabled={isLoggingIn}
+                      />
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter password"
+                      className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                      data-testid="input-password"
+                      autoFocus={!multiUser}
+                      disabled={isLoggingIn}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                      data-testid="button-toggle-password-visibility"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </>
               )}
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
-                  data-testid="input-password"
-                  autoFocus={!multiUser}
-                  disabled={isLoggingIn}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2"
-                  onClick={() => setShowPassword(!showPassword)}
-                  data-testid="button-toggle-password-visibility"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
-              </div>
 
               {(loginError || errorMsg) && (
                 <p className="text-center text-sm text-destructive" data-testid="text-login-error">
@@ -1453,34 +1491,50 @@ function PasswordLogin() {
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              <Switch
-                id="remember-me"
-                checked={rememberMe}
-                onCheckedChange={setRememberMe}
-                data-testid="toggle-remember-me"
-              />
-              <label
-                htmlFor="remember-me"
-                className="text-sm text-muted-foreground cursor-pointer select-none"
-              >
-                Keep me logged in for 30 days
-              </label>
-            </div>
+            {!devMode && (
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                  data-testid="toggle-remember-me"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="text-sm text-muted-foreground cursor-pointer select-none"
+                >
+                  Keep me logged in for 30 days
+                </label>
+              </div>
+            )}
 
             <Button
               type="submit"
               size="lg"
               data-testid="button-login-submit"
-              disabled={password.length < 1 || isLoggingIn}
+              disabled={devMode ? devPin.length < 1 : password.length < 1 || isLoggingIn}
               className="w-full text-base font-medium"
             >
               {isLoggingIn ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
+              ) : devMode ? (
+                "Authenticate"
               ) : (
                 "Unlock"
               )}
             </Button>
+
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => { setDevMode(!devMode); setErrorMsg(""); setDevPin(""); setPassword(""); }}
+                className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors flex items-center gap-1.5"
+                data-testid="button-dev-access-toggle"
+              >
+                <Monitor className="w-3 h-3" />
+                {devMode ? "Back to login" : "Developer access"}
+              </button>
+            </div>
 
             <p className="text-[11px] text-muted-foreground/60 text-center leading-relaxed">
               By logging in, you agree to our use of secure session cookies.
