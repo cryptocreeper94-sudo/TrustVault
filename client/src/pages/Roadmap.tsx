@@ -101,8 +101,11 @@ export default function Roadmap() {
   return (
     <>
       <Helmet>
-        <title>Community Voice - TrustVault</title>
-        <meta name="description" content="Vote on features and help shape the future of TrustVault. Your voice matters." />
+        <title>Community Voice | TrustVault Feature Requests</title>
+        <meta name="description" content="Vote on features and help shape the future of TrustVault. Your voice matters in building the ultimate media vault." />
+        <meta property="og:title" content="Community Voice | TrustVault" />
+        <meta property="og:description" content="Vote on features and help shape the future of TrustVault." />
+        <meta property="og:type" content="website" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

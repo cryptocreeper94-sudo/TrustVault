@@ -86,6 +86,7 @@ export default function Pricing() {
         <meta name="description" content="Choose the perfect plan for your creative needs. From free media storage to professional studio tools." />
         <meta property="og:title" content="DW Media Studio Pricing" />
         <meta property="og:description" content="Affordable plans for every creator. Start free, upgrade anytime." />
+        <meta property="og:type" content="website" />
       </Helmet>
 
       <header className="border-b border-border/50">

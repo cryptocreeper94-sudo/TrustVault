@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useMediaItems,
@@ -731,24 +732,37 @@ export default function Home() {
     ? collections.find(c => c.id === activeCollectionId)
     : null;
 
+  const seoHelmet = (
+    <Helmet>
+      <title>DW Media Studio | Your Universal Media Vault</title>
+      <meta name="description" content="Store, organize, edit, and preview your photos, videos, music, and documents in one secure vault. Built by Dark Wave Studios." />
+      <meta property="og:title" content="DW Media Studio — Universal Media Vault" />
+      <meta property="og:description" content="Your private, secure space for all digital media. Upload, organize, and access your files from anywhere." />
+      <meta property="og:type" content="website" />
+    </Helmet>
+  );
+
   if (authLoading || isLoadingStatus) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
+      <>
+        {seoHelmet}
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      </>
     );
   }
 
   if (!user && !accountExists) {
-    return <AccountSetup />;
+    return <>{seoHelmet}<AccountSetup /></>;
   }
 
   if (!user) {
-    return <PasswordLogin />;
+    return <>{seoHelmet}<PasswordLogin /></>;
   }
 
   if (user.mustReset) {
-    return <PasswordReset />;
+    return <>{seoHelmet}<PasswordReset /></>;
   }
 
   const audioPlaylist = (mediaItems || []).filter(m => m.category === "audio");

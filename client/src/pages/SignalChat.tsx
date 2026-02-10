@@ -440,7 +440,11 @@ export default function SignalChat() {
   return (
     <>
       <Helmet>
-        <title>Signal Chat | TrustLayer</title>
+        <title>Signal Chat | TrustLayer Ecosystem</title>
+        <meta name="description" content="Real-time encrypted messaging across the TrustLayer ecosystem. Channel-based conversations for teams and communities." />
+        <meta property="og:title" content="Signal Chat | TrustLayer" />
+        <meta property="og:description" content="Secure, real-time messaging for the TrustLayer ecosystem." />
+        <meta property="og:type" content="website" />
       </Helmet>
       <div className="h-screen flex flex-col bg-background" data-testid="signal-chat-container">
         <header className="flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
