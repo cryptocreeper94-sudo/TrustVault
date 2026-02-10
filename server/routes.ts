@@ -508,11 +508,23 @@ export async function registerRoutes(
 
   app.post("/api/whitelist", isAdmin, async (req, res) => {
     try {
-      const { name, email } = req.body;
+      const { name, email, customCode } = req.body;
       if (!name || typeof name !== "string" || name.trim().length < 1) {
         return res.status(400).json({ message: "Name is required" });
       }
-      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      let inviteCode: string;
+      if (customCode && typeof customCode === "string" && customCode.trim().length >= 3) {
+        inviteCode = customCode.trim().toUpperCase().replace(/[^A-Z0-9\-]/g, "").substring(0, 20);
+        if (inviteCode.length < 3) {
+          return res.status(400).json({ message: "Custom code must be at least 3 characters (letters, numbers, dashes)" });
+        }
+        const existing = await storage.getWhitelistByCode(inviteCode);
+        if (existing) {
+          return res.status(409).json({ message: "That invite code is already taken. Try a different one." });
+        }
+      } else {
+        inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      }
       const entry = await storage.createWhitelistEntry({
         name: name.trim(),
         email: email?.trim() || null,

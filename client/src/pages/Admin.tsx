@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   ArrowLeft, UserPlus, Trash2, Copy, Check, Users, Shield, Mail, Loader2,
-  ExternalLink, ClipboardCopy,
+  ExternalLink, ClipboardCopy, KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,6 +41,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newCode, setNewCode] = useState("");
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const { data: entries, isLoading: loadingEntries } = useQuery<WhitelistEntry[]>({
@@ -54,7 +55,7 @@ export default function Admin() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; email?: string }) => {
+    mutationFn: async (data: { name: string; email?: string; customCode?: string }) => {
       const res = await apiRequest("POST", "/api/whitelist", data);
       return res.json();
     },
@@ -62,6 +63,7 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ["/api/whitelist"] });
       setNewName("");
       setNewEmail("");
+      setNewCode("");
       toast({ title: "Invite created", description: `Code: ${entry.inviteCode}` });
     },
     onError: (err: any) => {
@@ -82,7 +84,11 @@ export default function Admin() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    createMutation.mutate({ name: newName.trim(), email: newEmail.trim() || undefined });
+    createMutation.mutate({
+      name: newName.trim(),
+      email: newEmail.trim() || undefined,
+      customCode: newCode.trim() || undefined,
+    });
   };
 
   const copyInviteLink = (entry: WhitelistEntry) => {
@@ -145,31 +151,47 @@ export default function Admin() {
               <h2 className="text-lg font-display font-bold" data-testid="text-invite-section">Invite New Users</h2>
             </div>
             <Card className="p-5">
-              <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3">
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Person's name"
-                  className="flex-1"
-                  data-testid="input-whitelist-name"
-                  disabled={createMutation.isPending}
-                />
-                <Input
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="Email (optional)"
-                  type="email"
-                  className="flex-1"
-                  data-testid="input-whitelist-email"
-                  disabled={createMutation.isPending}
-                />
-                <Button type="submit" className="gap-2 shrink-0" disabled={createMutation.isPending || !newName.trim()} data-testid="button-whitelist-add">
-                  {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                  Add
-                </Button>
+              <form onSubmit={handleCreate} className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Person's name"
+                    className="flex-1"
+                    data-testid="input-whitelist-name"
+                    disabled={createMutation.isPending}
+                  />
+                  <Input
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="Email (optional)"
+                    type="email"
+                    className="flex-1"
+                    data-testid="input-whitelist-email"
+                    disabled={createMutation.isPending}
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      value={newCode}
+                      onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                      placeholder="Custom code (optional, e.g. NATALIE-24)"
+                      className="pl-10 font-mono tracking-wider uppercase"
+                      data-testid="input-whitelist-code"
+                      disabled={createMutation.isPending}
+                      maxLength={20}
+                    />
+                  </div>
+                  <Button type="submit" className="gap-2 shrink-0" disabled={createMutation.isPending || !newName.trim()} data-testid="button-whitelist-add">
+                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                    Create Invite
+                  </Button>
+                </div>
               </form>
               <p className="text-[11px] text-muted-foreground/60 mt-3">
-                Creates a unique invite code. Share the link and they can create their own account.
+                Enter a name and optionally choose a custom invite code (letters, numbers, dashes). Leave the code blank to auto-generate one.
               </p>
             </Card>
           </motion.div>
