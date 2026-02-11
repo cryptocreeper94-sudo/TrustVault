@@ -1113,17 +1113,30 @@ export default function Home() {
 
                   <div className="flex flex-col gap-1">
                     {user?.isAdmin && (
-                      <Button
-                        asChild
-                        variant="ghost"
-                        className="w-full justify-start gap-3"
-                        data-testid="nav-link-admin"
-                      >
-                        <Link href="/admin">
-                          <Shield className="w-4 h-4" />
-                          Developer Portal
-                        </Link>
-                      </Button>
+                      <>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          className="w-full justify-start gap-3"
+                          data-testid="nav-link-admin"
+                        >
+                          <Link href="/admin">
+                            <Shield className="w-4 h-4" />
+                            Developer Portal
+                          </Link>
+                        </Button>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          className="w-full justify-start gap-3"
+                          data-testid="nav-link-invite"
+                        >
+                          <Link href="/invite-message">
+                            <Mail className="w-4 h-4" />
+                            Kathy's Invite
+                          </Link>
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="ghost"
