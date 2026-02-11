@@ -1289,7 +1289,7 @@ export default function Home() {
             <Link href="/merge">
               <Button data-testid="button-merge" variant="outline" className="rounded-full gap-2 backdrop-blur-sm">
                 <Layers className="w-4 h-4" />
-                Merge
+                Create Mix
               </Button>
             </Link>
 

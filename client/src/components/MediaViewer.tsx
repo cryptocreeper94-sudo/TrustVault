@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory } from "@shared/schema";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Loader2, Download, ExternalLink } from "lucide-react";
+import { X, Loader2, Download, ExternalLink, Scissors, SlidersHorizontal, Crop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
@@ -13,6 +14,7 @@ interface MediaViewerProps {
 }
 
 export function MediaViewer({ item, open, onOpenChange }: MediaViewerProps) {
+  const [, navigate] = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -148,8 +150,45 @@ export function MediaViewer({ item, open, onOpenChange }: MediaViewerProps) {
         </div>
 
         <div className="p-4 bg-black/80 backdrop-blur-xl border-t border-white/5">
-          <h2 className="text-lg font-display font-bold text-white">{item.title}</h2>
-          {item.description && <p className="text-white/60 text-sm mt-1">{item.description}</p>}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-display font-bold text-white truncate">{item.title}</h2>
+              {item.description && <p className="text-white/60 text-sm mt-1">{item.description}</p>}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-white/20 text-white/80"
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = `/objects/${item.url}`;
+                  link.download = item.filename || item.title;
+                  link.click();
+                }}
+                data-testid="button-viewer-download"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download
+              </Button>
+              {(cat === "video" || cat === "audio" || cat === "image") && (
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate(`/editor/${cat}/${item.id}`);
+                  }}
+                  data-testid="button-viewer-edit-studio"
+                >
+                  {cat === "video" && <Scissors className="w-3.5 h-3.5" />}
+                  {cat === "audio" && <SlidersHorizontal className="w-3.5 h-3.5" />}
+                  {cat === "image" && <Crop className="w-3.5 h-3.5" />}
+                  {cat === "video" ? "Trim & Edit" : cat === "audio" ? "Edit Audio" : "Edit Image"}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

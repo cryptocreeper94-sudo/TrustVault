@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
-import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Wand2, Download } from "lucide-react";
+import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -312,7 +312,7 @@ function MediaCard({ item, onPlay, onEdit, index, featured = false }: {
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       haptic("tap");
@@ -332,7 +332,7 @@ function MediaCard({ item, onPlay, onEdit, index, featured = false }: {
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={(e) => { e.stopPropagation(); haptic("tap"); onEdit(); }}
                     data-testid={`button-edit-${item.id}`}
                   >
@@ -341,29 +341,11 @@ function MediaCard({ item, onPlay, onEdit, index, featured = false }: {
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">Edit details</TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={cat === "document" || cat === "other"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      haptic("tap");
-                      navigate(`/editor/${cat}/${item.id}`);
-                    }}
-                    data-testid={`button-open-editor-${item.id}`}
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Open in editor</TooltipContent>
-              </Tooltip>
               <AlertDialog>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" data-testid={`button-delete-${item.id}`}>
+                      <Button variant="ghost" size="icon" data-testid={`button-delete-${item.id}`}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </AlertDialogTrigger>
@@ -383,6 +365,25 @@ function MediaCard({ item, onPlay, onEdit, index, featured = false }: {
               </AlertDialog>
             </div>
           </div>
+
+          {(cat === "video" || cat === "audio" || cat === "image") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2.5 gap-1.5 text-xs border-white/10 text-muted-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                haptic("tap");
+                navigate(`/editor/${cat}/${item.id}`);
+              }}
+              data-testid={`button-open-editor-${item.id}`}
+            >
+              {cat === "video" && <Scissors className="w-3 h-3" />}
+              {cat === "audio" && <SlidersHorizontal className="w-3 h-3" />}
+              {cat === "image" && <Crop className="w-3 h-3" />}
+              {cat === "video" ? "Trim & Edit" : cat === "audio" ? "Edit Audio" : "Edit Image"}
+            </Button>
+          )}
 
           {item.tags && item.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
