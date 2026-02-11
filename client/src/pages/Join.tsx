@@ -270,7 +270,7 @@ export default function Join() {
               <button
                 type="button"
                 onClick={() => { setInviteMode(!inviteMode); setErrorMsg(""); setInviteCode(""); }}
-                className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
                 data-testid="button-join-toggle-mode"
               >
                 {inviteMode ? "Family member? Set up here" : "Have an invite code?"}
