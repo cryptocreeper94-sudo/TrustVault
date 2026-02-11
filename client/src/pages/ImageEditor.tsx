@@ -632,16 +632,25 @@ export default function ImageEditor() {
     }
   };
 
-  const getCanvasMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCanvasPos = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
+  };
+
+  const getCanvasMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    return getCanvasPos(e.clientX, e.clientY);
+  };
+
+  const getCanvasTouchPos = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    const touch = e.touches[0] || e.changedTouches[0];
+    return getCanvasPos(touch.clientX, touch.clientY);
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -789,6 +798,129 @@ export default function ImageEditor() {
     if (isDraggingSticker) {
       setIsDraggingSticker(false);
     }
+  };
+
+  const handleCanvasTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (activeTool === "draw" || activeTool === "crop" || activeTool === "text" || activeTool === "stickers") {
+      e.preventDefault();
+    }
+    const pos = getCanvasTouchPos(e);
+
+    if (activeTool === "crop" && isCropping) {
+      setCropStart(pos);
+      setCropRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+      return;
+    }
+
+    if (activeTool === "text") {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      for (let i = textLayers.length - 1; i >= 0; i--) {
+        const tl = textLayers[i];
+        ctx.font = `${tl.bold ? "bold " : ""}${tl.fontSize}px "${tl.fontFamily}"`;
+        const metrics = ctx.measureText(tl.text);
+        if (pos.x >= tl.x && pos.x <= tl.x + metrics.width && pos.y >= tl.y && pos.y <= tl.y + tl.fontSize) {
+          setActiveTextId(tl.id);
+          setIsDraggingText(true);
+          setTextDragOffset({ x: pos.x - tl.x, y: pos.y - tl.y });
+          return;
+        }
+      }
+      setActiveTextId(null);
+      return;
+    }
+
+    if (activeTool === "draw") {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      ensureDrawingLayer(canvas.width, canvas.height);
+      const dl = drawingLayerRef.current;
+      if (!dl) return;
+      const dlCtx = dl.getContext("2d");
+      if (!dlCtx) return;
+      setIsDrawing(true);
+      dlCtx.lineCap = "round";
+      dlCtx.lineJoin = "round";
+      dlCtx.lineWidth = brushSize;
+      if (isEraser) {
+        dlCtx.globalCompositeOperation = "destination-out";
+        dlCtx.strokeStyle = "rgba(0,0,0,1)";
+      } else {
+        dlCtx.globalCompositeOperation = "source-over";
+        dlCtx.strokeStyle = brushColor;
+      }
+      dlCtx.beginPath();
+      dlCtx.moveTo(pos.x, pos.y);
+      return;
+    }
+
+    if (activeTool === "stickers") {
+      for (let i = stickerLayers.length - 1; i >= 0; i--) {
+        const sl = stickerLayers[i];
+        const half = sl.size / 2;
+        if (pos.x >= sl.x - half && pos.x <= sl.x + half && pos.y >= sl.y - half && pos.y <= sl.y + half) {
+          setActiveStickerIndex(i);
+          setIsDraggingSticker(true);
+          setStickerDragOffset({ x: pos.x - sl.x, y: pos.y - sl.y });
+          return;
+        }
+      }
+      setActiveStickerIndex(null);
+    }
+  };
+
+  const handleCanvasTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (activeTool === "draw" || activeTool === "crop" || activeTool === "text" || activeTool === "stickers") {
+      e.preventDefault();
+    }
+    const pos = getCanvasTouchPos(e);
+
+    if (activeTool === "crop" && isCropping && cropStart) {
+      const x = Math.min(cropStart.x, pos.x);
+      const y = Math.min(cropStart.y, pos.y);
+      const width = Math.abs(pos.x - cropStart.x);
+      const height = Math.abs(pos.y - cropStart.y);
+      setCropRect({ x, y, width, height });
+      return;
+    }
+
+    if (activeTool === "text" && isDraggingText && activeTextId) {
+      setTextLayers((prev) =>
+        prev.map((tl) =>
+          tl.id === activeTextId
+            ? { ...tl, x: pos.x - textDragOffset.x, y: pos.y - textDragOffset.y }
+            : tl
+        )
+      );
+      return;
+    }
+
+    if (activeTool === "draw" && isDrawing) {
+      const dl = drawingLayerRef.current;
+      if (!dl) return;
+      const dlCtx = dl.getContext("2d");
+      if (!dlCtx) return;
+      dlCtx.lineTo(pos.x, pos.y);
+      dlCtx.stroke();
+      drawCanvas();
+      return;
+    }
+
+    if (activeTool === "stickers" && isDraggingSticker && activeStickerIndex !== null) {
+      setStickerLayers((prev) =>
+        prev.map((sl, i) =>
+          i === activeStickerIndex
+            ? { ...sl, x: pos.x - stickerDragOffset.x, y: pos.y - stickerDragOffset.y }
+            : sl
+        )
+      );
+    }
+  };
+
+  const handleCanvasTouchEnd = () => {
+    handleCanvasMouseUp();
   };
 
   const addTextLayer = () => {
@@ -1086,6 +1218,9 @@ export default function ImageEditor() {
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
                   onMouseLeave={handleCanvasMouseUp}
+                  onTouchStart={handleCanvasTouchStart}
+                  onTouchMove={handleCanvasTouchMove}
+                  onTouchEnd={handleCanvasTouchEnd}
                   data-testid="editor-canvas"
                 />
                 {isCropping && cropOverlayStyle && cropRect && cropRect.width > 0 && (

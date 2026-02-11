@@ -247,17 +247,45 @@ export default function VideoEditor() {
     []
   );
 
+  const handleTrimTouchStart = useCallback(
+    (handle: "start" | "end", e: React.TouchEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setIsDraggingTrim(handle);
+    },
+    []
+  );
+
+  const handleTimelineTouch = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (isDraggingTrim) return;
+      const timeline = timelineRef.current;
+      if (!timeline || !duration) return;
+      const touch = e.touches[0];
+      const rect = timeline.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, x / rect.width));
+      const time = ratio * duration;
+      handleSeek(time);
+    },
+    [duration, isDraggingTrim, handleSeek]
+  );
+
   useEffect(() => {
     if (!isDraggingTrim) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const getTimeFromClient = (clientX: number) => {
       const timeline = timelineRef.current;
-      if (!timeline || !duration) return;
+      if (!timeline || !duration) return null;
       const rect = timeline.getBoundingClientRect();
-      const x = e.clientX - rect.left;
+      const x = clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / rect.width));
-      const time = ratio * duration;
+      return ratio * duration;
+    };
 
+    const handleMouseMove = (e: MouseEvent) => {
+      const time = getTimeFromClient(e.clientX);
+      if (time === null) return;
       if (isDraggingTrim === "start") {
         setTrimStart(Math.min(time, trimEnd - 0.1));
       } else {
@@ -265,15 +293,31 @@ export default function VideoEditor() {
       }
     };
 
-    const handleMouseUp = () => {
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const time = getTimeFromClient(touch.clientX);
+      if (time === null) return;
+      if (isDraggingTrim === "start") {
+        setTrimStart(Math.min(time, trimEnd - 0.1));
+      } else {
+        setTrimEnd(Math.max(time, trimStart + 0.1));
+      }
+    };
+
+    const handleUp = () => {
       setIsDraggingTrim(null);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleUp);
     };
   }, [isDraggingTrim, duration, trimStart, trimEnd]);
 
@@ -615,6 +659,7 @@ export default function VideoEditor() {
                 ref={timelineRef}
                 className="relative h-12 bg-white/5 rounded-md cursor-pointer select-none"
                 onClick={handleTimelineClick}
+                onTouchStart={handleTimelineTouch}
                 data-testid="timeline-bar"
               >
                 {timelineTicks.map((t) => (
@@ -652,23 +697,27 @@ export default function VideoEditor() {
                 />
 
                 <div
-                  className="absolute top-0 w-1 h-full bg-primary cursor-ew-resize z-10 rounded-sm"
+                  className="absolute top-0 w-6 h-full cursor-ew-resize z-10"
                   style={{ left: `${(trimStart / duration) * 100}%`, transform: "translateX(-50%)" }}
                   onMouseDown={(e) => handleTrimMouseDown("start", e)}
+                  onTouchStart={(e) => handleTrimTouchStart("start", e)}
                   data-testid="trim-handle-start"
                 >
-                  <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-4 h-6 bg-primary rounded-sm flex items-center justify-center">
+                  <div className="absolute left-1/2 -translate-x-1/2 top-0 w-1 h-full bg-primary rounded-sm" />
+                  <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-4 h-6 bg-primary rounded-sm flex items-center justify-center">
                     <div className="w-0.5 h-3 bg-primary-foreground rounded-full" />
                   </div>
                 </div>
 
                 <div
-                  className="absolute top-0 w-1 h-full bg-primary cursor-ew-resize z-10 rounded-sm"
+                  className="absolute top-0 w-6 h-full cursor-ew-resize z-10"
                   style={{ left: `${(trimEnd / duration) * 100}%`, transform: "translateX(-50%)" }}
                   onMouseDown={(e) => handleTrimMouseDown("end", e)}
+                  onTouchStart={(e) => handleTrimTouchStart("end", e)}
                   data-testid="trim-handle-end"
                 >
-                  <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-4 h-6 bg-primary rounded-sm flex items-center justify-center">
+                  <div className="absolute left-1/2 -translate-x-1/2 top-0 w-1 h-full bg-primary rounded-sm" />
+                  <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-4 h-6 bg-primary rounded-sm flex items-center justify-center">
                     <div className="w-0.5 h-3 bg-primary-foreground rounded-full" />
                   </div>
                 </div>
@@ -779,7 +828,7 @@ export default function VideoEditor() {
               </div>
             </div>
 
-            <div className="border-t border-white/10 glass-morphism" data-testid="tools-panel">
+            <div className="border-t border-white/10 glass-morphism max-h-[45vh] sm:max-h-none overflow-y-auto" data-testid="tools-panel">
               <div className="flex border-b border-white/10">
                 {([
                   { id: "trim" as VideoTool, icon: Scissors, label: "Trim" },

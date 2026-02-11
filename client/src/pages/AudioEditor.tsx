@@ -467,15 +467,21 @@ export default function AudioEditor() {
     [duration, isDraggingTrim, isPlaying, handlePause, drawWaveform]
   );
 
+  const getCanvasTime = useCallback((clientX: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !duration) return null;
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, x / rect.width));
+    return { time: ratio * duration, x, rect };
+  }, [duration]);
+
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas || !duration || activeTool !== "trim") return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const ratio = x / rect.width;
-      const time = ratio * duration;
-
+      if (!duration || activeTool !== "trim") return;
+      const result = getCanvasTime(e.clientX);
+      if (!result) return;
+      const { x, rect } = result;
       const trimStartX = (trimStart / duration) * rect.width;
       const trimEndX = (trimEnd / duration) * rect.width;
 
@@ -487,27 +493,65 @@ export default function AudioEditor() {
         e.preventDefault();
       }
     },
-    [duration, activeTool, trimStart, trimEnd]
+    [duration, activeTool, trimStart, trimEnd, getCanvasTime]
   );
 
   const handleCanvasMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!isDraggingTrim || !canvasRef.current || !duration) return;
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const ratio = Math.max(0, Math.min(1, x / rect.width));
-      const time = ratio * duration;
-
+      if (!isDraggingTrim || !duration) return;
+      const result = getCanvasTime(e.clientX);
+      if (!result) return;
       if (isDraggingTrim === "start") {
-        setTrimStart(Math.min(time, trimEnd - 0.1));
+        setTrimStart(Math.min(result.time, trimEnd - 0.1));
       } else {
-        setTrimEnd(Math.max(time, trimStart + 0.1));
+        setTrimEnd(Math.max(result.time, trimStart + 0.1));
       }
     },
-    [isDraggingTrim, duration, trimStart, trimEnd]
+    [isDraggingTrim, duration, trimStart, trimEnd, getCanvasTime]
   );
 
   const handleCanvasMouseUp = useCallback(() => {
+    setIsDraggingTrim(null);
+  }, []);
+
+  const handleCanvasTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      if (activeTool !== "trim" || !duration) return;
+      const touch = e.touches[0];
+      const result = getCanvasTime(touch.clientX);
+      if (!result) return;
+      const { x, rect } = result;
+      const trimStartX = (trimStart / duration) * rect.width;
+      const trimEndX = (trimEnd / duration) * rect.width;
+
+      if (Math.abs(x - trimStartX) < 20) {
+        setIsDraggingTrim("start");
+        e.preventDefault();
+      } else if (Math.abs(x - trimEndX) < 20) {
+        setIsDraggingTrim("end");
+        e.preventDefault();
+      }
+    },
+    [duration, activeTool, trimStart, trimEnd, getCanvasTime]
+  );
+
+  const handleCanvasTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      if (!isDraggingTrim || !duration) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const result = getCanvasTime(touch.clientX);
+      if (!result) return;
+      if (isDraggingTrim === "start") {
+        setTrimStart(Math.min(result.time, trimEnd - 0.1));
+      } else {
+        setTrimEnd(Math.max(result.time, trimStart + 0.1));
+      }
+    },
+    [isDraggingTrim, duration, trimStart, trimEnd, getCanvasTime]
+  );
+
+  const handleCanvasTouchEnd = useCallback(() => {
     setIsDraggingTrim(null);
   }, []);
 
@@ -835,6 +879,9 @@ export default function AudioEditor() {
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
                   onMouseLeave={handleCanvasMouseUp}
+                  onTouchStart={handleCanvasTouchStart}
+                  onTouchMove={handleCanvasTouchMove}
+                  onTouchEnd={handleCanvasTouchEnd}
                   data-testid="editor-canvas"
                 />
               </div>
