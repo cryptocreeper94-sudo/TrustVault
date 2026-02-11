@@ -63,9 +63,16 @@ export default function Join() {
         toast({ title: "Welcome!", description: "Your vault is ready." });
         navigate("/");
       } catch (err: any) {
-        const msg = err?.message || "Something went wrong. Please try again.";
-        const cleaned = msg.includes(":") ? msg.split(": ").slice(1).join(": ") : msg;
-        setErrorMsg(cleaned);
+        let msg = "Something went wrong. Please try again.";
+        try {
+          if (typeof err?.message === "string") {
+            const parsed = JSON.parse(err.message);
+            msg = parsed.message || msg;
+          }
+        } catch {
+          msg = err?.message || msg;
+        }
+        setErrorMsg(msg);
       } finally {
         setIsSubmitting(false);
       }
@@ -76,9 +83,20 @@ export default function Join() {
         toast({ title: "Welcome to the family vault!", description: "Your private space is ready." });
         navigate("/");
       } catch (err: any) {
-        const msg = err?.message || "Something went wrong. Please try again.";
-        const cleaned = msg.includes(":") ? msg.split(": ").slice(1).join(": ") : msg;
-        setErrorMsg(cleaned);
+        let msg = "Something went wrong. Please try again.";
+        try {
+          if (typeof err?.message === "string") {
+            const parsed = JSON.parse(err.message);
+            msg = parsed.message || msg;
+          }
+        } catch {
+          msg = err?.message || msg;
+        }
+        if (msg.toLowerCase().includes("no account found")) {
+          setErrorMsg("No family account found for that name. If you have an invite code, tap the link below to use it.");
+        } else {
+          setErrorMsg(msg);
+        }
       } finally {
         setIsSubmitting(false);
       }
