@@ -5,7 +5,7 @@
 **Blockchain Layer**: Layer One blockchain (TrustLayer)
 **Target Platform (Future)**: React Native + Expo (standalone native app)
 **Date Created**: February 8, 2026
-**Last Updated**: February 10, 2026
+**Last Updated**: February 11, 2026
 
 ---
 
@@ -105,12 +105,22 @@
 - [x] Category filtering, vote tracking per tenant
 - [x] Admin controls for status updates and notes
 
+### Vault Enhancements (Feb 10-11, 2026)
+- [x] Storage usage dashboard with tier-based limits and progress bar
+- [x] Media stats panel (counts by category: video, audio, image, document)
+- [x] Recently added carousel (horizontal scroll of last 8 uploads)
+- [x] Activity feed with real-time logging (uploads, deletes, shares, collection actions)
+- [x] Download button on media cards
+- [x] Shared collections — share collections with family members using real tenant UUIDs from /api/family-members endpoint
+- [x] Nested collections with parent/child hierarchy, breadcrumb navigation, parent folder selector in create dialog
+- [x] Collection reordering (drag/sort order support)
+
 ---
 
 ## PLANNED — Next Up
 
 ### Phase Next: Media Sharing & Social Features
-- [ ] **Shared Folders & Collections** — Family members can create shared collections that multiple tenants can access and contribute to
+- [x] **Shared Folders & Collections** — Family members can create shared collections that multiple tenants can access and contribute to *(DONE — Feb 11, 2026)*
 - [ ] **Media Sharing** — Share individual media items with specific family members or friends
 - [ ] **Collaborative Playlists** — Shared playlists (especially for audio/music) that multiple users can add to
 - [ ] **Shared Upload Folders** — Drop zones where everyone in a group can contribute photos, videos, or music
