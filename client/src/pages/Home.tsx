@@ -71,7 +71,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useHaptic } from "@/hooks/use-haptic";
 import { format, parseISO } from "date-fns";
 import type { CollectionWithCount } from "@shared/schema";
-import { OnboardingGuide, HelpTooltip, useOnboarding } from "@/components/OnboardingGuide";
+import { OnboardingGuide, useOnboarding } from "@/components/OnboardingGuide";
 import { TrustLayerBadge } from "@/components/TrustLayerBadge";
 import { VaultStats, StorageUsage, RecentCarousel } from "@/components/VaultDashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
@@ -1271,7 +1271,6 @@ export default function Home() {
                   <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-1" data-testid="text-collection-title">
                     Your Vault
                   </h2>
-                  <HelpTooltip content="This is your personal media vault. All your uploaded files appear here. Use the filter tabs to browse by type, or search to find specific files." side="right" />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {categoryCounts.all} {categoryCounts.all === 1 ? "file" : "files"} secured
@@ -1314,7 +1313,6 @@ export default function Home() {
                 Upload
               </Button>
             </UploadDialog>
-            <HelpTooltip content="Tap Upload to add files to your vault. You can upload videos, photos, music, and documents. Use Select to pick multiple files for batch actions." side="bottom" />
           </div>
         </div>
 
