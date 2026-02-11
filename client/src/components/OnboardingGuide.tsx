@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useId } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Upload, FolderOpen, Play, Pencil, Layers, LayoutGrid,
@@ -31,7 +30,7 @@ const DEFAULT_SLIDES: OnboardingSlide[] = [
     icon: Shield,
     iconColor: "from-primary to-primary/60",
     title: "Welcome to DW Media Studio",
-    description: "Your personal vault for all your digital media — videos, music, photos, and documents. Everything is securely stored and organized in your own private space.",
+    description: "Your personal vault for all your digital media \u2014 videos, music, photos, and documents. Everything is securely stored and organized in your own private space.",
     tips: [
       "Each family member gets their own private vault",
       "Your files are encrypted and backed up automatically",
@@ -79,7 +78,7 @@ const DEFAULT_SLIDES: OnboardingSlide[] = [
     icon: Play,
     iconColor: "from-violet-500 to-purple-400",
     title: "Preview & Play",
-    description: "Tap any file to open the media viewer. Play videos and audio, view images full-screen, and preview documents — all right inside the app.",
+    description: "Tap any file to open the media viewer. Play videos and audio, view images full-screen, and preview documents \u2014 all right inside the app.",
     tips: [
       "Videos and audio play directly in the viewer",
       "Swipe through images in full-screen mode",
@@ -103,7 +102,7 @@ const DEFAULT_SLIDES: OnboardingSlide[] = [
     icon: Layers,
     iconColor: "from-sky-500 to-blue-400",
     title: "Merge & Combine",
-    description: "Combine multiple files together — create photo collages, stitch audio clips, or merge video segments into one file using the Merge tool.",
+    description: "Combine multiple files together \u2014 create photo collages, stitch audio clips, or merge video segments into one file using the Merge tool.",
     tips: [
       "Tap \"Merge\" in the toolbar to get started",
       "Select files to combine them into one",
@@ -118,7 +117,7 @@ const DEFAULT_SLIDES: OnboardingSlide[] = [
     description: "That's everything you need to get started. You can revisit this guide anytime from the help button in the menu. Now go ahead and start building your media vault!",
     tips: [
       "Tap the help icon in the menu to see this guide again",
-      "Your vault grows with you — upgrade plans for more features",
+      "Your vault grows with you \u2014 upgrade plans for more features",
       "Have fun and keep your memories safe!",
     ],
     image: imgReady,
@@ -231,211 +230,221 @@ export function OnboardingGuide({
 
   const progressPercent = ((currentSlide + 1) / totalSlides) * 100;
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="!max-w-[calc(100vw-2rem)] sm:!max-w-[28rem] !w-[calc(100vw-2rem)] sm:!w-full !p-0 border-none !rounded-2xl bg-card shadow-2xl max-h-[80vh] overflow-hidden"
-        aria-describedby="onboarding-description"
-        aria-labelledby="onboarding-title"
-      >
-        <DialogTitle className="sr-only" id="onboarding-title">
-          {activeSlide.title}
-        </DialogTitle>
-        <DialogDescription className="sr-only" id="onboarding-description">
-          {activeSlide.description}
-        </DialogDescription>
-
-        <div className="relative select-none overflow-y-auto overflow-x-hidden rounded-2xl" style={{ maxHeight: "80vh" }}>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="onboarding-overlay">
           <motion.div
-            className="relative h-40 sm:h-56 overflow-hidden cursor-grab active:cursor-grabbing shrink-0"
-            style={{ opacity: dragOpacity }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.15}
-            onDragEnd={handleDragEnd}
-            dragMomentum={false}
-            onDrag={(_, info) => dragX.set(info.offset.x)}
+            className="absolute inset-0 bg-black/80"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => onOpenChange(false)}
+          />
+
+          <motion.div
+            className="relative z-10 w-full max-w-md bg-card rounded-2xl shadow-2xl overflow-hidden"
+            style={{ maxHeight: "80vh" }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
-            <AnimatePresence mode="wait" custom={direction}>
+            <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: "80vh" }}>
               <motion.div
-                key={currentSlide}
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="absolute inset-0"
+                className="relative h-40 sm:h-56 overflow-hidden cursor-grab active:cursor-grabbing shrink-0"
+                style={{ opacity: dragOpacity }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.15}
+                onDragEnd={handleDragEnd}
+                dragMomentum={false}
+                onDrag={(_, info) => dragX.set(info.offset.x)}
               >
-                {activeSlide.image && (
-                  <>
-                    {!imageLoaded[currentSlide] && (
-                      <div className="absolute inset-0 shimmer" />
-                    )}
-                    <img
-                      src={activeSlide.image}
-                      alt=""
-                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-                        imageLoaded[currentSlide] ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                  </>
-                )}
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-
-                <div className="absolute inset-0 flex items-center justify-center">
+                <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
-                    className="flex flex-col items-center gap-3"
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.15, duration: 0.4 }}
+                    key={currentSlide}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    className="absolute inset-0"
                   >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-morphism flex items-center justify-center shadow-2xl">
-                      <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    {activeSlide.image && (
+                      <>
+                        {!imageLoaded[currentSlide] && (
+                          <div className="absolute inset-0 shimmer" />
+                        )}
+                        <img
+                          src={activeSlide.image}
+                          alt=""
+                          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                            imageLoaded[currentSlide] ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                      </>
+                    )}
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <motion.div
+                        className="flex flex-col items-center gap-3"
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.15, duration: 0.4 }}
+                      >
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-morphism flex items-center justify-center shadow-2xl">
+                          <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                        </div>
+                        <span className="text-white/60 text-[11px] font-medium tracking-widest uppercase">
+                          {currentSlide + 1} / {totalSlides}
+                        </span>
+                      </motion.div>
                     </div>
-                    <span className="text-white/60 text-[11px] font-medium tracking-widest uppercase">
-                      {currentSlide + 1} / {totalSlides}
-                    </span>
                   </motion.div>
+                </AnimatePresence>
+
+                <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-10">
+                  <motion.div
+                    className={`h-full bg-gradient-to-r ${activeSlide.iconColor}`}
+                    initial={false}
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  />
+                </div>
+
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex z-10">
+                  {actualSlides.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+                          navigator.vibrate(5);
+                        }
+                        setDirection(i > currentSlide ? 1 : -1);
+                        setCurrentSlide(i);
+                      }}
+                      aria-label={`Go to slide ${i + 1}`}
+                      className="flex items-center justify-center w-[44px] h-[44px] sm:w-8 sm:h-8"
+                      data-testid={`button-onboarding-dot-${i}`}
+                    >
+                      <span className={`block rounded-full transition-all duration-300 ${
+                        i === currentSlide
+                          ? "w-7 h-2.5 bg-white shadow-lg shadow-white/30"
+                          : "w-2.5 h-2.5 bg-white/30"
+                      }`} />
+                    </button>
+                  ))}
                 </div>
               </motion.div>
-            </AnimatePresence>
 
-            <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-10">
-              <motion.div
-                className={`h-full bg-gradient-to-r ${activeSlide.iconColor}`}
-                initial={false}
-                animate={{ width: `${progressPercent}%` }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-              />
-            </div>
-
-            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex z-10">
-              {actualSlides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-                      navigator.vibrate(5);
-                    }
-                    setDirection(i > currentSlide ? 1 : -1);
-                    setCurrentSlide(i);
-                  }}
-                  aria-label={`Go to slide ${i + 1}`}
-                  className="flex items-center justify-center w-[44px] h-[44px] sm:w-8 sm:h-8"
-                  data-testid={`button-onboarding-dot-${i}`}
+              <div className="absolute top-3 right-3 z-20">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                  aria-label="Close guide"
+                  className="rounded-full glass-morphism text-white/80"
+                  data-testid="button-onboarding-close"
                 >
-                  <span className={`block rounded-full transition-all duration-300 ${
-                    i === currentSlide
-                      ? "w-7 h-2.5 bg-white shadow-lg shadow-white/30"
-                      : "w-2.5 h-2.5 bg-white/30"
-                  }`} />
-                </button>
-              ))}
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="p-5 sm:p-6">
+                <AnimatePresence mode="wait" custom={direction}>
+                  <motion.div
+                    key={currentSlide}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  >
+                    <h2
+                      className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2 text-balance"
+                      data-testid="text-onboarding-title"
+                    >
+                      {activeSlide.title}
+                    </h2>
+                    <p
+                      className="text-sm sm:text-[15px] text-muted-foreground leading-relaxed mb-4"
+                      data-testid="text-onboarding-description"
+                    >
+                      {activeSlide.description}
+                    </p>
+
+                    {activeSlide.tips && activeSlide.tips.length > 0 && (
+                      <div className="space-y-2.5">
+                        {activeSlide.tips.map((tip, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 + i * 0.08, duration: 0.3 }}
+                            className="flex items-start gap-3 text-sm"
+                          >
+                            <div className={`mt-1.5 w-2 h-2 rounded-full bg-gradient-to-br ${activeSlide.iconColor} shrink-0 shadow-sm`} />
+                            <span className="text-muted-foreground leading-snug">{tip}</span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+
+                <div className="flex items-center gap-3 mt-6">
+                  {!isFirst && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={goPrev}
+                      className="gap-1"
+                      data-testid="button-onboarding-prev"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline">Back</span>
+                    </Button>
+                  )}
+                  <div className="flex-1" />
+                  {isLast ? (
+                    <Button
+                      size="lg"
+                      onClick={goNext}
+                      className="gap-1.5"
+                      data-testid="button-onboarding-finish"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Get Started
+                    </Button>
+                  ) : (
+                    <Button
+                      size="lg"
+                      onClick={goNext}
+                      className="gap-1"
+                      data-testid="button-onboarding-next"
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-muted-foreground/50 text-center mt-4 sm:hidden">
+                  Swipe left or right to navigate
+                </p>
+              </div>
             </div>
           </motion.div>
-
-          <div className="absolute top-3 right-3 z-20">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              aria-label="Close guide"
-              className="rounded-full glass-morphism text-white/80"
-              data-testid="button-onboarding-close"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <div className="p-5 sm:p-6">
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                key={currentSlide}
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-              >
-                <h2
-                  className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2 text-balance"
-                  data-testid="text-onboarding-title"
-                >
-                  {activeSlide.title}
-                </h2>
-                <p
-                  className="text-sm sm:text-[15px] text-muted-foreground leading-relaxed mb-4"
-                  data-testid="text-onboarding-description"
-                >
-                  {activeSlide.description}
-                </p>
-
-                {activeSlide.tips && activeSlide.tips.length > 0 && (
-                  <div className="space-y-2.5">
-                    {activeSlide.tips.map((tip, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 + i * 0.08, duration: 0.3 }}
-                        className="flex items-start gap-3 text-sm"
-                      >
-                        <div className={`mt-1.5 w-2 h-2 rounded-full bg-gradient-to-br ${activeSlide.iconColor} shrink-0 shadow-sm`} />
-                        <span className="text-muted-foreground leading-snug">{tip}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-
-            <div className="flex items-center gap-3 mt-6">
-              {!isFirst && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={goPrev}
-                  className="gap-1"
-                  data-testid="button-onboarding-prev"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Back</span>
-                </Button>
-              )}
-              <div className="flex-1" />
-              {isLast ? (
-                <Button
-                  size="lg"
-                  onClick={goNext}
-                  className="gap-1.5"
-                  data-testid="button-onboarding-finish"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Get Started
-                </Button>
-              ) : (
-                <Button
-                  size="lg"
-                  onClick={goNext}
-                  className="gap-1"
-                  data-testid="button-onboarding-next"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-
-            <p className="text-[11px] text-muted-foreground/50 text-center mt-4 sm:hidden">
-              Swipe left or right to navigate
-            </p>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </AnimatePresence>
   );
 }
 
