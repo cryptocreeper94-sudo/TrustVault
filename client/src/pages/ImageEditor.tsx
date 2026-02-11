@@ -232,7 +232,7 @@ export default function ImageEditor() {
     const img = currentSourceImage;
     if (!img) return;
 
-    const size = 48;
+    const size = 80;
     FILTER_PRESETS.forEach((preset) => {
       const canvas = filterPreviewCanvasRefs.current.get(preset.id);
       if (!canvas) return;
@@ -504,33 +504,33 @@ export default function ImageEditor() {
       )}
 
       <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
-        <div className="flex sm:flex-col gap-1 p-2 border-b sm:border-b-0 sm:border-r glass-morphism z-40 overflow-x-auto sm:overflow-x-visible" data-testid="editor-toolbar">
+        <div className="flex sm:flex-col gap-0.5 p-2 border-b sm:border-b-0 sm:border-r glass-morphism z-40 overflow-x-auto sm:overflow-x-visible sm:w-[88px]" data-testid="editor-toolbar">
           {tools.map((tool) => {
             const Icon = tool.icon;
             const isActive = activeTool === tool.id;
             return (
-              <Tooltip key={tool.id}>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant={isActive ? "default" : "ghost"}
-                    onClick={() => {
-                      setActiveTool(isActive ? null : tool.id);
-                      if (tool.id === "crop" && !isActive) {
-                        setIsCropping(true);
-                        setCropRect(null);
-                      } else if (tool.id !== "crop") {
-                        setIsCropping(false);
-                        setCropRect(null);
-                      }
-                    }}
-                    data-testid={`button-tool-${tool.id}`}
-                  >
-                    <Icon />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">{tool.label}</TooltipContent>
-              </Tooltip>
+              <button
+                key={tool.id}
+                onClick={() => {
+                  setActiveTool(isActive ? null : tool.id);
+                  if (tool.id === "crop" && !isActive) {
+                    setIsCropping(true);
+                    setCropRect(null);
+                  } else if (tool.id !== "crop") {
+                    setIsCropping(false);
+                    setCropRect(null);
+                  }
+                }}
+                className={`flex flex-col items-center gap-1 px-2 py-2 rounded-md text-xs transition-colors min-w-[64px] sm:min-w-0 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover-elevate"
+                }`}
+                data-testid={`button-tool-${tool.id}`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="leading-none">{tool.label}</span>
+              </button>
             );
           })}
         </div>
@@ -574,14 +574,16 @@ export default function ImageEditor() {
             )}
           </div>
 
-          {activeTool && (
+          {activeTool ? (
             <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l glass-morphism p-3 sm:p-4 overflow-y-auto z-40 max-h-[40vh] sm:max-h-none" data-testid="editor-panel">
             {activeTool === "crop" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Crop</h3>
-                <p className="text-xs text-muted-foreground">
-                  Click and drag on the image to select the crop area.
-                </p>
+                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Crop Your Photo</h3>
+                <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Click and drag on your photo to select the area you want to keep. You'll see a highlighted box — adjust it until it looks right, then hit Apply.
+                  </p>
+                </div>
                 {cropRect && cropRect.width > 0 && (
                   <div className="flex flex-col gap-2">
                     <Badge variant="secondary" className="text-xs">
@@ -614,33 +616,37 @@ export default function ImageEditor() {
             {activeTool === "rotate" && (
               <div className="flex flex-col gap-4">
                 <h3 className="text-sm font-semibold" data-testid="text-panel-title">Rotate & Flip</h3>
+                <p className="text-xs text-muted-foreground">Straighten or flip your photo with one tap.</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="ghost" onClick={handleRotateCCW} data-testid="button-rotate-ccw">
                     <RotateCcw className="w-4 h-4 mr-1" />
-                    CCW
+                    Left
                   </Button>
                   <Button variant="ghost" onClick={handleRotateCW} data-testid="button-rotate-cw">
                     <RotateCw className="w-4 h-4 mr-1" />
-                    CW
+                    Right
                   </Button>
                   <Button variant="ghost" onClick={handleFlipH} data-testid="button-flip-h">
                     <FlipHorizontal className="w-4 h-4 mr-1" />
-                    Flip H
+                    Mirror
                   </Button>
                   <Button variant="ghost" onClick={handleFlipV} data-testid="button-flip-v">
                     <FlipVertical className="w-4 h-4 mr-1" />
-                    Flip V
+                    Flip
                   </Button>
                 </div>
-                <Badge variant="secondary" className="text-xs self-start">
-                  {rotation}°{flipH ? " | Flipped H" : ""}{flipV ? " | Flipped V" : ""}
-                </Badge>
+                {(rotation !== 0 || flipH || flipV) && (
+                  <Badge variant="secondary" className="text-xs self-start">
+                    {rotation !== 0 ? `Rotated ${rotation}°` : ""}{flipH ? " Mirrored" : ""}{flipV ? " Flipped" : ""}
+                  </Badge>
+                )}
               </div>
             )}
 
             {activeTool === "resize" && (
               <div className="flex flex-col gap-4">
                 <h3 className="text-sm font-semibold" data-testid="text-panel-title">Resize</h3>
+                <p className="text-xs text-muted-foreground">Change the dimensions of your photo. Lock the ratio to keep proportions.</p>
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-muted-foreground">Width</label>
@@ -684,14 +690,15 @@ export default function ImageEditor() {
             {activeTool === "filters" && (
               <div className="flex flex-col gap-4">
                 <h3 className="text-sm font-semibold" data-testid="text-panel-title">Filters</h3>
+                <p className="text-xs text-muted-foreground">Tap a style to instantly change the look of your photo.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {FILTER_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
                       onClick={() => setActiveFilter(preset.id)}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-md transition-colors ${
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-md transition-colors ${
                         activeFilter === preset.id
-                          ? "bg-primary/20 ring-1 ring-primary"
+                          ? "bg-primary/20 ring-2 ring-primary"
                           : "hover-elevate"
                       }`}
                       data-testid={`button-filter-${preset.id}`}
@@ -700,11 +707,11 @@ export default function ImageEditor() {
                         ref={(el) => {
                           if (el) filterPreviewCanvasRefs.current.set(preset.id, el);
                         }}
-                        className="w-12 h-12 rounded-sm"
-                        width={48}
-                        height={48}
+                        className="w-full aspect-square rounded-sm"
+                        width={80}
+                        height={80}
                       />
-                      <span className="text-xs">{preset.name}</span>
+                      <span className="text-xs font-medium">{preset.name}</span>
                     </button>
                   ))}
                 </div>
@@ -714,6 +721,7 @@ export default function ImageEditor() {
             {activeTool === "adjustments" && (
               <div className="flex flex-col gap-5">
                 <h3 className="text-sm font-semibold" data-testid="text-panel-title">Adjustments</h3>
+                <p className="text-xs text-muted-foreground">Fine-tune how your photo looks. Drag any slider to see changes instantly.</p>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <label className="text-xs text-muted-foreground">Brightness</label>
@@ -773,7 +781,14 @@ export default function ImageEditor() {
               </div>
             )}
             </div>
-          )}
+          ) : imageLoaded ? (
+            <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l glass-morphism p-3 sm:p-4 z-40 flex items-center justify-center" data-testid="editor-hint">
+              <div className="text-center space-y-2">
+                <Crop className="w-8 h-8 text-muted-foreground/50 mx-auto" />
+                <p className="text-xs text-muted-foreground leading-relaxed">Pick a tool from the left to start editing your photo</p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

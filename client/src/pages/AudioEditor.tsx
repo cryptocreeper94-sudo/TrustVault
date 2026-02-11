@@ -678,6 +678,12 @@ export default function AudioEditor() {
           ) : (
             <>
               <div className="w-full max-w-4xl" ref={canvasContainerRef}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-muted-foreground">Click anywhere on the waveform to jump to that point</p>
+                  {activeTool === "trim" && (
+                    <Badge variant="secondary" className="text-xs">Drag the purple handles to set trim points</Badge>
+                  )}
+                </div>
                 <canvas
                   ref={canvasRef}
                   className="block w-full rounded-md cursor-pointer"
@@ -692,8 +698,9 @@ export default function AudioEditor() {
               </div>
 
               <div className="flex items-center justify-between w-full max-w-4xl text-xs text-muted-foreground" data-testid="time-display">
-                <span data-testid="text-current-time">{formatTime(currentTime)}</span>
-                <span data-testid="text-duration">{formatTime(duration)}</span>
+                <Badge variant="secondary" className="text-xs font-mono" data-testid="text-current-time">{formatTime(currentTime)}</Badge>
+                <span className="text-muted-foreground/50">/</span>
+                <Badge variant="secondary" className="text-xs font-mono" data-testid="text-duration">{formatTime(duration)}</Badge>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 flex-wrap" data-testid="playback-controls">
@@ -801,6 +808,7 @@ export default function AudioEditor() {
 
                 {activeTool === "trim" && (
                   <div className="flex flex-col gap-4" data-testid="trim-controls">
+                    <p className="text-xs text-muted-foreground">Cut out the part you want to keep. Set the start and end points, then apply.</p>
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex flex-col gap-1">
                         <label className="text-xs text-muted-foreground">Start</label>
@@ -848,6 +856,7 @@ export default function AudioEditor() {
 
                 {activeTool === "fade" && (
                   <div className="flex flex-col gap-6" data-testid="fade-controls">
+                    <p className="text-xs text-muted-foreground">Add a smooth fade at the beginning or end of your audio. Great for intros and outros.</p>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                         <label className="text-sm">Fade In</label>
@@ -885,6 +894,7 @@ export default function AudioEditor() {
 
                 {activeTool === "volume" && (
                   <div className="flex flex-col gap-4" data-testid="volume-controls">
+                    <p className="text-xs text-muted-foreground">Adjust how loud or quiet your audio will be. 100% is the original volume.</p>
                     <div className="flex items-center justify-between">
                       <label className="text-sm flex items-center gap-2">
                         <Volume2 className="w-4 h-4" />

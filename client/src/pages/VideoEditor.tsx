@@ -552,6 +552,15 @@ export default function VideoEditor() {
         {videoLoaded && (
           <>
             <div className="px-4 pb-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs text-white/50">Click on the timeline to jump. Drag handles to trim.</p>
+                {(trimStart > 0 || trimEnd < duration) && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Selected: {formatTime(trimEnd - trimStart)}
+                  </Badge>
+                )}
+              </div>
               <div
                 ref={timelineRef}
                 className="relative h-12 bg-white/5 rounded-md cursor-pointer select-none"
@@ -746,6 +755,7 @@ export default function VideoEditor() {
               <div className="p-3 sm:p-4">
                 {activeTool === "trim" && (
                   <div className="flex flex-col gap-3" data-testid="panel-trim">
+                    <p className="text-xs text-white/50">Set where you want the video to start and end. You can also drag the handles on the timeline above.</p>
                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
                         <label className="text-xs text-white/60">Start</label>
@@ -792,6 +802,7 @@ export default function VideoEditor() {
 
                 {activeTool === "adjustments" && (
                   <div className="flex flex-col gap-4" data-testid="panel-adjustments">
+                    <p className="text-xs text-white/50">Fine-tune how your video looks. Changes apply to the preview and saved output.</p>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                         <label className="text-xs text-white/60">Brightness</label>
@@ -825,10 +836,11 @@ export default function VideoEditor() {
 
                 {activeTool === "capture" && (
                   <div className="flex flex-col gap-3" data-testid="panel-capture">
+                    <p className="text-xs text-white/50">Grab a still photo from any moment in your video. Pause at the perfect frame, then capture it.</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Button onClick={handleCaptureFrame} data-testid="button-capture-frame">
                         <Camera className="w-4 h-4 mr-2" />
-                        Capture Frame
+                        Capture This Frame
                       </Button>
                       {capturedFrame && (
                         <Button
