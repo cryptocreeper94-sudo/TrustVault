@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +19,7 @@ Once you're set up, you can start uploading and organizing your stuff right away
 export default function InviteMessage() {
   const [copied, setCopied] = useState(false);
   const [, navigate] = useLocation();
+  const textRef = useRef<HTMLTextAreaElement>(null);
 
   const handleCopy = async () => {
     try {
@@ -26,16 +27,20 @@ export default function InviteMessage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = inviteMessage;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      if (textRef.current) {
+        textRef.current.select();
+        textRef.current.setSelectionRange(0, inviteMessage.length);
+        document.execCommand("copy");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      }
+    }
+  };
+
+  const handleTapTextarea = () => {
+    if (textRef.current) {
+      textRef.current.select();
+      textRef.current.setSelectionRange(0, inviteMessage.length);
     }
   };
 
@@ -44,9 +49,16 @@ export default function InviteMessage() {
       <div className="w-full max-w-lg space-y-4">
         <h1 className="text-xl font-semibold text-foreground text-center">Invite Message for Kathy</h1>
         <Card className="p-4">
-          <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans leading-relaxed">
-            {inviteMessage}
-          </pre>
+          <textarea
+            ref={textRef}
+            readOnly
+            value={inviteMessage}
+            onClick={handleTapTextarea}
+            onFocus={handleTapTextarea}
+            className="w-full bg-transparent text-sm text-muted-foreground font-sans leading-relaxed resize-none border-0 outline-none focus:ring-0 focus-visible:ring-0"
+            rows={14}
+            data-testid="textarea-invite-message"
+          />
         </Card>
         <Button
           onClick={handleCopy}
@@ -62,7 +74,7 @@ export default function InviteMessage() {
           ) : (
             <>
               <Copy className="w-5 h-5 mr-2" />
-              Copy Message
+              Tap to Copy
             </>
           )}
         </Button>
