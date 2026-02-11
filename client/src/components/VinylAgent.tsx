@@ -14,8 +14,18 @@ interface ChatMessage {
   content: string;
 }
 
-export function VinylAgent() {
-  const [isOpen, setIsOpen] = useState(false);
+interface VinylAgentProps {
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
+}
+
+export function VinylAgent({ externalOpen, onExternalOpenChange }: VinylAgentProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setIsOpen = (open: boolean) => {
+    setInternalOpen(open);
+    onExternalOpenChange?.(open);
+  };
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -212,37 +222,6 @@ export function VinylAgent() {
 
   return (
     <>
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.button
-            initial={{ x: 80 }}
-            animate={{
-              x: 0,
-              y: isBouncing ? [0, -8, 0] : 0,
-            }}
-            exit={{ x: 80 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            onClick={() => setIsOpen(true)}
-            className="fixed right-0 bottom-20 sm:bottom-24 z-[90] flex items-center gap-0 cursor-pointer group"
-            data-testid="button-open-agent"
-            aria-label="Open AI Assistant"
-          >
-            <div className="bg-card border border-r-0 rounded-l-xl px-1.5 py-2 sm:px-2 sm:py-3 shadow-lg flex flex-col items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground [writing-mode:vertical-lr] rotate-180">
-                Spinny
-              </span>
-            </div>
-            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-l-xl overflow-visible relative -ml-1">
-              <img
-                src={vinylMascot}
-                alt="Spinny - AI Assistant"
-                className="w-10 h-10 sm:w-14 sm:h-14 object-contain drop-shadow-lg"
-              />
-            </div>
-          </motion.button>
-        )}
-      </AnimatePresence>
-
       <AnimatePresence>
         {isOpen && (
           <motion.div

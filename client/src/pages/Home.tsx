@@ -76,7 +76,7 @@ import { TrustLayerBadge } from "@/components/TrustLayerBadge";
 import { VaultStats, StorageUsage, RecentCarousel } from "@/components/VaultDashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
-import { HelpCircle, Share2, Users, Activity } from "lucide-react";
+import { HelpCircle, Share2, Users, Activity, Sparkles } from "lucide-react";
 
 function getGreeting(): string {
   const now = new Date();
@@ -884,6 +884,7 @@ export default function Home() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [nowPlayingItem, setNowPlayingItem] = useState<MediaResponse | null>(null);
   const [showAmbientMode, setShowAmbientMode] = useState(false);
+  const [showSpinny, setShowSpinny] = useState(false);
   const { showOnboarding, setShowOnboarding, openGuide } = useOnboarding(user?.name);
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
@@ -1107,6 +1108,15 @@ export default function Home() {
                     >
                       <Monitor className="w-4 h-4" />
                       Ambient Mode
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
+                      onClick={() => setShowSpinny(true)}
+                      data-testid="button-spinny-agent"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Spinny AI
                     </Button>
                   </nav>
 
@@ -1588,7 +1598,7 @@ export default function Home() {
         onClose={() => setShowAmbientMode(false)}
       />
 
-      <VinylAgent />
+      <VinylAgent externalOpen={showSpinny} onExternalOpenChange={setShowSpinny} />
 
       <EditMediaDialog
         item={editingItem}
