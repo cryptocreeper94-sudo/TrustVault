@@ -107,6 +107,9 @@ export const collections = pgTable("collections", {
   name: text("name").notNull(),
   description: text("description"),
   coverMediaId: integer("cover_media_id"),
+  parentId: integer("parent_id"),
+  sortOrder: integer("sort_order").default(0),
+  isShared: boolean("is_shared").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -114,6 +117,7 @@ export const collectionItems = pgTable("collection_items", {
   id: serial("id").primaryKey(),
   collectionId: integer("collection_id").notNull(),
   mediaItemId: integer("media_item_id").notNull(),
+  sortOrder: integer("sort_order").default(0),
   addedAt: timestamp("added_at").defaultNow(),
 });
 
@@ -132,7 +136,7 @@ export type InsertCollection = z.infer<typeof insertCollectionSchema>;
 export type CollectionItem = typeof collectionItems.$inferSelect;
 export type InsertCollectionItem = z.infer<typeof insertCollectionItemSchema>;
 
-export type CollectionWithCount = Collection & { itemCount: number; coverUrl?: string | null };
+export type CollectionWithCount = Collection & { itemCount: number; coverUrl?: string | null; parentId?: number | null; isShared?: boolean | null };
 
 export const JOB_STATUSES = ["queued", "downloading", "processing", "uploading", "complete", "failed"] as const;
 export type JobStatus = typeof JOB_STATUSES[number];
@@ -295,24 +299,28 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 
-export const TIER_LIMITS: Record<SubscriptionTier, { storage: string; items: number; features: string[] }> = {
+export const TIER_LIMITS: Record<SubscriptionTier, { storage: string; storageBytes: number; items: number; features: string[] }> = {
   free: {
     storage: "500MB",
+    storageBytes: 500 * 1024 * 1024,
     items: 50,
     features: ["Basic viewing", "50 media items", "Standard support"],
   },
   personal: {
     storage: "5GB",
+    storageBytes: 5 * 1024 * 1024 * 1024,
     items: 500,
     features: ["All media editors", "Collections & tags", "500 media items", "5GB storage", "PWA access"],
   },
   pro: {
     storage: "50GB",
+    storageBytes: 50 * 1024 * 1024 * 1024,
     items: 5000,
     features: ["Merge & combine tools", "AI blog platform", "5,000 media items", "50GB storage", "Priority support", "Advanced editors"],
   },
   studio: {
     storage: "Unlimited",
+    storageBytes: -1,
     items: -1,
     features: ["Ecosystem API access", "Unlimited media items", "Unlimited storage", "Blockchain provenance (coming soon)", "White-label options", "Dedicated support"],
   },
@@ -478,5 +486,48 @@ export const DEFAULT_CHANNELS = [
   { name: "tlid-marketing", description: "TrustLayer ID marketing and outreach", category: "general", isDefault: false },
   { name: "guardian-ai", description: "Guardian AI assistant channel", category: "general", isDefault: false },
 ] as const;
+
+// --- Activity Log Table ---
+
+export const ACTIVITY_TYPES = ["upload", "delete", "create_collection", "favorite", "share", "edit"] as const;
+export type ActivityType = typeof ACTIVITY_TYPES[number];
+
+export const activityLog = pgTable("activity_log", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id"),
+  actorName: text("actor_name"),
+  actionType: text("action_type").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: integer("entity_id"),
+  entityTitle: text("entity_title"),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ActivityLog = typeof activityLog.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+
+// --- Collection Shares Table ---
+
+export const collectionShares = pgTable("collection_shares", {
+  id: serial("id").primaryKey(),
+  collectionId: integer("collection_id").notNull(),
+  sharedWithTenantId: varchar("shared_with_tenant_id").notNull(),
+  sharedByTenantId: varchar("shared_by_tenant_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCollectionShareSchema = createInsertSchema(collectionShares).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CollectionShare = typeof collectionShares.$inferSelect;
+export type InsertCollectionShare = z.infer<typeof insertCollectionShareSchema>;
 
 export * from "./models/chat";

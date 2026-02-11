@@ -125,7 +125,7 @@ export function useCollectionItems(collectionId: number | null) {
 export function useCreateCollection() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { name: string; description?: string }) => {
+    mutationFn: async (data: { name: string; description?: string; parentId?: number }) => {
       const res = await apiRequest("POST", api.collections.create.path, data);
       return res.json();
     },
@@ -187,6 +187,44 @@ export function useRemoveFromCollection() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.collections.list.path, variables.collectionId, "items"] });
+    },
+  });
+}
+
+export function useShareCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ collectionId, tenantIds }: { collectionId: number; tenantIds: string[] }) => {
+      const res = await apiRequest("POST", `/api/collections/${collectionId}/share`, { tenantIds });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["/api/collections/shared"] });
+    },
+  });
+}
+
+export function useSharedCollections() {
+  return useQuery({
+    queryKey: ["/api/collections/shared"],
+    queryFn: async () => {
+      const res = await fetch("/api/collections/shared", { credentials: "include" });
+      if (res.status === 401) return [];
+      if (!res.ok) return [];
+      return res.json() as Promise<CollectionWithCount[]>;
+    },
+  });
+}
+
+export function useReorderCollections() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: number[]) => {
+      await apiRequest("PATCH", "/api/collections/reorder", { orderedIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
     },
   });
 }

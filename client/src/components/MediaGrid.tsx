@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
-import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Wand2 } from "lucide-react";
+import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Wand2, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -308,6 +308,26 @@ function MediaCard({ item, onPlay, onEdit, index, featured = false }: {
             </div>
 
             <div className="flex items-center gap-0.5 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      haptic("tap");
+                      const link = document.createElement("a");
+                      link.href = `/objects/${item.url}`;
+                      link.download = item.filename || item.title;
+                      link.click();
+                    }}
+                    data-testid={`button-download-${item.id}`}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Download</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

@@ -6,7 +6,7 @@ import { z } from "zod";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
-import { detectCategory, type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
+import { detectCategory, type MediaCategory, MEDIA_CATEGORIES, TIER_LIMITS, type SubscriptionTier } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { processTrimJob, processMergeJob } from "./videoProcessor";
 import { registerEcosystemRoutes } from "./ecosystem/routes";
@@ -791,6 +791,183 @@ export async function registerRoutes(
     }
   });
 
+  // --- Media Stats & Activity Routes ---
+
+  app.get("/api/media/stats", isAuthenticated, async (req, res) => {
+    try {
+      let tenantId = (req.session as any).tenantId;
+      if ((req.session as any).isAdmin && req.query.tenantId) {
+        tenantId = req.query.tenantId as string;
+      }
+      const stats = await storage.getMediaStats(tenantId);
+      res.json(stats);
+    } catch (err) {
+      console.error("Error fetching media stats:", err);
+      res.status(500).json({ message: "Failed to fetch media stats" });
+    }
+  });
+
+  app.get("/api/media/recent", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const limit = Math.min(Number(req.query.limit) || 8, 20);
+      const items = await storage.getRecentMedia(tenantId, limit);
+      res.json(items);
+    } catch (err) {
+      console.error("Error fetching recent media:", err);
+      res.status(500).json({ message: "Failed to fetch recent media" });
+    }
+  });
+
+  app.get("/api/usage", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+      const tier = (tenant.tier || "free") as SubscriptionTier;
+      const stats = await storage.getMediaStats(tenantId);
+      res.json({
+        used: stats.totalSize,
+        limit: TIER_LIMITS[tier].storageBytes,
+        itemCount: stats.totalFiles,
+        itemLimit: TIER_LIMITS[tier].items,
+        tier,
+      });
+    } catch (err) {
+      console.error("Error fetching usage:", err);
+      res.status(500).json({ message: "Failed to fetch usage" });
+    }
+  });
+
+  app.get("/api/activity", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const limit = Math.min(Number(req.query.limit) || 30, 100);
+      const activities = await storage.getActivities(tenantId, limit);
+      res.json(activities);
+    } catch (err) {
+      console.error("Error fetching activity:", err);
+      res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  app.post("/api/activity", isAuthenticated, async (req, res) => {
+    try {
+      const { actionType, entityType, entityId, entityTitle, metadata } = req.body;
+      const tenantId = (req.session as any).tenantId;
+      const actorName = (req.session as any).name || "Unknown";
+      const activity = await storage.createActivity({
+        tenantId,
+        actorName,
+        actionType,
+        entityType,
+        entityId: entityId || null,
+        entityTitle: entityTitle || null,
+        metadata: metadata || null,
+      });
+      res.status(201).json(activity);
+    } catch (err) {
+      console.error("Error creating activity:", err);
+      res.status(500).json({ message: "Failed to create activity" });
+    }
+  });
+
+  // --- Collection Sharing & Reordering Routes ---
+
+  app.get("/api/collections/shared", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const shared = await storage.getSharedCollections(tenantId);
+      res.json(shared);
+    } catch (err) {
+      console.error("Error fetching shared collections:", err);
+      res.status(500).json({ message: "Failed to fetch shared collections" });
+    }
+  });
+
+  app.patch("/api/collections/reorder", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const { orderedIds } = req.body;
+      await storage.reorderCollections(tenantId, orderedIds);
+      res.sendStatus(204);
+    } catch (err) {
+      console.error("Error reordering collections:", err);
+      res.status(500).json({ message: "Failed to reorder collections" });
+    }
+  });
+
+  app.get("/api/family-members", isAuthenticated, async (req, res) => {
+    try {
+      const currentTenantId = (req.session as any).tenantId;
+      const allTenants = await storage.getAllTenants();
+      const members = allTenants
+        .filter(t => t.id !== currentTenantId && t.status === "active" && !t.name?.includes("Test"))
+        .map(t => ({ id: t.id, name: t.name }));
+      res.json(members);
+    } catch (err) {
+      console.error("Error fetching family members:", err);
+      res.status(500).json({ message: "Failed to fetch family members" });
+    }
+  });
+
+  app.post("/api/collections/:id/share", isAuthenticated, async (req, res) => {
+    try {
+      const collectionId = Number(req.params.id);
+      const tenantId = (req.session as any).tenantId;
+      const col = await storage.getCollection(collectionId);
+      if (!col || col.tenantId !== tenantId) {
+        return res.status(403).json({ message: "Not authorized to share this collection" });
+      }
+      const { tenantIds } = req.body;
+      const shares = await storage.shareCollection(collectionId, tenantId, tenantIds);
+      try {
+        await storage.createActivity({
+          tenantId,
+          actorName: (req.session as any).name || "Unknown",
+          actionType: "share",
+          entityType: "collection",
+          entityId: collectionId,
+          entityTitle: col.name,
+        });
+      } catch {}
+      res.json(shares);
+    } catch (err) {
+      console.error("Error sharing collection:", err);
+      res.status(500).json({ message: "Failed to share collection" });
+    }
+  });
+
+  app.delete("/api/collections/:id/share/:tenantId", isAuthenticated, async (req, res) => {
+    try {
+      const collectionId = Number(req.params.id);
+      const sessionTenantId = (req.session as any).tenantId;
+      const col = await storage.getCollection(collectionId);
+      if (!col || col.tenantId !== sessionTenantId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      await storage.unshareCollection(collectionId, req.params.tenantId as string);
+      res.sendStatus(204);
+    } catch (err) {
+      console.error("Error unsharing collection:", err);
+      res.status(500).json({ message: "Failed to unshare collection" });
+    }
+  });
+
+  app.patch("/api/collections/:id/reorder-items", isAuthenticated, async (req, res) => {
+    try {
+      const collectionId = Number(req.params.id);
+      const { orderedMediaIds } = req.body;
+      await storage.reorderCollectionItems(collectionId, orderedMediaIds);
+      res.sendStatus(204);
+    } catch (err) {
+      console.error("Error reordering collection items:", err);
+      res.status(500).json({ message: "Failed to reorder collection items" });
+    }
+  });
+
   // --- Media Routes ---
 
   // Batch routes must come before parameterized :id routes
@@ -848,6 +1025,16 @@ export async function registerRoutes(
         category,
         tenantId,
       });
+      try {
+        await storage.createActivity({
+          tenantId: (req.session as any).tenantId,
+          actorName: (req.session as any).name || "Unknown",
+          actionType: "upload",
+          entityType: "media",
+          entityId: item.id,
+          entityTitle: item.title,
+        });
+      } catch {}
       res.status(201).json(item);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -893,7 +1080,18 @@ export async function registerRoutes(
   });
 
   app.delete(api.media.delete.path, isAuthenticated, async (req, res) => {
+    const itemToDelete = await storage.getMediaItem(Number(req.params.id));
     await storage.deleteMediaItem(Number(req.params.id));
+    try {
+      await storage.createActivity({
+        tenantId: (req.session as any).tenantId,
+        actorName: (req.session as any).name || "Unknown",
+        actionType: "delete",
+        entityType: "media",
+        entityId: Number(req.params.id),
+        entityTitle: itemToDelete?.title || null,
+      });
+    } catch {}
     res.sendStatus(204);
   });
 
@@ -916,6 +1114,16 @@ export async function registerRoutes(
       const input = api.collections.create.input.parse(req.body);
       const tenantId = req.session.tenantId!;
       const col = await storage.createCollection({ ...input, tenantId });
+      try {
+        await storage.createActivity({
+          tenantId: (req.session as any).tenantId,
+          actorName: (req.session as any).name || "Unknown",
+          actionType: "create_collection",
+          entityType: "collection",
+          entityId: col.id,
+          entityTitle: col.name,
+        });
+      } catch {}
       res.status(201).json(col);
     } catch (err) {
       if (err instanceof z.ZodError) {

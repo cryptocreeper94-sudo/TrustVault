@@ -13,6 +13,8 @@ import {
   chatChannels,
   chatMessages,
   DEFAULT_CHANNELS,
+  activityLog,
+  collectionShares,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
@@ -39,10 +41,14 @@ import {
   type InsertChatUser,
   type ChatChannel,
   type ChatMessage,
+  type InsertActivityLog,
+  type ActivityLog,
+  type CollectionShare,
+  type InsertCollectionShare,
   featureRequests,
   featureVotes,
 } from "@shared/schema";
-import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
+import { eq, desc, asc, and, inArray, sql, count } from "drizzle-orm";
 
 export interface IStorage {
   // Tenant methods
@@ -117,6 +123,23 @@ export interface IStorage {
   deleteFeatureRequest(id: number): Promise<void>;
   voteForFeature(featureId: number, tenantId: string): Promise<{ voted: boolean }>;
   getVotesForTenant(tenantId: string): Promise<number[]>;
+
+  // Activity Log
+  createActivity(data: InsertActivityLog): Promise<ActivityLog>;
+  getActivities(tenantId: string, limit?: number): Promise<ActivityLog[]>;
+
+  // Media Stats & Usage
+  getMediaStats(tenantId: string): Promise<{ totalFiles: number; totalSize: number; byCategory: Record<string, { count: number; size: number }> }>;
+  getRecentMedia(tenantId: string, limit?: number): Promise<MediaItem[]>;
+
+  // Collection Sharing
+  shareCollection(collectionId: number, sharedByTenantId: string, sharedWithTenantIds: string[]): Promise<CollectionShare[]>;
+  getSharedCollections(tenantId: string): Promise<CollectionWithCount[]>;
+  unshareCollection(collectionId: number, sharedWithTenantId: string): Promise<void>;
+
+  // Collection Reordering
+  reorderCollections(tenantId: string, orderedIds: number[]): Promise<void>;
+  reorderCollectionItems(collectionId: number, orderedMediaIds: number[]): Promise<void>;
 
   // Signal Chat / SSO
   getChatUserByUsername(username: string): Promise<ChatUser | undefined>;
@@ -268,7 +291,7 @@ export class DatabaseStorage implements IStorage {
   async getCollections(tenantId: string): Promise<CollectionWithCount[]> {
     const cols = await db.select().from(collections)
       .where(eq(collections.tenantId, tenantId))
-      .orderBy(desc(collections.createdAt));
+      .orderBy(asc(collections.sortOrder), desc(collections.createdAt));
     const results: CollectionWithCount[] = [];
     for (const col of cols) {
       const [countResult] = await db
@@ -649,6 +672,146 @@ export class DatabaseStorage implements IStorage {
   async createChatMessage(data: { channelId: string; userId: string; content: string; replyToId?: string }): Promise<ChatMessage> {
     const [created] = await db.insert(chatMessages).values(data).returning();
     return created;
+  }
+
+  // --- Activity Log ---
+
+  async createActivity(data: InsertActivityLog): Promise<ActivityLog> {
+    const [created] = await db.insert(activityLog).values(data).returning();
+    return created;
+  }
+
+  async getActivities(tenantId: string, limit: number = 50): Promise<ActivityLog[]> {
+    return await db.select().from(activityLog)
+      .where(eq(activityLog.tenantId, tenantId))
+      .orderBy(desc(activityLog.createdAt))
+      .limit(limit);
+  }
+
+  // --- Media Stats & Usage ---
+
+  async getMediaStats(tenantId: string): Promise<{ totalFiles: number; totalSize: number; byCategory: Record<string, { count: number; size: number }> }> {
+    const rows = await db
+      .select({
+        category: mediaItems.category,
+        count: count(),
+        totalSize: sql<number>`COALESCE(SUM(${mediaItems.size}), 0)`,
+      })
+      .from(mediaItems)
+      .where(eq(mediaItems.tenantId, tenantId))
+      .groupBy(mediaItems.category);
+
+    let totalFiles = 0;
+    let totalSize = 0;
+    const byCategory: Record<string, { count: number; size: number }> = {};
+
+    for (const row of rows) {
+      const c = Number(row.count);
+      const s = Number(row.totalSize);
+      totalFiles += c;
+      totalSize += s;
+      byCategory[row.category] = { count: c, size: s };
+    }
+
+    return { totalFiles, totalSize, byCategory };
+  }
+
+  async getRecentMedia(tenantId: string, limit: number = 8): Promise<MediaItem[]> {
+    return await db.select().from(mediaItems)
+      .where(eq(mediaItems.tenantId, tenantId))
+      .orderBy(desc(mediaItems.createdAt))
+      .limit(limit);
+  }
+
+  // --- Collection Sharing ---
+
+  async shareCollection(collectionId: number, sharedByTenantId: string, sharedWithTenantIds: string[]): Promise<CollectionShare[]> {
+    await db.update(collections).set({ isShared: true }).where(eq(collections.id, collectionId));
+
+    const created: CollectionShare[] = [];
+    for (const sharedWithTenantId of sharedWithTenantIds) {
+      const [existing] = await db.select().from(collectionShares)
+        .where(and(
+          eq(collectionShares.collectionId, collectionId),
+          eq(collectionShares.sharedWithTenantId, sharedWithTenantId)
+        ));
+      if (!existing) {
+        const [share] = await db.insert(collectionShares).values({
+          collectionId,
+          sharedByTenantId,
+          sharedWithTenantId,
+        }).returning();
+        created.push(share);
+      }
+    }
+    return created;
+  }
+
+  async getSharedCollections(tenantId: string): Promise<CollectionWithCount[]> {
+    const shares = await db.select({
+      collectionId: collectionShares.collectionId,
+    }).from(collectionShares)
+      .where(eq(collectionShares.sharedWithTenantId, tenantId));
+
+    if (shares.length === 0) return [];
+
+    const shareIds = shares.map(s => s.collectionId);
+    const cols = await db.select().from(collections)
+      .where(inArray(collections.id, shareIds))
+      .orderBy(asc(collections.sortOrder), desc(collections.createdAt));
+
+    const results: CollectionWithCount[] = [];
+    for (const col of cols) {
+      const [countResult] = await db
+        .select({ count: count() })
+        .from(collectionItems)
+        .where(eq(collectionItems.collectionId, col.id));
+      let coverUrl: string | null = null;
+      if (col.coverMediaId) {
+        const [coverItem] = await db.select().from(mediaItems).where(eq(mediaItems.id, col.coverMediaId));
+        coverUrl = coverItem?.url || null;
+      } else {
+        const [firstItem] = await db
+          .select()
+          .from(collectionItems)
+          .innerJoin(mediaItems, eq(collectionItems.mediaItemId, mediaItems.id))
+          .where(eq(collectionItems.collectionId, col.id))
+          .limit(1);
+        coverUrl = firstItem?.media_items?.url || null;
+      }
+      results.push({ ...col, itemCount: countResult?.count || 0, coverUrl });
+    }
+    return results;
+  }
+
+  async unshareCollection(collectionId: number, sharedWithTenantId: string): Promise<void> {
+    await db.delete(collectionShares).where(
+      and(
+        eq(collectionShares.collectionId, collectionId),
+        eq(collectionShares.sharedWithTenantId, sharedWithTenantId)
+      )
+    );
+  }
+
+  // --- Collection Reordering ---
+
+  async reorderCollections(tenantId: string, orderedIds: number[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.update(collections)
+        .set({ sortOrder: i })
+        .where(and(eq(collections.id, orderedIds[i]), eq(collections.tenantId, tenantId)));
+    }
+  }
+
+  async reorderCollectionItems(collectionId: number, orderedMediaIds: number[]): Promise<void> {
+    for (let i = 0; i < orderedMediaIds.length; i++) {
+      await db.update(collectionItems)
+        .set({ sortOrder: i })
+        .where(and(
+          eq(collectionItems.collectionId, collectionId),
+          eq(collectionItems.mediaItemId, orderedMediaIds[i])
+        ));
+    }
   }
 }
 

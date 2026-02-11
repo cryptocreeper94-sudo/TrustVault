@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useMediaItems,
@@ -10,6 +11,8 @@ import {
   useBatchDeleteMedia,
   useAddToCollection,
   useRemoveFromCollection,
+  useShareCollection,
+  useSharedCollections,
 } from "@/hooks/use-media";
 import { UploadDialog } from "@/components/UploadDialog";
 import { MediaGrid } from "@/components/MediaGrid";
@@ -70,8 +73,10 @@ import { format, parseISO } from "date-fns";
 import type { CollectionWithCount } from "@shared/schema";
 import { OnboardingGuide, HelpTooltip, useOnboarding } from "@/components/OnboardingGuide";
 import { TrustLayerBadge } from "@/components/TrustLayerBadge";
+import { VaultStats, StorageUsage, RecentCarousel } from "@/components/VaultDashboard";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Share2, Users, Activity } from "lucide-react";
 
 function getGreeting(): string {
   const now = new Date();
@@ -303,61 +308,87 @@ function CollectionCard({
   collection,
   isActive,
   onClick,
+  onShare,
 }: {
   collection: CollectionWithCount;
   isActive: boolean;
   onClick: () => void;
+  onShare?: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`
-        shrink-0 flex flex-col items-center gap-3 p-3.5 rounded-xl transition-all min-w-[130px] card-glow
-        ${isActive
-          ? "ring-2 ring-primary/50 bg-primary/10"
-          : ""
-        }
-      `}
-      data-testid={`button-collection-${collection.id}`}
-    >
-      <div className="w-16 h-16 rounded-xl premium-gradient-collection flex items-center justify-center overflow-hidden shadow-lg">
-        {collection.coverUrl ? (
-          <img src={`/objects/${collection.coverUrl}`} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <FolderOpen className="w-7 h-7 text-white drop-shadow-lg" />
-        )}
-      </div>
-      <div className="text-center">
-        <p className="text-xs font-semibold text-foreground truncate max-w-[110px]" data-testid={`text-collection-name-${collection.id}`}>
-          {collection.name}
-        </p>
-        <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate text-[10px] mt-1">
-          {collection.itemCount}
-        </Badge>
-      </div>
-    </button>
+    <div className="relative group shrink-0">
+      <button
+        onClick={onClick}
+        className={`
+          flex flex-col items-center gap-3 p-3.5 rounded-xl transition-all min-w-[130px] card-glow
+          ${isActive
+            ? "ring-2 ring-primary/50 bg-primary/10"
+            : ""
+          }
+        `}
+        data-testid={`button-collection-${collection.id}`}
+      >
+        <div className="w-16 h-16 rounded-xl premium-gradient-collection flex items-center justify-center overflow-hidden shadow-lg">
+          {collection.coverUrl ? (
+            <img src={`/objects/${collection.coverUrl}`} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <FolderOpen className="w-7 h-7 text-white drop-shadow-lg" />
+          )}
+        </div>
+        <div className="text-center">
+          <p className="text-xs font-semibold text-foreground truncate max-w-[110px]" data-testid={`text-collection-name-${collection.id}`}>
+            {collection.name}
+          </p>
+          <div className="flex items-center gap-1 justify-center mt-1">
+            <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate text-[10px]">
+              {collection.itemCount}
+            </Badge>
+            {(collection as any).isShared && (
+              <Users className="w-3 h-3 text-primary/70" />
+            )}
+          </div>
+        </div>
+      </button>
+      {onShare && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onShare(); }}
+          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center invisible group-hover:visible transition-all"
+          data-testid={`button-share-collection-${collection.id}`}
+        >
+          <Share2 className="w-3 h-3 text-muted-foreground" />
+        </button>
+      )}
+    </div>
   );
 }
 
 function NewCollectionDialog({
   open,
   onOpenChange,
+  collections = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  collections?: CollectionWithCount[];
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [parentId, setParentId] = useState<string>("none");
   const createCollection = useCreateCollection();
   const { toast } = useToast();
 
   const handleCreate = async () => {
     if (!name.trim()) return;
     try {
-      await createCollection.mutateAsync({ name: name.trim(), description: description.trim() || undefined });
+      await createCollection.mutateAsync({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        parentId: parentId !== "none" ? parseInt(parentId) : undefined,
+      });
       toast({ title: "Collection created", description: `"${name}" has been created.` });
       setName("");
       setDescription("");
+      setParentId("none");
       onOpenChange(false);
     } catch {
       toast({ title: "Error", description: "Failed to create collection.", variant: "destructive" });
@@ -393,6 +424,24 @@ function NewCollectionDialog({
               className="bg-white/5 border-white/10 focus:border-primary/50"
             />
           </div>
+          {collections.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Parent Folder</Label>
+              <Select value={parentId} onValueChange={setParentId}>
+                <SelectTrigger className="bg-white/5 border-white/10" data-testid="select-parent-collection">
+                  <SelectValue placeholder="None (root level)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (root level)</SelectItem>
+                  {collections.map(col => (
+                    <SelectItem key={col.id} value={String(col.id)}>
+                      {col.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button
             data-testid="button-create-collection"
             onClick={handleCreate}
@@ -402,6 +451,117 @@ function NewCollectionDialog({
             {createCollection.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Collection"}
           </Button>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ShareCollectionDialog({
+  open,
+  onOpenChange,
+  collection,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  collection: CollectionWithCount | null;
+}) {
+  const [selectedTenants, setSelectedTenants] = useState<Set<string>>(new Set());
+  const shareCollection = useShareCollection();
+  const { toast } = useToast();
+
+  const { data: familyMembers } = useQuery({
+    queryKey: ["/api/family-members"],
+    queryFn: async () => {
+      const res = await fetch("/api/family-members", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json() as Promise<{ id: string; name: string }[]>;
+    },
+    enabled: open,
+  });
+
+  const toggleTenant = (tenantId: string) => {
+    setSelectedTenants(prev => {
+      const next = new Set(prev);
+      if (next.has(tenantId)) next.delete(tenantId);
+      else next.add(tenantId);
+      return next;
+    });
+  };
+
+  const handleShare = async () => {
+    if (!collection || selectedTenants.size === 0) return;
+    try {
+      await shareCollection.mutateAsync({
+        collectionId: collection.id,
+        tenantIds: Array.from(selectedTenants),
+      });
+      toast({ title: "Collection shared", description: `Shared "${collection.name}" with ${selectedTenants.size} family member(s).` });
+      setSelectedTenants(new Set());
+      onOpenChange(false);
+    } catch {
+      toast({ title: "Error", description: "Failed to share collection.", variant: "destructive" });
+    }
+  };
+
+  const members = familyMembers || [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md glass-morphism text-foreground">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-primary" />
+            Share Collection
+          </DialogTitle>
+        </DialogHeader>
+        {collection && (
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground">
+              Share <span className="font-semibold text-foreground">"{collection.name}"</span> with family members
+            </p>
+            <div className="space-y-2">
+              {members.map(member => (
+                <button
+                  key={member.id}
+                  onClick={() => toggleTenant(member.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
+                    selectedTenants.has(member.id)
+                      ? "bg-primary/15 ring-1 ring-primary/30"
+                      : "bg-white/5"
+                  }`}
+                  data-testid={`button-share-${member.name?.toLowerCase()}`}
+                >
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                    selectedTenants.has(member.id)
+                      ? "bg-primary text-white"
+                      : "bg-white/10 text-muted-foreground"
+                  }`}>
+                    {member.name?.[0] || "?"}
+                  </div>
+                  <span className="text-sm font-medium flex-1 text-left">{member.name}</span>
+                  {selectedTenants.has(member.id) && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+              ))}
+              {members.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No family members found</p>
+              )}
+            </div>
+            <Button
+              data-testid="button-confirm-share"
+              onClick={handleShare}
+              disabled={selectedTenants.size === 0 || shareCollection.isPending}
+              className="w-full bg-primary text-white"
+            >
+              {shareCollection.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                `Share with ${selectedTenants.size} member${selectedTenants.size !== 1 ? "s" : ""}`
+              )}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -720,6 +880,7 @@ export default function Home() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [activeCollectionId, setActiveCollectionId] = useState<number | null>(null);
   const [showNewCollectionDialog, setShowNewCollectionDialog] = useState(false);
+  const [sharingCollection, setSharingCollection] = useState<CollectionWithCount | null>(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [nowPlayingItem, setNowPlayingItem] = useState<MediaResponse | null>(null);
   const [showAmbientMode, setShowAmbientMode] = useState(false);
@@ -727,9 +888,12 @@ export default function Home() {
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
 
+  const { data: sharedCollectionsData } = useSharedCollections();
+
   const collections = collectionsData || [];
+  const sharedCollections = sharedCollectionsData || [];
   const activeCollection = activeCollectionId
-    ? collections.find(c => c.id === activeCollectionId)
+    ? collections.find(c => c.id === activeCollectionId) || sharedCollections.find(c => c.id === activeCollectionId)
     : null;
 
   const seoHelmet = (
@@ -1042,16 +1206,43 @@ export default function Home() {
           <div>
             {activeCollection ? (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setActiveCollectionId(null)}
-                  className="mb-2 -ml-2"
-                  data-testid="button-back-to-all"
-                >
-                  <ChevronRight className="w-4 h-4 mr-1 rotate-180" />
-                  Back to all
-                </Button>
+                <div className="flex items-center gap-1 mb-2 -ml-2 flex-wrap">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveCollectionId(null)}
+                    data-testid="button-back-to-all"
+                  >
+                    <ChevronRight className="w-4 h-4 mr-1 rotate-180" />
+                    All
+                  </Button>
+                  {(() => {
+                    const breadcrumbs: CollectionWithCount[] = [];
+                    let current = activeCollection;
+                    while (current && (current as any).parentId) {
+                      const parent = collections.find(c => c.id === (current as any).parentId);
+                      if (parent) {
+                        breadcrumbs.unshift(parent);
+                        current = parent;
+                      } else break;
+                    }
+                    return breadcrumbs.map(bc => (
+                      <span key={bc.id} className="flex items-center gap-1">
+                        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setActiveCollectionId(bc.id)}
+                          data-testid={`button-breadcrumb-${bc.id}`}
+                        >
+                          {bc.name}
+                        </Button>
+                      </span>
+                    ));
+                  })()}
+                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-sm font-semibold text-foreground px-2">{activeCollection.name}</span>
+                </div>
                 <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-1" data-testid="text-collection-title">
                   {activeCollection.name}
                 </h2>
@@ -1112,6 +1303,14 @@ export default function Home() {
           </div>
         </div>
 
+        {!activeCollectionId && (
+          <>
+            <StorageUsage />
+            <VaultStats />
+            <RecentCarousel onPlay={handlePlay} />
+          </>
+        )}
+
         <div className="mb-5 md:hidden relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -1157,14 +1356,28 @@ export default function Home() {
         )}
 
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          {collections.map(col => (
-            <CollectionCard
-              key={col.id}
-              collection={col}
-              isActive={activeCollectionId === col.id}
-              onClick={() => setActiveCollectionId(activeCollectionId === col.id ? null : col.id)}
-            />
-          ))}
+          {(() => {
+            const rootCollections = collections.filter(c => !(c as any).parentId);
+            const childCollections = activeCollectionId
+              ? collections.filter(c => (c as any).parentId === activeCollectionId)
+              : [];
+            const displayCollections = activeCollectionId ? childCollections : rootCollections;
+
+            return (
+              <>
+                {displayCollections.map(col => (
+                  <CollectionCard
+                    key={col.id}
+                    collection={col}
+                    isActive={activeCollectionId === col.id}
+                    onClick={() => setActiveCollectionId(activeCollectionId === col.id ? null : col.id)}
+                    onShare={() => setSharingCollection(col)}
+                  />
+                ))}
+                {displayCollections.length === 0 && !activeCollectionId && collections.length === 0 && null}
+              </>
+            );
+          })()}
           <button
             onClick={() => setShowNewCollectionDialog(true)}
             className="shrink-0 flex flex-col items-center gap-3 p-3.5 rounded-xl min-w-[130px] card-glow"
@@ -1176,6 +1389,25 @@ export default function Home() {
             <p className="text-xs font-semibold text-muted-foreground">New Collection</p>
           </button>
         </div>
+
+        {sharedCollections.length > 0 && !activeCollectionId && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-4 h-4 text-primary/70" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shared with you</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+              {sharedCollections.map(col => (
+                <CollectionCard
+                  key={`shared-${col.id}`}
+                  collection={col}
+                  isActive={activeCollectionId === col.id}
+                  onClick={() => setActiveCollectionId(activeCollectionId === col.id ? null : col.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 mb-6 p-3.5 rounded-xl glass-morphism">
           <div className="flex items-center gap-2 flex-wrap">
@@ -1289,6 +1521,12 @@ export default function Home() {
             onEdit={setEditingItem}
           />
         )}
+
+        {!activeCollectionId && (
+          <div className="mt-8">
+            <ActivityFeed compact />
+          </div>
+        )}
       </main>
 
       {!bulkMode && (
@@ -1348,6 +1586,13 @@ export default function Home() {
       <NewCollectionDialog
         open={showNewCollectionDialog}
         onOpenChange={setShowNewCollectionDialog}
+        collections={collections}
+      />
+
+      <ShareCollectionDialog
+        open={!!sharingCollection}
+        onOpenChange={(open) => { if (!open) setSharingCollection(null); }}
+        collection={sharingCollection}
       />
 
       <ChangePasswordDialog
