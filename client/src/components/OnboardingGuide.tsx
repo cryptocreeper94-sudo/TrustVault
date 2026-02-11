@@ -234,7 +234,7 @@ export function OnboardingGuide({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[calc(100vw-2rem)] sm:max-w-md w-full p-0 border-none rounded-2xl bg-card shadow-2xl max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)]"
+        className="max-w-[min(calc(100vw-2rem),28rem)] w-[calc(100vw-2rem)] sm:w-full p-0 border-none rounded-2xl bg-card shadow-2xl max-h-[85vh] sm:max-h-[80vh]"
         aria-describedby="onboarding-description"
         aria-labelledby="onboarding-title"
       >
@@ -245,9 +245,9 @@ export function OnboardingGuide({
           {activeSlide.description}
         </DialogDescription>
 
-        <div className="relative select-none overflow-y-auto overflow-x-hidden rounded-2xl max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)]">
+        <div className="relative select-none overflow-y-auto overflow-x-hidden rounded-2xl" style={{ maxHeight: "85vh" }}>
           <motion.div
-            className="relative h-48 sm:h-56 overflow-hidden cursor-grab active:cursor-grabbing"
+            className="relative h-40 sm:h-56 overflow-hidden cursor-grab active:cursor-grabbing shrink-0"
             style={{ opacity: dragOpacity }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}

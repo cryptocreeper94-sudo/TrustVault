@@ -312,23 +312,23 @@ function CollectionCard({
     <button
       onClick={onClick}
       className={`
-        shrink-0 flex flex-col items-center gap-2 p-3 rounded-xl transition-all min-w-[120px]
+        shrink-0 flex flex-col items-center gap-3 p-3.5 rounded-xl transition-all min-w-[130px] card-glow
         ${isActive
-          ? "bg-primary/20 border border-primary/30"
-          : "glass-card"
+          ? "ring-2 ring-primary/50 bg-primary/10"
+          : ""
         }
       `}
       data-testid={`button-collection-${collection.id}`}
     >
-      <div className="w-14 h-14 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+      <div className="w-16 h-16 rounded-xl premium-gradient-collection flex items-center justify-center overflow-hidden shadow-lg">
         {collection.coverUrl ? (
           <img src={`/objects/${collection.coverUrl}`} alt="" className="w-full h-full object-cover" />
         ) : (
-          <FolderOpen className="w-6 h-6 text-muted-foreground" />
+          <FolderOpen className="w-7 h-7 text-white drop-shadow-lg" />
         )}
       </div>
       <div className="text-center">
-        <p className="text-xs font-medium text-foreground truncate max-w-[100px]" data-testid={`text-collection-name-${collection.id}`}>
+        <p className="text-xs font-semibold text-foreground truncate max-w-[110px]" data-testid={`text-collection-name-${collection.id}`}>
           {collection.name}
         </p>
         <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate text-[10px] mt-1">
@@ -1074,13 +1074,13 @@ export default function Home() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               variant={bulkMode ? "default" : "outline"}
               size="sm"
               onClick={() => bulkMode ? exitBulk() : setBulkMode(true)}
               data-testid="button-toggle-bulk"
-              className={bulkMode ? "bg-primary text-white" : ""}
+              className={bulkMode ? "bg-primary text-white" : "backdrop-blur-sm"}
             >
               {bulkMode ? (
                 <>
@@ -1096,14 +1096,14 @@ export default function Home() {
             </Button>
 
             <Link href="/merge">
-              <Button data-testid="button-merge" variant="outline" className="rounded-full gap-2">
+              <Button data-testid="button-merge" variant="outline" className="rounded-full gap-2 backdrop-blur-sm">
                 <Layers className="w-4 h-4" />
                 Merge
               </Button>
             </Link>
 
             <UploadDialog>
-              <Button data-testid="button-upload" className="bg-primary text-white shadow-lg shadow-primary/25 rounded-full gap-2">
+              <Button data-testid="button-upload" className="bg-primary text-white shadow-lg shadow-primary/30 rounded-full gap-2 relative overflow-visible">
                 <Plus className="w-4 h-4" />
                 Upload
               </Button>
@@ -1124,7 +1124,7 @@ export default function Home() {
         </div>
 
         {!activeCollectionId && (
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex gap-2.5 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {FILTER_TABS.map(tab => {
               const isActive = activeFilter === tab.key;
               const count = categoryCounts[tab.key] || 0;
@@ -1134,19 +1134,19 @@ export default function Home() {
                   key={tab.key}
                   onClick={() => setActiveFilter(tab.key)}
                   className={`
-                    flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium
-                    whitespace-nowrap transition-all duration-200 shrink-0 hover-elevate active-elevate-2
+                    flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                    whitespace-nowrap transition-all duration-300 shrink-0
                     ${isActive
-                      ? "bg-primary text-white shadow-md shadow-primary/20"
-                      : "bg-white/5 text-muted-foreground border border-white/5"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30 scale-[1.02]"
+                      : "bg-white/5 text-muted-foreground border border-white/8 hover-elevate active-elevate-2 backdrop-blur-sm"
                     }
                   `}
                   data-testid={`button-filter-${tab.key}`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-4 h-4" />
                   {tab.label}
                   {count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-0.5 ${isActive ? "bg-white/20" : "bg-white/10"}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? "bg-white/20" : "bg-white/10"}`}>
                       {count}
                     </span>
                   )}
@@ -1167,19 +1167,19 @@ export default function Home() {
           ))}
           <button
             onClick={() => setShowNewCollectionDialog(true)}
-            className="shrink-0 flex flex-col items-center gap-2 p-3 rounded-xl glass-card min-w-[120px]"
+            className="shrink-0 flex flex-col items-center gap-3 p-3.5 rounded-xl min-w-[130px] card-glow"
             data-testid="button-new-collection"
           >
-            <div className="w-14 h-14 rounded-lg bg-white/5 flex items-center justify-center border border-dashed border-white/20">
-              <FolderPlus className="w-6 h-6 text-muted-foreground" />
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-white/5 to-white/10 flex items-center justify-center border border-dashed border-white/20 shadow-lg">
+              <FolderPlus className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="text-xs font-medium text-muted-foreground">New Collection</p>
+            <p className="text-xs font-semibold text-muted-foreground">New Collection</p>
           </button>
         </div>
 
-        <div className="flex flex-col gap-3 mb-5">
+        <div className="flex flex-col gap-3 mb-6 p-3.5 rounded-xl glass-morphism">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center rounded-lg overflow-visible glass-card">
+            <div className="flex items-center rounded-lg overflow-visible bg-white/5 border border-white/10">
               <Button
                 variant="ghost"
                 size="sm"
@@ -1248,13 +1248,19 @@ export default function Home() {
         </div>
 
         {mediaLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="rounded-xl overflow-hidden glass-card">
-                <div className="aspect-[4/3] shimmer" />
-                <div className="p-3 sm:p-4 space-y-2">
-                  <div className="h-4 w-3/4 rounded shimmer" />
-                  <div className="h-3 w-1/2 rounded shimmer" />
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className={`rounded-xl overflow-hidden card-glow ${i === 1 ? "col-span-2 row-span-2" : ""}`}>
+                <div className={`${i === 1 ? "aspect-square" : "aspect-[4/3]"} shimmer relative`}>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                </div>
+                <div className="p-3.5 sm:p-4 space-y-2.5 bg-gradient-to-b from-black/40 to-card/80">
+                  <div className="h-4 w-3/4 rounded-md shimmer" />
+                  <div className="h-3 w-1/2 rounded-md shimmer" />
+                  <div className="flex gap-1.5 mt-1">
+                    <div className="h-5 w-12 rounded-full shimmer" />
+                    <div className="h-5 w-16 rounded-full shimmer" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -1288,8 +1294,8 @@ export default function Home() {
       {!bulkMode && (
         <div className="fixed bottom-4 right-4 sm:hidden z-30">
           <UploadDialog>
-            <Button size="icon" data-testid="button-upload-fab" className="rounded-full bg-primary text-white shadow-xl shadow-primary/30">
-              <Plus className="w-5 h-5" />
+            <Button size="icon" data-testid="button-upload-fab" className="rounded-full bg-primary text-white shadow-2xl shadow-primary/40 w-14 h-14">
+              <Plus className="w-6 h-6" />
             </Button>
           </UploadDialog>
         </div>
