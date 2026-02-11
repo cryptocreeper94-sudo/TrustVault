@@ -11,6 +11,21 @@ import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
+function extractErrorMessage(err: any): string {
+  const fallback = "Something went wrong. Please try again.";
+  const raw = err?.message || "";
+  const jsonPart = raw.includes(": {") ? raw.substring(raw.indexOf(": {") + 2) : raw;
+  try {
+    const parsed = JSON.parse(jsonPart);
+    return parsed.message || fallback;
+  } catch {
+    if (raw.match(/^\d+:\s/)) {
+      return raw.replace(/^\d+:\s*/, "");
+    }
+    return raw || fallback;
+  }
+}
+
 export default function Join() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -63,16 +78,7 @@ export default function Join() {
         toast({ title: "Welcome!", description: "Your vault is ready." });
         navigate("/");
       } catch (err: any) {
-        let msg = "Something went wrong. Please try again.";
-        try {
-          if (typeof err?.message === "string") {
-            const parsed = JSON.parse(err.message);
-            msg = parsed.message || msg;
-          }
-        } catch {
-          msg = err?.message || msg;
-        }
-        setErrorMsg(msg);
+        setErrorMsg(extractErrorMessage(err));
       } finally {
         setIsSubmitting(false);
       }
@@ -83,15 +89,7 @@ export default function Join() {
         toast({ title: "Welcome to the family vault!", description: "Your private space is ready." });
         navigate("/");
       } catch (err: any) {
-        let msg = "Something went wrong. Please try again.";
-        try {
-          if (typeof err?.message === "string") {
-            const parsed = JSON.parse(err.message);
-            msg = parsed.message || msg;
-          }
-        } catch {
-          msg = err?.message || msg;
-        }
+        const msg = extractErrorMessage(err);
         if (msg.toLowerCase().includes("no account found")) {
           setErrorMsg("No family account found for that name. If you have an invite code, tap the link below to use it.");
         } else {

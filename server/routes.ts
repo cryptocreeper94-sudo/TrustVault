@@ -43,6 +43,25 @@ function validatePassword(password: string): string | null {
   return null;
 }
 
+async function bootstrapInviteCodes() {
+  const defaultInvites = [
+    { name: "Kathy", code: "KATHY-TENNIS" },
+  ];
+
+  for (const invite of defaultInvites) {
+    const existing = await storage.getWhitelistByCode(invite.code);
+    if (!existing) {
+      await storage.createWhitelistEntry({
+        name: invite.name,
+        inviteCode: invite.code,
+      });
+      console.log(`[Bootstrap] Created invite code for ${invite.name}: ${invite.code}`);
+    } else {
+      console.log(`[Bootstrap] Invite code for ${invite.name} already exists, skipping`);
+    }
+  }
+}
+
 async function bootstrapFamilyAccounts() {
   const TEMP_PASSWORD = "Temp12345!";
   const JASON_PIN = "0424";
@@ -144,6 +163,10 @@ export async function registerRoutes(
 
   bootstrapFamilyAccounts().catch((err) => {
     console.error("[Bootstrap] Failed to seed family accounts:", err);
+  });
+
+  bootstrapInviteCodes().catch((err) => {
+    console.error("[Bootstrap] Failed to seed invite codes:", err);
   });
 
   // --- Auth Routes ---
