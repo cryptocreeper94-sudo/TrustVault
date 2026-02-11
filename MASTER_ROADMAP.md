@@ -53,9 +53,9 @@
 - [x] Now Playing bar for audio with playlist support
 
 ### Media Editors
-- [x] **Image Editor**: Crop, rotate, flip, resize, preset filters, brightness/contrast/saturation/blur adjustments, save as new
-- [x] **Audio Editor**: Trim with start/end points, fade in/out, volume adjustment, playback speed, full transport controls, save as new
-- [x] **Video Editor**: Trim, brightness/contrast adjustments, frame capture (grab still images from video), save as new
+- [x] **Image Editor**: Crop, rotate, flip, resize, preset filters, brightness/contrast/saturation/blur/hue/temperature/vignette/sharpen adjustments, text overlays (draggable, font/size/color/bold), freehand drawing & annotation (brush/eraser/color/thickness), stickers & shapes (10 shapes, draggable, scalable, colored), save as new
+- [x] **Audio Editor**: Trim with start/end points, fade in/out, volume adjustment, playback speed, full transport controls, EQ (bass/mid/treble biquad filters), reverb (convolver with dry/wet mix), noise gate (dynamics compressor), offline rendering for export, save as new
+- [x] **Video Editor**: Trim, brightness/contrast/saturation/hue/temperature/vignette adjustments, frame capture (grab still images from video) with full grading applied, save as new
 - [x] **Merge/Combine Editor**: Image collages, audio concatenation, video concatenation
 
 ### Stripe Subscription System
@@ -135,11 +135,11 @@
 
 ### Phase Next: Advanced Media Editing
 - [ ] **Background Removal (AI-powered)** — Remove backgrounds from images for product photos, thumbnails, design work
-- [ ] **Text Overlays** — Add text, titles, captions, watermarks to images and videos
-- [ ] **Drawing & Annotation Tools** — Draw, highlight, annotate on images
-- [ ] **Stickers & Graphics** — Add pre-built design elements to media
-- [ ] **Advanced Color Grading** — Professional color correction for photos and video
-- [ ] **Audio Effects** — Reverb, echo, noise reduction, equalization
+- [x] **Text Overlays** — Add text, titles, captions, watermarks to images *(DONE — Feb 11, 2026)*
+- [x] **Drawing & Annotation Tools** — Draw, highlight, annotate on images *(DONE — Feb 11, 2026)*
+- [x] **Stickers & Graphics** — Add pre-built design elements (star, heart, arrow, circle, triangle, diamond, checkmark, x-mark, lightning) to images *(DONE — Feb 11, 2026)*
+- [x] **Advanced Color Grading** — Professional color correction for photos and video (hue, temperature, vignette, sharpen) *(DONE — Feb 11, 2026)*
+- [x] **Audio Effects** — Reverb, EQ (bass/mid/treble), noise gate/reduction *(DONE — Feb 11, 2026)*
 - [ ] **Video Transitions** — Add transition effects between clips when merging
 - [ ] **Template System** — Pre-built templates for social media posts, thumbnails, covers
 

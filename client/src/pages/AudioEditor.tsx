@@ -26,9 +26,10 @@ import {
   FastForward,
   Rewind,
   Clock,
+  Waves,
 } from "lucide-react";
 
-type AudioTool = "trim" | "fade" | "volume";
+type AudioTool = "trim" | "fade" | "volume" | "effects";
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -124,6 +125,12 @@ export default function AudioEditor() {
   const [fadeIn, setFadeIn] = useState(0);
   const [fadeOut, setFadeOut] = useState(0);
   const [volume, setVolume] = useState(100);
+
+  const [eqBass, setEqBass] = useState(0);
+  const [eqMid, setEqMid] = useState(0);
+  const [eqTreble, setEqTreble] = useState(0);
+  const [reverbMix, setReverbMix] = useState(0);
+  const [noiseGate, setNoiseGate] = useState(0);
 
   const { data: mediaItem, isLoading: mediaLoading } = useQuery<MediaResponse>({
     queryKey: ["/api/media", id],
@@ -341,7 +348,70 @@ export default function AudioEditor() {
     gain.gain.value = volume / 100;
     gainNodeRef.current = gain;
 
-    source.connect(gain);
+    let lastNode: AudioNode = source;
+
+    if (eqBass !== 0 || eqMid !== 0 || eqTreble !== 0) {
+      const bassFilter = ctx.createBiquadFilter();
+      bassFilter.type = "lowshelf";
+      bassFilter.frequency.value = 250;
+      bassFilter.gain.value = eqBass;
+
+      const midFilter = ctx.createBiquadFilter();
+      midFilter.type = "peaking";
+      midFilter.frequency.value = 1000;
+      midFilter.Q.value = 1;
+      midFilter.gain.value = eqMid;
+
+      const trebleFilter = ctx.createBiquadFilter();
+      trebleFilter.type = "highshelf";
+      trebleFilter.frequency.value = 4000;
+      trebleFilter.gain.value = eqTreble;
+
+      lastNode.connect(bassFilter);
+      bassFilter.connect(midFilter);
+      midFilter.connect(trebleFilter);
+      lastNode = trebleFilter;
+    }
+
+    if (noiseGate > 0) {
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -50 + noiseGate * 0.5;
+      compressor.knee.value = 0;
+      compressor.ratio.value = 20;
+      compressor.attack.value = 0.001;
+      compressor.release.value = 0.05;
+      lastNode.connect(compressor);
+      lastNode = compressor;
+    }
+
+    if (reverbMix > 0 && audioBuffer) {
+      const reverbLength = 2;
+      const reverbSamples = audioBuffer.sampleRate * reverbLength;
+      const impulseBuffer = ctx.createBuffer(audioBuffer.numberOfChannels, reverbSamples, audioBuffer.sampleRate);
+      for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+        const impulseData = impulseBuffer.getChannelData(ch);
+        for (let i = 0; i < reverbSamples; i++) {
+          impulseData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbSamples, 2);
+        }
+      }
+      const convolver = ctx.createConvolver();
+      convolver.buffer = impulseBuffer;
+
+      const dryGain = ctx.createGain();
+      dryGain.gain.value = 1 - reverbMix / 100;
+      const wetGain = ctx.createGain();
+      wetGain.gain.value = reverbMix / 100;
+      const merger = ctx.createGain();
+
+      lastNode.connect(dryGain);
+      dryGain.connect(merger);
+      lastNode.connect(convolver);
+      convolver.connect(wetGain);
+      wetGain.connect(merger);
+      lastNode = merger;
+    }
+
+    lastNode.connect(gain);
     gain.connect(ctx.destination);
 
     const offset = pauseOffsetRef.current || trimStart;
@@ -359,7 +429,7 @@ export default function AudioEditor() {
       pauseOffsetRef.current = trimStart;
       setCurrentTime(trimStart);
     };
-  }, [audioBuffer, playbackRate, volume, trimStart, trimEnd, stopPlayback]);
+  }, [audioBuffer, playbackRate, volume, trimStart, trimEnd, stopPlayback, eqBass, eqMid, eqTreble, reverbMix, noiseGate]);
 
   const handlePause = useCallback(() => {
     if (!audioContextRef.current) return;
@@ -494,6 +564,11 @@ export default function AudioEditor() {
     setFadeOut(0);
     setVolume(100);
     setPlaybackRate(1);
+    setEqBass(0);
+    setEqMid(0);
+    setEqTreble(0);
+    setReverbMix(0);
+    setNoiseGate(0);
 
     const ctx = audioContextRef.current;
     if (!ctx) return;
@@ -552,7 +627,73 @@ export default function AudioEditor() {
         }
       }
 
-      source.connect(gainNode);
+      let lastNode: AudioNode = source;
+
+      if (eqBass !== 0 || eqMid !== 0 || eqTreble !== 0) {
+        const bassFilter = offlineCtx.createBiquadFilter();
+        bassFilter.type = "lowshelf";
+        bassFilter.frequency.value = 250;
+        bassFilter.gain.value = eqBass;
+
+        const midFilter = offlineCtx.createBiquadFilter();
+        midFilter.type = "peaking";
+        midFilter.frequency.value = 1000;
+        midFilter.Q.value = 1;
+        midFilter.gain.value = eqMid;
+
+        const trebleFilter = offlineCtx.createBiquadFilter();
+        trebleFilter.type = "highshelf";
+        trebleFilter.frequency.value = 4000;
+        trebleFilter.gain.value = eqTreble;
+
+        lastNode.connect(bassFilter);
+        bassFilter.connect(midFilter);
+        midFilter.connect(trebleFilter);
+        lastNode = trebleFilter;
+      }
+
+      if (noiseGate > 0) {
+        const compressor = offlineCtx.createDynamicsCompressor();
+        compressor.threshold.value = -50 + noiseGate * 0.5;
+        compressor.knee.value = 0;
+        compressor.ratio.value = 20;
+        compressor.attack.value = 0.001;
+        compressor.release.value = 0.05;
+        lastNode.connect(compressor);
+        lastNode = compressor;
+      }
+
+      if (reverbMix > 0) {
+        const reverbLength = 2;
+        const reverbSamples = sampleRate * reverbLength;
+        const impulseBuffer = offlineCtx.createBuffer(numChannels, reverbSamples, sampleRate);
+        for (let ch = 0; ch < numChannels; ch++) {
+          const impulseData = impulseBuffer.getChannelData(ch);
+          for (let i = 0; i < reverbSamples; i++) {
+            impulseData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbSamples, 2);
+          }
+        }
+        const convolver = offlineCtx.createConvolver();
+        convolver.buffer = impulseBuffer;
+
+        const dryGain = offlineCtx.createGain();
+        dryGain.gain.value = 1 - reverbMix / 100;
+        const wetGain = offlineCtx.createGain();
+        wetGain.gain.value = reverbMix / 100;
+
+        const merger = offlineCtx.createGain();
+
+        lastNode.connect(dryGain);
+        dryGain.connect(merger);
+
+        lastNode.connect(convolver);
+        convolver.connect(wetGain);
+        wetGain.connect(merger);
+
+        lastNode = merger;
+      }
+
+      lastNode.connect(gainNode);
       gainNode.connect(offlineCtx.destination);
       source.start(0);
 
@@ -596,6 +737,7 @@ export default function AudioEditor() {
     { id: "trim", icon: Scissors, label: "Trim" },
     { id: "fade", icon: Clock, label: "Fade" },
     { id: "volume", icon: Volume2, label: "Volume" },
+    { id: "effects", icon: Waves, label: "Effects" },
   ];
 
   if (authLoading || mediaLoading) {
@@ -912,6 +1054,105 @@ export default function AudioEditor() {
                       onValueChange={([val]) => setVolume(val)}
                       data-testid="slider-volume"
                     />
+                  </div>
+                )}
+
+                {activeTool === "effects" && (
+                  <div className="flex flex-col gap-5" data-testid="effects-controls">
+                    <p className="text-xs text-muted-foreground">Shape your sound with EQ, reverb, and noise control. Effects apply to both playback and the saved file.</p>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-foreground">Equalizer</span>
+                      <p className="text-xs text-muted-foreground">Boost or cut frequency ranges to shape the tone.</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-muted-foreground">Bass (low frequencies)</label>
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-eq-bass">
+                          {eqBass > 0 ? `+${eqBass}` : eqBass} dB
+                        </Badge>
+                      </div>
+                      <Slider
+                        min={-12}
+                        max={12}
+                        step={1}
+                        value={[eqBass]}
+                        onValueChange={([val]) => setEqBass(val)}
+                        data-testid="slider-eq-bass"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-muted-foreground">Mid (vocal range)</label>
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-eq-mid">
+                          {eqMid > 0 ? `+${eqMid}` : eqMid} dB
+                        </Badge>
+                      </div>
+                      <Slider
+                        min={-12}
+                        max={12}
+                        step={1}
+                        value={[eqMid]}
+                        onValueChange={([val]) => setEqMid(val)}
+                        data-testid="slider-eq-mid"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-muted-foreground">Treble (high frequencies)</label>
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-eq-treble">
+                          {eqTreble > 0 ? `+${eqTreble}` : eqTreble} dB
+                        </Badge>
+                      </div>
+                      <Slider
+                        min={-12}
+                        max={12}
+                        step={1}
+                        value={[eqTreble]}
+                        onValueChange={([val]) => setEqTreble(val)}
+                        data-testid="slider-eq-treble"
+                      />
+                    </div>
+
+                    <div className="border-t border-border my-1" />
+
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-muted-foreground">Reverb (echo/space)</label>
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-reverb">
+                          {reverbMix}%
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Adds a sense of space and depth, like playing in a room or hall.</p>
+                      <Slider
+                        min={0}
+                        max={80}
+                        step={1}
+                        value={[reverbMix]}
+                        onValueChange={([val]) => setReverbMix(val)}
+                        data-testid="slider-reverb"
+                      />
+                    </div>
+
+                    <div className="border-t border-border my-1" />
+
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-muted-foreground">Noise Gate</label>
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-noise-gate">
+                          {noiseGate}%
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Reduces background noise and hiss by silencing quiet parts. Higher values cut more aggressively.</p>
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[noiseGate]}
+                        onValueChange={([val]) => setNoiseGate(val)}
+                        data-testid="slider-noise-gate"
+                      />
+                    </div>
                   </div>
                 )}
               </div>

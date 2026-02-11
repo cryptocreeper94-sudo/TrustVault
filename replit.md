@@ -36,7 +36,7 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **Styling**: Tailwind CSS, dark-mode-first design, custom fonts (Outfit, Plus Jakarta Sans).
 - **File Upload**: Uppy library with AWS S3 plugin for presigned URL uploads.
 - **Progressive Web App (PWA)**: Implemented with web app manifest, service worker for offline capabilities (stale-while-revalidate caching), and native splash screen.
-- **Media Editors**: Dedicated pages for image, audio, and video editing (crop, rotate, filters, trim, frame capture, etc.), allowing saves as new media items.
+- **Media Editors**: Dedicated pages for image, audio, and video editing. Image editor: crop, rotate, flip, resize, filters, full color grading (brightness/contrast/saturation/blur/hue/temperature/vignette/sharpen), text overlays (draggable, font/size/color/bold), freehand drawing & annotation (brush/eraser/color/thickness), stickers & shapes (10 types, draggable, scalable). Audio editor: trim, fade, volume, EQ (bass/mid/treble), reverb, noise gate. Video editor: trim, full color grading (brightness/contrast/saturation/hue/temperature/vignette), frame capture. All save as new media items.
 - **Media Merge/Combine**: Guided workflow for creating image collages, audio concatenations, and video concatenations.
 - **Smart Browsing & Organization**: Collections system, timeline view, grid/timeline toggle, various sort options, date range filtering, and bulk selection with batch actions.
 - **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.

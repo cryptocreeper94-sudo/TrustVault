@@ -29,9 +29,15 @@ import {
   Undo,
   Check,
   X,
+  Type,
+  Pencil,
+  Eraser,
+  Sparkles,
+  Trash2,
+  Bold,
 } from "lucide-react";
 
-type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments";
+type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers";
 
 interface CropRect {
   x: number;
@@ -45,12 +51,37 @@ interface Adjustments {
   contrast: number;
   saturation: number;
   blur: number;
+  hue: number;
+  temperature: number;
+  vignette: number;
+  sharpen: number;
 }
 
 interface FilterPreset {
   name: string;
   id: string;
   filter: string;
+}
+
+interface TextLayer {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  bold: boolean;
+}
+
+interface StickerLayer {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  size: number;
+  rotation: number;
+  color: string;
 }
 
 const FILTER_PRESETS: FilterPreset[] = [
@@ -68,7 +99,173 @@ const DEFAULT_ADJUSTMENTS: Adjustments = {
   contrast: 100,
   saturation: 100,
   blur: 0,
+  hue: 0,
+  temperature: 0,
+  vignette: 0,
+  sharpen: 0,
 };
+
+const FONT_FAMILIES = ["Arial", "Helvetica", "Georgia", "Times New Roman", "Courier New", "Verdana"];
+
+const BRUSH_PRESET_COLORS = [
+  { name: "White", value: "#ffffff" },
+  { name: "Black", value: "#000000" },
+  { name: "Red", value: "#ef4444" },
+  { name: "Blue", value: "#3b82f6" },
+  { name: "Green", value: "#22c55e" },
+  { name: "Yellow", value: "#eab308" },
+  { name: "Orange", value: "#f97316" },
+  { name: "Purple", value: "#a855f7" },
+];
+
+const STICKER_TYPES = [
+  "star", "heart", "arrow-right", "arrow-left", "circle", "triangle",
+  "diamond", "checkmark", "x-mark", "lightning",
+];
+
+function drawStickerShape(
+  ctx: CanvasRenderingContext2D,
+  type: string,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+  rotation: number
+) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((rotation * Math.PI) / 180);
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  const r = size / 2;
+
+  switch (type) {
+    case "star": {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const angle = (i * Math.PI) / 5 - Math.PI / 2;
+        const rad = i % 2 === 0 ? r : r * 0.4;
+        if (i === 0) ctx.moveTo(Math.cos(angle) * rad, Math.sin(angle) * rad);
+        else ctx.lineTo(Math.cos(angle) * rad, Math.sin(angle) * rad);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "heart": {
+      ctx.beginPath();
+      const topY = -r * 0.4;
+      ctx.moveTo(0, r * 0.7);
+      ctx.bezierCurveTo(-r, r * 0.1, -r, topY, -r * 0.5, topY);
+      ctx.bezierCurveTo(-r * 0.2, topY, 0, -r * 0.1, 0, -r * 0.1);
+      ctx.bezierCurveTo(0, -r * 0.1, r * 0.2, topY, r * 0.5, topY);
+      ctx.bezierCurveTo(r, topY, r, r * 0.1, 0, r * 0.7);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "arrow-right": {
+      ctx.beginPath();
+      ctx.moveTo(-r, -r * 0.25);
+      ctx.lineTo(r * 0.3, -r * 0.25);
+      ctx.lineTo(r * 0.3, -r * 0.5);
+      ctx.lineTo(r, 0);
+      ctx.lineTo(r * 0.3, r * 0.5);
+      ctx.lineTo(r * 0.3, r * 0.25);
+      ctx.lineTo(-r, r * 0.25);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "arrow-left": {
+      ctx.beginPath();
+      ctx.moveTo(r, -r * 0.25);
+      ctx.lineTo(-r * 0.3, -r * 0.25);
+      ctx.lineTo(-r * 0.3, -r * 0.5);
+      ctx.lineTo(-r, 0);
+      ctx.lineTo(-r * 0.3, r * 0.5);
+      ctx.lineTo(-r * 0.3, r * 0.25);
+      ctx.lineTo(r, r * 0.25);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "circle": {
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case "triangle": {
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo(r, r * 0.7);
+      ctx.lineTo(-r, r * 0.7);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "diamond": {
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo(r * 0.7, 0);
+      ctx.lineTo(0, r);
+      ctx.lineTo(-r * 0.7, 0);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "checkmark": {
+      ctx.beginPath();
+      ctx.lineWidth = r * 0.3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.moveTo(-r * 0.6, 0);
+      ctx.lineTo(-r * 0.1, r * 0.5);
+      ctx.lineTo(r * 0.6, -r * 0.4);
+      ctx.stroke();
+      break;
+    }
+    case "x-mark": {
+      ctx.beginPath();
+      ctx.lineWidth = r * 0.3;
+      ctx.lineCap = "round";
+      ctx.moveTo(-r * 0.5, -r * 0.5);
+      ctx.lineTo(r * 0.5, r * 0.5);
+      ctx.moveTo(r * 0.5, -r * 0.5);
+      ctx.lineTo(-r * 0.5, r * 0.5);
+      ctx.stroke();
+      break;
+    }
+    case "lightning": {
+      ctx.beginPath();
+      ctx.moveTo(r * 0.1, -r);
+      ctx.lineTo(-r * 0.4, r * 0.1);
+      ctx.lineTo(0, r * 0.1);
+      ctx.lineTo(-r * 0.1, r);
+      ctx.lineTo(r * 0.4, -r * 0.1);
+      ctx.lineTo(0, -r * 0.1);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawStickerPreview(
+  canvas: HTMLCanvasElement,
+  type: string,
+  color: string
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const s = canvas.width;
+  ctx.clearRect(0, 0, s, s);
+  drawStickerShape(ctx, type, s / 2, s / 2, s * 0.7, color, 0);
+}
 
 function buildFilterString(adjustments: Adjustments, filterPreset: string): string {
   const parts: string[] = [];
@@ -79,7 +276,58 @@ function buildFilterString(adjustments: Adjustments, filterPreset: string): stri
   if (adjustments.contrast !== 100) parts.push(`contrast(${adjustments.contrast}%)`);
   if (adjustments.saturation !== 100) parts.push(`saturate(${adjustments.saturation}%)`);
   if (adjustments.blur > 0) parts.push(`blur(${adjustments.blur}px)`);
+  if (adjustments.hue !== 0) parts.push(`hue-rotate(${adjustments.hue}deg)`);
   return parts.length > 0 ? parts.join(" ") : "none";
+}
+
+function applyVignette(ctx: CanvasRenderingContext2D, w: number, h: number, strength: number) {
+  if (strength <= 0) return;
+  const cx = w / 2;
+  const cy = h / 2;
+  const radius = Math.max(cx, cy);
+  const gradient = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
+  gradient.addColorStop(0, "rgba(0,0,0,0)");
+  gradient.addColorStop(1, `rgba(0,0,0,${strength / 100})`);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function applyTemperature(ctx: CanvasRenderingContext2D, w: number, h: number, temp: number) {
+  if (temp === 0) return;
+  if (temp > 0) {
+    ctx.fillStyle = `rgba(255,140,0,${temp / 500})`;
+  } else {
+    ctx.fillStyle = `rgba(0,100,255,${Math.abs(temp) / 500})`;
+  }
+  ctx.globalCompositeOperation = "overlay";
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function applySharpen(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, amount: number) {
+  if (amount <= 0) return;
+  const w = canvas.width;
+  const h = canvas.height;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const copy = new Uint8ClampedArray(data);
+  const factor = amount / 10;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = (y * w + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        const center = copy[i + c] * (1 + 4 * factor);
+        const neighbors =
+          (copy[((y - 1) * w + x) * 4 + c] +
+            copy[((y + 1) * w + x) * 4 + c] +
+            copy[(y * w + x - 1) * 4 + c] +
+            copy[(y * w + x + 1) * 4 + c]) *
+          factor;
+        data[i + c] = Math.min(255, Math.max(0, center - neighbors));
+      }
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
 }
 
 export default function ImageEditor() {
@@ -95,6 +343,7 @@ export default function ImageEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const filterPreviewCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
+  const drawingLayerRef = useRef<HTMLCanvasElement | null>(null);
 
   const [activeTool, setActiveTool] = useState<EditorTool | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -115,6 +364,28 @@ export default function ImageEditor() {
   const [cropRect, setCropRect] = useState<CropRect | null>(null);
   const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
   const [croppedImage, setCroppedImage] = useState<HTMLImageElement | null>(null);
+
+  const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
+  const [activeTextId, setActiveTextId] = useState<string | null>(null);
+  const [isDraggingText, setIsDraggingText] = useState(false);
+  const [textDragOffset, setTextDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [newTextInput, setNewTextInput] = useState("");
+  const [textFontFamily, setTextFontFamily] = useState("Arial");
+  const [textFontSize, setTextFontSize] = useState(32);
+  const [textColor, setTextColor] = useState("#ffffff");
+  const [textBold, setTextBold] = useState(false);
+
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [brushSize, setBrushSize] = useState(4);
+  const [brushColor, setBrushColor] = useState("#ffffff");
+  const [isEraser, setIsEraser] = useState(false);
+
+  const [stickerLayers, setStickerLayers] = useState<StickerLayer[]>([]);
+  const [activeStickerIndex, setActiveStickerIndex] = useState<number | null>(null);
+  const [isDraggingSticker, setIsDraggingSticker] = useState(false);
+  const [stickerDragOffset, setStickerDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [stickerColor, setStickerColor] = useState("#ffffff");
+  const [stickerSize, setStickerSize] = useState(60);
 
   const { data: mediaItem, isLoading: mediaLoading } = useQuery<MediaResponse>({
     queryKey: ["/api/media", id],
@@ -144,6 +415,24 @@ export default function ImageEditor() {
     }
     return { width: w, height: h };
   }, [currentSourceImage, rotation]);
+
+  const ensureDrawingLayer = useCallback((w: number, h: number) => {
+    if (!drawingLayerRef.current) {
+      drawingLayerRef.current = document.createElement("canvas");
+    }
+    const dl = drawingLayerRef.current;
+    if (dl.width !== w || dl.height !== h) {
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = dl.width;
+      tempCanvas.height = dl.height;
+      const tempCtx = tempCanvas.getContext("2d");
+      if (tempCtx) tempCtx.drawImage(dl, 0, 0);
+      dl.width = w;
+      dl.height = h;
+      const dlCtx = dl.getContext("2d");
+      if (dlCtx) dlCtx.drawImage(tempCanvas, 0, 0);
+    }
+  }, []);
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -192,7 +481,48 @@ export default function ImageEditor() {
 
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
-  }, [currentSourceImage, rotation, flipH, flipV, adjustments, activeFilter, resizeWidth, resizeHeight]);
+
+    ctx.filter = "none";
+
+    applyTemperature(ctx, cw, ch, adjustments.temperature);
+    applyVignette(ctx, cw, ch, adjustments.vignette);
+    applySharpen(ctx, canvas, adjustments.sharpen);
+
+    ensureDrawingLayer(cw, ch);
+    if (drawingLayerRef.current) {
+      ctx.drawImage(drawingLayerRef.current, 0, 0);
+    }
+
+    for (const tl of textLayers) {
+      ctx.save();
+      ctx.font = `${tl.bold ? "bold " : ""}${tl.fontSize}px "${tl.fontFamily}"`;
+      ctx.fillStyle = tl.color;
+      ctx.textBaseline = "top";
+      ctx.fillText(tl.text, tl.x, tl.y);
+      if (tl.id === activeTextId) {
+        const metrics = ctx.measureText(tl.text);
+        ctx.strokeStyle = "rgba(255,255,255,0.7)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(tl.x - 2, tl.y - 2, metrics.width + 4, tl.fontSize + 4);
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+    }
+
+    for (const sl of stickerLayers) {
+      drawStickerShape(ctx, sl.type, sl.x, sl.y, sl.size, sl.color, sl.rotation);
+      if (stickerLayers.indexOf(sl) === activeStickerIndex) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.7)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(sl.x - sl.size / 2 - 2, sl.y - sl.size / 2 - 2, sl.size + 4, sl.size + 4);
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+    }
+  }, [currentSourceImage, rotation, flipH, flipV, adjustments, activeFilter, resizeWidth, resizeHeight, textLayers, activeTextId, stickerLayers, activeStickerIndex, ensureDrawingLayer]);
 
   useEffect(() => {
     if (!mediaItem?.url) return;
@@ -287,6 +617,14 @@ export default function ImageEditor() {
     setCroppedImage(null);
     setCropRect(null);
     setIsCropping(false);
+    setTextLayers([]);
+    setActiveTextId(null);
+    setStickerLayers([]);
+    setActiveStickerIndex(null);
+    if (drawingLayerRef.current) {
+      const dlCtx = drawingLayerRef.current.getContext("2d");
+      if (dlCtx) dlCtx.clearRect(0, 0, drawingLayerRef.current.width, drawingLayerRef.current.height);
+    }
     if (originalImageRef.current) {
       setResizeWidth(originalImageRef.current.naturalWidth);
       setResizeHeight(originalImageRef.current.naturalHeight);
@@ -306,25 +644,209 @@ export default function ImageEditor() {
     };
   };
 
-  const handleCropMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (activeTool !== "crop" || !isCropping) return;
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getCanvasMousePos(e);
-    setCropStart(pos);
-    setCropRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+
+    if (activeTool === "crop" && isCropping) {
+      setCropStart(pos);
+      setCropRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+      return;
+    }
+
+    if (activeTool === "text") {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      for (let i = textLayers.length - 1; i >= 0; i--) {
+        const tl = textLayers[i];
+        ctx.font = `${tl.bold ? "bold " : ""}${tl.fontSize}px "${tl.fontFamily}"`;
+        const metrics = ctx.measureText(tl.text);
+        if (
+          pos.x >= tl.x &&
+          pos.x <= tl.x + metrics.width &&
+          pos.y >= tl.y &&
+          pos.y <= tl.y + tl.fontSize
+        ) {
+          setActiveTextId(tl.id);
+          setIsDraggingText(true);
+          setTextDragOffset({ x: pos.x - tl.x, y: pos.y - tl.y });
+          return;
+        }
+      }
+      setActiveTextId(null);
+      return;
+    }
+
+    if (activeTool === "draw") {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      ensureDrawingLayer(canvas.width, canvas.height);
+      const dl = drawingLayerRef.current;
+      if (!dl) return;
+      const dlCtx = dl.getContext("2d");
+      if (!dlCtx) return;
+      setIsDrawing(true);
+      dlCtx.lineCap = "round";
+      dlCtx.lineJoin = "round";
+      dlCtx.lineWidth = brushSize;
+      if (isEraser) {
+        dlCtx.globalCompositeOperation = "destination-out";
+        dlCtx.strokeStyle = "rgba(0,0,0,1)";
+      } else {
+        dlCtx.globalCompositeOperation = "source-over";
+        dlCtx.strokeStyle = brushColor;
+      }
+      dlCtx.beginPath();
+      dlCtx.moveTo(pos.x, pos.y);
+      return;
+    }
+
+    if (activeTool === "stickers") {
+      for (let i = stickerLayers.length - 1; i >= 0; i--) {
+        const sl = stickerLayers[i];
+        const half = sl.size / 2;
+        if (
+          pos.x >= sl.x - half &&
+          pos.x <= sl.x + half &&
+          pos.y >= sl.y - half &&
+          pos.y <= sl.y + half
+        ) {
+          setActiveStickerIndex(i);
+          setIsDraggingSticker(true);
+          setStickerDragOffset({ x: pos.x - sl.x, y: pos.y - sl.y });
+          return;
+        }
+      }
+      setActiveStickerIndex(null);
+      return;
+    }
   };
 
-  const handleCropMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (activeTool !== "crop" || !isCropping || !cropStart) return;
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getCanvasMousePos(e);
-    const x = Math.min(cropStart.x, pos.x);
-    const y = Math.min(cropStart.y, pos.y);
-    const width = Math.abs(pos.x - cropStart.x);
-    const height = Math.abs(pos.y - cropStart.y);
-    setCropRect({ x, y, width, height });
+
+    if (activeTool === "crop" && isCropping && cropStart) {
+      const x = Math.min(cropStart.x, pos.x);
+      const y = Math.min(cropStart.y, pos.y);
+      const width = Math.abs(pos.x - cropStart.x);
+      const height = Math.abs(pos.y - cropStart.y);
+      setCropRect({ x, y, width, height });
+      return;
+    }
+
+    if (activeTool === "text" && isDraggingText && activeTextId) {
+      setTextLayers((prev) =>
+        prev.map((tl) =>
+          tl.id === activeTextId
+            ? { ...tl, x: pos.x - textDragOffset.x, y: pos.y - textDragOffset.y }
+            : tl
+        )
+      );
+      return;
+    }
+
+    if (activeTool === "draw" && isDrawing) {
+      const dl = drawingLayerRef.current;
+      if (!dl) return;
+      const dlCtx = dl.getContext("2d");
+      if (!dlCtx) return;
+      dlCtx.lineTo(pos.x, pos.y);
+      dlCtx.stroke();
+      drawCanvas();
+      return;
+    }
+
+    if (activeTool === "stickers" && isDraggingSticker && activeStickerIndex !== null) {
+      setStickerLayers((prev) =>
+        prev.map((sl, i) =>
+          i === activeStickerIndex
+            ? { ...sl, x: pos.x - stickerDragOffset.x, y: pos.y - stickerDragOffset.y }
+            : sl
+        )
+      );
+      return;
+    }
   };
 
-  const handleCropMouseUp = () => {
-    setCropStart(null);
+  const handleCanvasMouseUp = () => {
+    if (activeTool === "crop") {
+      setCropStart(null);
+    }
+    if (isDraggingText) {
+      setIsDraggingText(false);
+    }
+    if (isDrawing) {
+      setIsDrawing(false);
+      const dl = drawingLayerRef.current;
+      if (dl) {
+        const dlCtx = dl.getContext("2d");
+        if (dlCtx) {
+          dlCtx.globalCompositeOperation = "source-over";
+        }
+      }
+    }
+    if (isDraggingSticker) {
+      setIsDraggingSticker(false);
+    }
+  };
+
+  const addTextLayer = () => {
+    if (!newTextInput.trim()) return;
+    const canvas = canvasRef.current;
+    const centerX = canvas ? canvas.width / 2 - 50 : 100;
+    const centerY = canvas ? canvas.height / 2 : 100;
+    const layer: TextLayer = {
+      id: `text_${Date.now()}`,
+      text: newTextInput.trim(),
+      x: centerX,
+      y: centerY,
+      fontFamily: textFontFamily,
+      fontSize: textFontSize,
+      color: textColor,
+      bold: textBold,
+    };
+    setTextLayers((prev) => [...prev, layer]);
+    setActiveTextId(layer.id);
+    setNewTextInput("");
+  };
+
+  const removeTextLayer = (id: string) => {
+    setTextLayers((prev) => prev.filter((tl) => tl.id !== id));
+    if (activeTextId === id) setActiveTextId(null);
+  };
+
+  const addSticker = (type: string) => {
+    const canvas = canvasRef.current;
+    const centerX = canvas ? canvas.width / 2 : 100;
+    const centerY = canvas ? canvas.height / 2 : 100;
+    const layer: StickerLayer = {
+      id: `sticker_${Date.now()}`,
+      type,
+      x: centerX,
+      y: centerY,
+      size: stickerSize,
+      rotation: 0,
+      color: stickerColor,
+    };
+    setStickerLayers((prev) => [...prev, layer]);
+    setActiveStickerIndex(stickerLayers.length);
+  };
+
+  const removeSticker = (index: number) => {
+    setStickerLayers((prev) => prev.filter((_, i) => i !== index));
+    if (activeStickerIndex === index) setActiveStickerIndex(null);
+    else if (activeStickerIndex !== null && activeStickerIndex > index) {
+      setActiveStickerIndex(activeStickerIndex - 1);
+    }
+  };
+
+  const clearDrawing = () => {
+    if (drawingLayerRef.current) {
+      const dlCtx = drawingLayerRef.current.getContext("2d");
+      if (dlCtx) dlCtx.clearRect(0, 0, drawingLayerRef.current.width, drawingLayerRef.current.height);
+    }
+    drawCanvas();
   };
 
   const applyCrop = () => {
@@ -384,6 +906,7 @@ export default function ImageEditor() {
     if (!canvasRef.current || !mediaItem) return;
     setSaving(true);
     try {
+      drawCanvas();
       const blob = await new Promise<Blob | null>((resolve) => {
         canvasRef.current!.toBlob(resolve, "image/png");
       });
@@ -425,12 +948,23 @@ export default function ImageEditor() {
     return { maxWidth: "100%", maxHeight: "100%" };
   }, []);
 
+  const getCanvasCursor = () => {
+    if (isCropping) return "crosshair";
+    if (activeTool === "draw") return "crosshair";
+    if (activeTool === "text") return "text";
+    if (activeTool === "stickers") return "pointer";
+    return "default";
+  };
+
   const tools: { id: EditorTool; icon: typeof Crop; label: string }[] = [
     { id: "crop", icon: Crop, label: "Crop" },
     { id: "rotate", icon: RotateCw, label: "Rotate" },
     { id: "resize", icon: Maximize, label: "Resize" },
     { id: "filters", icon: Palette, label: "Filters" },
     { id: "adjustments", icon: SlidersHorizontal, label: "Adjustments" },
+    { id: "text", icon: Type, label: "Text" },
+    { id: "draw", icon: Pencil, label: "Draw" },
+    { id: "stickers", icon: Sparkles, label: "Stickers" },
   ];
 
   if (authLoading || mediaLoading) {
@@ -547,10 +1081,11 @@ export default function ImageEditor() {
                 <canvas
                   ref={canvasRef}
                   className="block rounded-md"
-                  style={{ maxWidth: "100%", maxHeight: "calc(100vh - 200px)", objectFit: "contain", cursor: isCropping ? "crosshair" : "default" }}
-                  onMouseDown={handleCropMouseDown}
-                  onMouseMove={handleCropMouseMove}
-                  onMouseUp={handleCropMouseUp}
+                  style={{ maxWidth: "100%", maxHeight: "calc(100vh - 200px)", objectFit: "contain", cursor: getCanvasCursor() }}
+                  onMouseDown={handleCanvasMouseDown}
+                  onMouseMove={handleCanvasMouseMove}
+                  onMouseUp={handleCanvasMouseUp}
+                  onMouseLeave={handleCanvasMouseUp}
                   data-testid="editor-canvas"
                 />
                 {isCropping && cropOverlayStyle && cropRect && cropRect.width > 0 && (
@@ -778,6 +1313,334 @@ export default function ImageEditor() {
                     data-testid="slider-blur"
                   />
                 </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-muted-foreground">Hue Shift</label>
+                    <span className="text-xs text-muted-foreground" data-testid="text-hue-value">{adjustments.hue}°</span>
+                  </div>
+                  <Slider
+                    min={-180}
+                    max={180}
+                    step={1}
+                    value={[adjustments.hue]}
+                    onValueChange={([v]) => setAdjustments((a) => ({ ...a, hue: v }))}
+                    data-testid="slider-hue"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-muted-foreground">Temperature</label>
+                    <span className="text-xs text-muted-foreground" data-testid="text-temperature-value">
+                      {adjustments.temperature > 0 ? `+${adjustments.temperature} warm` : adjustments.temperature < 0 ? `${adjustments.temperature} cool` : "neutral"}
+                    </span>
+                  </div>
+                  <Slider
+                    min={-100}
+                    max={100}
+                    step={1}
+                    value={[adjustments.temperature]}
+                    onValueChange={([v]) => setAdjustments((a) => ({ ...a, temperature: v }))}
+                    data-testid="slider-temperature"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-muted-foreground">Vignette</label>
+                    <span className="text-xs text-muted-foreground" data-testid="text-vignette-value">{adjustments.vignette}%</span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[adjustments.vignette]}
+                    onValueChange={([v]) => setAdjustments((a) => ({ ...a, vignette: v }))}
+                    data-testid="slider-vignette"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-muted-foreground">Sharpen</label>
+                    <span className="text-xs text-muted-foreground" data-testid="text-sharpen-value">{adjustments.sharpen}%</span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[adjustments.sharpen]}
+                    onValueChange={([v]) => setAdjustments((a) => ({ ...a, sharpen: v }))}
+                    data-testid="slider-sharpen"
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTool === "text" && (
+              <div className="flex flex-col gap-4">
+                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Text Overlay</h3>
+                <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Add text to your photo. Type your message, pick a style, then drag it into position.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Text</label>
+                    <Input
+                      value={newTextInput}
+                      onChange={(e) => setNewTextInput(e.target.value)}
+                      placeholder="Enter your text..."
+                      data-testid="input-text-content"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Font Family</label>
+                    <select
+                      value={textFontFamily}
+                      onChange={(e) => setTextFontFamily(e.target.value)}
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      data-testid="select-text-font"
+                    >
+                      {FONT_FAMILIES.map((f) => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-muted-foreground">Font Size</label>
+                      <Badge variant="secondary" className="text-xs" data-testid="text-font-size-value">{textFontSize}px</Badge>
+                    </div>
+                    <Slider
+                      min={12}
+                      max={120}
+                      step={1}
+                      value={[textFontSize]}
+                      onValueChange={([v]) => setTextFontSize(v)}
+                      data-testid="slider-text-font-size"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Color</label>
+                    <Input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="h-9 cursor-pointer"
+                      data-testid="input-text-color"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={textBold ? "default" : "ghost"}
+                      onClick={() => setTextBold(!textBold)}
+                      className="toggle-elevate"
+                      data-testid="button-text-bold"
+                    >
+                      <Bold className="w-4 h-4 mr-1" />
+                      Bold
+                    </Button>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={addTextLayer}
+                    disabled={!newTextInput.trim()}
+                    data-testid="button-add-text"
+                  >
+                    Add Text
+                  </Button>
+                </div>
+                {textLayers.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <label className="text-xs text-muted-foreground font-medium">Text Layers</label>
+                    {textLayers.map((tl) => (
+                      <div
+                        key={tl.id}
+                        className={`flex items-center justify-between gap-2 p-2 rounded-md text-xs cursor-pointer ${
+                          activeTextId === tl.id ? "bg-primary/20 ring-1 ring-primary" : "hover-elevate"
+                        }`}
+                        onClick={() => setActiveTextId(tl.id)}
+                        data-testid={`text-layer-${tl.id}`}
+                      >
+                        <span className="truncate flex-1">{tl.text}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeTextLayer(tl.id);
+                          }}
+                          data-testid={`button-delete-text-${tl.id}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTool === "draw" && (
+              <div className="flex flex-col gap-4">
+                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Draw</h3>
+                <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Draw freely on your photo. Pick a color and brush size, then draw with your mouse.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Color</label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {BRUSH_PRESET_COLORS.map((c) => (
+                        <button
+                          key={c.value}
+                          onClick={() => { setBrushColor(c.value); setIsEraser(false); }}
+                          className={`w-full aspect-square rounded-md border-2 transition-colors ${
+                            brushColor === c.value && !isEraser ? "border-primary" : "border-transparent"
+                          }`}
+                          style={{ backgroundColor: c.value }}
+                          title={c.name}
+                          data-testid={`button-brush-color-${c.name.toLowerCase()}`}
+                        />
+                      ))}
+                    </div>
+                    <Input
+                      type="color"
+                      value={brushColor}
+                      onChange={(e) => { setBrushColor(e.target.value); setIsEraser(false); }}
+                      className="h-9 cursor-pointer mt-1"
+                      data-testid="input-brush-color-custom"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-muted-foreground">Brush Size</label>
+                      <Badge variant="secondary" className="text-xs" data-testid="text-brush-size-value">{brushSize}px</Badge>
+                    </div>
+                    <Slider
+                      min={1}
+                      max={20}
+                      step={1}
+                      value={[brushSize]}
+                      onValueChange={([v]) => setBrushSize(v)}
+                      data-testid="slider-brush-size"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={isEraser ? "default" : "ghost"}
+                      onClick={() => setIsEraser(!isEraser)}
+                      className="toggle-elevate"
+                      data-testid="button-eraser-toggle"
+                    >
+                      <Eraser className="w-4 h-4 mr-1" />
+                      Eraser
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={clearDrawing}
+                      data-testid="button-clear-drawing"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTool === "stickers" && (
+              <div className="flex flex-col gap-4">
+                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Stickers</h3>
+                <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Add fun shapes to your photo. Pick a shape, then drag it where you want it.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Color</label>
+                    <Input
+                      type="color"
+                      value={stickerColor}
+                      onChange={(e) => setStickerColor(e.target.value)}
+                      className="h-9 cursor-pointer"
+                      data-testid="input-sticker-color"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-muted-foreground">Size</label>
+                      <Badge variant="secondary" className="text-xs" data-testid="text-sticker-size-value">{stickerSize}px</Badge>
+                    </div>
+                    <Slider
+                      min={20}
+                      max={200}
+                      step={1}
+                      value={[stickerSize]}
+                      onValueChange={([v]) => setStickerSize(v)}
+                      data-testid="slider-sticker-size"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Shapes</label>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {STICKER_TYPES.map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => addSticker(type)}
+                          className="aspect-square rounded-md hover-elevate flex items-center justify-center p-1"
+                          title={type}
+                          data-testid={`button-sticker-${type}`}
+                        >
+                          <canvas
+                            ref={(el) => {
+                              if (el) {
+                                el.width = 32;
+                                el.height = 32;
+                                drawStickerPreview(el, type, stickerColor);
+                              }
+                            }}
+                            width={32}
+                            height={32}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {stickerLayers.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <label className="text-xs text-muted-foreground font-medium">Placed Stickers</label>
+                    {stickerLayers.map((sl, idx) => (
+                      <div
+                        key={sl.id}
+                        className={`flex items-center justify-between gap-2 p-2 rounded-md text-xs cursor-pointer ${
+                          activeStickerIndex === idx ? "bg-primary/20 ring-1 ring-primary" : "hover-elevate"
+                        }`}
+                        onClick={() => setActiveStickerIndex(idx)}
+                        data-testid={`sticker-layer-${idx}`}
+                      >
+                        <span className="truncate flex-1">{sl.type}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSticker(idx);
+                          }}
+                          data-testid={`button-delete-sticker-${idx}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             </div>

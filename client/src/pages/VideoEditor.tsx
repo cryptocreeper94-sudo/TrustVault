@@ -79,6 +79,10 @@ export default function VideoEditor() {
 
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
+  const [saturation, setSaturation] = useState(100);
+  const [hue, setHue] = useState(0);
+  const [temperature, setTemperature] = useState(0);
+  const [vignette, setVignette] = useState(0);
 
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
 
@@ -293,6 +297,10 @@ export default function VideoEditor() {
     setTrimApplied(false);
     setBrightness(100);
     setContrast(100);
+    setSaturation(100);
+    setHue(0);
+    setTemperature(0);
+    setVignette(0);
     setCapturedFrame(null);
     video.currentTime = 0;
     setCurrentTime(0);
@@ -310,12 +318,33 @@ export default function VideoEditor() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)${hue !== 0 ? ` hue-rotate(${hue}deg)` : ""}`;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.filter = "none";
+    if (temperature !== 0) {
+      if (temperature > 0) {
+        ctx.fillStyle = `rgba(255,140,0,${temperature / 500})`;
+      } else {
+        ctx.fillStyle = `rgba(0,100,255,${Math.abs(temperature) / 500})`;
+      }
+      ctx.globalCompositeOperation = "overlay";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "source-over";
+    }
+    if (vignette > 0) {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = Math.max(cx, cy);
+      const gradient = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
+      gradient.addColorStop(0, "rgba(0,0,0,0)");
+      gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100})`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     const dataUrl = canvas.toDataURL("image/png");
     setCapturedFrame(dataUrl);
     toast({ title: "Frame captured" });
-  }, [brightness, contrast, toast]);
+  }, [brightness, contrast, saturation, hue, temperature, vignette, toast]);
 
   const handleSaveFrame = async () => {
     if (!capturedFrame || !mediaItem) return;
@@ -414,7 +443,7 @@ export default function VideoEditor() {
     }
   };
 
-  const videoFilterStyle = `brightness(${brightness}%) contrast(${contrast}%)`;
+  const videoFilterStyle = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)${hue !== 0 ? ` hue-rotate(${hue}deg)` : ""}`;
 
   const speedOptions = [0.5, 1, 1.5, 2];
 
@@ -540,13 +569,34 @@ export default function VideoEditor() {
               <span className="text-sm text-muted-foreground">Loading video...</span>
             </div>
           ) : null}
-          <video
-            ref={videoRef}
-            className="max-w-full max-h-[50vh] rounded-md"
-            style={{ filter: videoFilterStyle, display: videoLoaded ? "block" : "none" }}
-            playsInline
-            data-testid="video-player"
-          />
+          <div className="relative inline-block" style={{ display: videoLoaded ? "block" : "none" }}>
+            <video
+              ref={videoRef}
+              className="max-w-full max-h-[50vh] rounded-md"
+              style={{ filter: videoFilterStyle }}
+              playsInline
+              data-testid="video-player"
+            />
+            {temperature !== 0 && (
+              <div
+                className="absolute inset-0 rounded-md pointer-events-none"
+                style={{
+                  backgroundColor: temperature > 0
+                    ? `rgba(255,140,0,${temperature / 500})`
+                    : `rgba(0,100,255,${Math.abs(temperature) / 500})`,
+                  mixBlendMode: "overlay",
+                }}
+              />
+            )}
+            {vignette > 0 && (
+              <div
+                className="absolute inset-0 rounded-md pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle, transparent 30%, rgba(0,0,0,${vignette / 100}) 100%)`,
+                }}
+              />
+            )}
+          </div>
         </div>
 
         {videoLoaded && (
@@ -829,6 +879,64 @@ export default function VideoEditor() {
                         value={[contrast]}
                         onValueChange={([v]) => setContrast(v)}
                         data-testid="slider-contrast"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-white/60">Saturation</label>
+                        <Badge variant="secondary" className="text-xs">{saturation}%</Badge>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={200}
+                        step={1}
+                        value={[saturation]}
+                        onValueChange={([v]) => setSaturation(v)}
+                        data-testid="slider-saturation"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-white/60">Hue Shift</label>
+                        <Badge variant="secondary" className="text-xs">{hue}°</Badge>
+                      </div>
+                      <Slider
+                        min={-180}
+                        max={180}
+                        step={1}
+                        value={[hue]}
+                        onValueChange={([v]) => setHue(v)}
+                        data-testid="slider-hue"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-white/60">Temperature</label>
+                        <Badge variant="secondary" className="text-xs">
+                          {temperature > 0 ? `+${temperature} warm` : temperature < 0 ? `${temperature} cool` : "neutral"}
+                        </Badge>
+                      </div>
+                      <Slider
+                        min={-100}
+                        max={100}
+                        step={1}
+                        value={[temperature]}
+                        onValueChange={([v]) => setTemperature(v)}
+                        data-testid="slider-temperature"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-white/60">Vignette</label>
+                        <Badge variant="secondary" className="text-xs">{vignette}%</Badge>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[vignette]}
+                        onValueChange={([v]) => setVignette(v)}
+                        data-testid="slider-vignette"
                       />
                     </div>
                   </div>
