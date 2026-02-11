@@ -1054,8 +1054,8 @@ export default function Home() {
                     <Menu className="w-4 h-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="flex flex-col">
-                  <SheetHeader className="text-left">
+                <SheetContent side="right" className="flex flex-col overflow-hidden">
+                  <SheetHeader className="text-left shrink-0">
                     <SheetTitle className="font-display flex items-center gap-2">
                       <img src={trustlayerEmblem} alt="TrustLayer" className="w-7 h-7 rounded-lg object-cover" />
                       DW Media Studio
@@ -1065,8 +1065,9 @@ export default function Home() {
                     </p>
                   </SheetHeader>
 
-                  <Separator className="my-2" />
+                  <Separator className="my-2 shrink-0" />
 
+                  <div className="flex-1 overflow-y-auto min-h-0">
                   <nav className="flex flex-col gap-1" data-testid="nav-hamburger-menu">
                     <a href="/" className="w-full">
                       <Button variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-vault">
@@ -1167,7 +1168,7 @@ export default function Home() {
                     </Button>
                   </div>
 
-                  <div className="mt-auto pt-6">
+                  <div className="pt-6">
                     <Separator className="mb-4" />
 
                     <div className="rounded-lg theme-gradient p-3 mb-3">
@@ -1206,6 +1207,7 @@ export default function Home() {
                         </a>
                       </Button>
                     </div>
+                  </div>
                   </div>
                 </SheetContent>
               </Sheet>
