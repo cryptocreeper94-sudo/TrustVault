@@ -2,13 +2,14 @@ import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
-import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic } from "lucide-react";
+import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic, Sparkles, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToggleFavorite, useDeleteMedia } from "@/hooks/use-media";
 import { useHaptic } from "@/hooks/use-haptic";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -147,6 +148,32 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
   const cardRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [glare, setGlare] = useState({ x: 50, y: 50, opacity: 0 });
+  const [captioningId, setCaptioningId] = useState<number | null>(null);
+
+  const handleGenerateCaption = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    haptic("tap");
+    setCaptioningId(item.id);
+    try {
+      const isVisual = cat === "image" || cat === "video";
+      const body = isVisual
+        ? { imageUrl: "/objects/" + item.url, title: item.title, category: item.category, style: "descriptive" }
+        : { title: item.title, category: item.category, style: "descriptive" };
+
+      const captionRes = await apiRequest("POST", "/api/ai/caption", body);
+      const { caption } = await captionRes.json();
+
+      await apiRequest("PATCH", `/api/media/${item.id}`, { description: caption });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+
+      toast({ title: "AI Caption Generated", description: caption });
+    } catch (err: any) {
+      toast({ title: "Caption Error", description: err?.message || "Failed to generate caption", variant: "destructive" });
+    } finally {
+      setCaptioningId(null);
+    }
+  };
 
   const cat = (item.category as MediaCategory) || "other";
   const CatIcon = CATEGORY_ICONS[cat];
@@ -366,6 +393,25 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
                   <TooltipContent side="bottom" className="text-xs">Add to Playlist</TooltipContent>
                 </Tooltip>
               )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleGenerateCaption}
+                    disabled={captioningId === item.id}
+                    aria-label="Generate AI caption"
+                    data-testid={`button-ai-caption-${item.id}`}
+                  >
+                    {captioningId === item.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Generate AI caption</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

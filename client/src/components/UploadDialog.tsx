@@ -11,7 +11,7 @@ import { detectCategory, type MediaCategory } from "@shared/schema";
 import {
   Loader2, UploadCloud, CheckCircle, AlertCircle, Film, Music,
   ImageIcon, FileText, File, X, ChevronDown, ChevronUp, Clock,
-  MapPin, Mic2, Route
+  MapPin, Mic2, Route, Sparkles
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -177,6 +177,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const [uploadComplete, setUploadComplete] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
+  const [isAutoTagging, setIsAutoTagging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createMedia = useCreateMedia();
@@ -234,6 +235,73 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       handleAddTag();
+    }
+  };
+
+  const handleAutoTag = async () => {
+    if (queue.length === 0) return;
+    
+    const file = queue[0].file;
+    const category = queue[0].category;
+    
+    setIsAutoTagging(true);
+    try {
+      let imageUrl: string | undefined;
+      
+      // For images, convert to base64 data URL
+      if (category === "image") {
+        imageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve(reader.result as string);
+          };
+          reader.onerror = () => {
+            reject(new Error("Failed to read file"));
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      
+      const response = await fetch("/api/ai/auto-tag", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: imageUrl,
+          filename: file.name,
+          category: category,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to generate tags");
+      }
+      
+      const data = await response.json();
+      
+      // Merge tags (avoid duplicates)
+      if (data.tags && Array.isArray(data.tags)) {
+        const newTags = data.tags.filter((tag: string) => !tags.includes(tag));
+        setTags([...tags, ...newTags]);
+      }
+      
+      // Set description if empty
+      if (!description && data.description) {
+        setDescription(data.description);
+      }
+      
+      toast({
+        title: "Tags Generated",
+        description: "AI-generated tags and description added successfully.",
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to generate tags";
+      toast({
+        title: "Error",
+        description: msg,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAutoTagging(false);
     }
   };
 
@@ -620,6 +688,22 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
                     data-testid="button-add-tag"
                   >
                     Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoTag}
+                    disabled={isPending || isAutoTagging || queue.length === 0}
+                    className="border-white/10"
+                    data-testid="button-ai-auto-tag"
+                  >
+                    {isAutoTagging ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    AI
                   </Button>
                 </div>
                 {tags.length > 0 && (

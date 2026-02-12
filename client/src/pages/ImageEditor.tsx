@@ -348,6 +348,8 @@ export default function ImageEditor() {
   const [activeTool, setActiveTool] = useState<EditorTool | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isAiEnhancing, setIsAiEnhancing] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
 
   const [rotation, setRotation] = useState(0);
   const [flipH, setFlipH] = useState(false);
@@ -629,6 +631,59 @@ export default function ImageEditor() {
       setResizeWidth(originalImageRef.current.naturalWidth);
       setResizeHeight(originalImageRef.current.naturalHeight);
       setOriginalAspect(originalImageRef.current.naturalWidth / originalImageRef.current.naturalHeight);
+    }
+  };
+
+  const handleAiEnhance = async () => {
+    if (!mediaItem) return;
+    setIsAiEnhancing(true);
+    setAiExplanation(null);
+    try {
+      const imageUrl = `/objects/${mediaItem.url}`;
+      const resp = await fetch("/api/ai/enhance-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+      if (!resp.ok) throw new Error("Failed to get AI suggestions");
+      const data = await resp.json();
+      const target: Adjustments = {
+        brightness: 100 + (data.brightness || 0),
+        contrast: 100 + (data.contrast || 0),
+        saturation: 100 + (data.saturation || 0),
+        blur: 0,
+        hue: data.hue || 0,
+        temperature: data.temperature || 0,
+        vignette: data.vignette || 0,
+        sharpen: data.sharpen || 0,
+      };
+      const startAdj = { ...adjustments };
+      const duration = 500;
+      const startTime = performance.now();
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        setAdjustments({
+          brightness: Math.round(startAdj.brightness + (target.brightness - startAdj.brightness) * ease),
+          contrast: Math.round(startAdj.contrast + (target.contrast - startAdj.contrast) * ease),
+          saturation: Math.round(startAdj.saturation + (target.saturation - startAdj.saturation) * ease),
+          blur: +(startAdj.blur + (target.blur - startAdj.blur) * ease).toFixed(1),
+          hue: Math.round(startAdj.hue + (target.hue - startAdj.hue) * ease),
+          temperature: Math.round(startAdj.temperature + (target.temperature - startAdj.temperature) * ease),
+          vignette: Math.round(startAdj.vignette + (target.vignette - startAdj.vignette) * ease),
+          sharpen: Math.round(startAdj.sharpen + (target.sharpen - startAdj.sharpen) * ease),
+        });
+        if (t < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+      setAiExplanation(data.explanation || null);
+      setActiveTool("adjustments");
+      toast({ title: "AI Enhancement Applied", description: data.explanation || "Settings optimized by AI" });
+    } catch (err) {
+      toast({ title: "AI Enhance Failed", description: "Could not analyze the image right now.", variant: "destructive" });
+    } finally {
+      setIsAiEnhancing(false);
     }
   };
 
@@ -1392,6 +1447,23 @@ export default function ImageEditor() {
               <div className="flex flex-col gap-5">
                 <h3 className="text-sm font-semibold" data-testid="text-panel-title">Adjustments</h3>
                 <p className="text-xs text-muted-foreground">Fine-tune how your photo looks. Drag any slider to see changes instantly.</p>
+                <Button
+                  variant="outline"
+                  onClick={handleAiEnhance}
+                  disabled={isAiEnhancing || !imageLoaded}
+                  className="w-full gap-2 border-primary/30 text-primary"
+                  data-testid="button-ai-enhance"
+                >
+                  {isAiEnhancing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {isAiEnhancing ? "Analyzing..." : "AI Auto-Enhance"}
+                </Button>
+                {aiExplanation && (
+                  <p className="text-xs text-muted-foreground italic" data-testid="text-ai-explanation">{aiExplanation}</p>
+                )}
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <label className="text-xs text-muted-foreground">Brightness</label>

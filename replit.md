@@ -42,6 +42,11 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 - **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.
 - **Stripe Subscription System**: Pricing page with 4 tiers (Free/Personal/Pro/Studio), Stripe Checkout for payments, Customer Portal for management, webhook handling for subscription lifecycle.
 - **Spinny AI Agent**: Vinyl record mascot (googly eyes, smiley face) that lives as a floating side tab. Opens into a full chat panel powered by OpenAI (gpt-5.1) with streaming SSE responses. Tenant-scoped conversations with media vault context awareness. Uses `conversations` and `messages` tables with tenant isolation. Voice output via ElevenLabs TTS (primary, Sarah voice) with OpenAI gpt-audio (nova voice) as fallback. Auto-speak toggle and per-message speak buttons.
+- **AI-Powered Media Tools** (`server/ai/routes.ts`): Four AI features powered by OpenAI gpt-4.1-mini:
+  - **AI Auto-Tag on Upload**: Vision-based analysis of uploaded images generates tags and descriptions automatically. Text-based inference for audio/document files from filename/type.
+  - **AI Smart Search**: Natural language search across media vault. Toggle AI mode in search bar, type queries like "beach photos" or "concert videos" and AI matches against metadata.
+  - **AI Auto-Enhance (Image Editor)**: One-click button in adjustments panel analyzes image and auto-applies optimal color grading with smooth 500ms eased animation.
+  - **AI Caption Generator**: Sparkles button on media cards generates descriptive captions using Vision for images/videos, saves to media item description.
 - **Signal Chat**: Real-time ecosystem-wide chat system at `/chat`. JWT-authenticated via TrustLayer SSO. Channel-based messaging with WebSocket real-time delivery (typing indicators, presence, user join/leave). Supports reply threading. 6 default channels: general, announcements, darkwavestudios-support, garagebot-support, tlid-marketing, guardian-ai. **Future vision**: Signal Chat will evolve into a standalone Telegram/Discord-style platform — the communication foundation for the broader social network. Will be its own app/domain sharing TrustLayer SSO, not just embedded in TrustVault.
 
 ### Backend (Express + Node.js)

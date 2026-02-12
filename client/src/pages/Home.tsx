@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -990,6 +990,10 @@ export default function Home() {
   const [viewingItem, setViewingItem] = useState<MediaResponse | null>(null);
   const [editingItem, setEditingItem] = useState<MediaResponse | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [aiSearchMode, setAiSearchMode] = useState(false);
+  const [aiSearchResults, setAiSearchResults] = useState<number[] | null>(null);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const aiDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortOption, setSortOption] = useState<SortOption>("date-desc");
@@ -1007,6 +1011,7 @@ export default function Home() {
   const [showAmbientMode, setShowAmbientMode] = useState(false);
   const [showSpinny, setShowSpinny] = useState(false);
   const { showOnboarding, setShowOnboarding, openGuide } = useOnboarding(user?.name);
+  const { toast } = useToast();
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
 
@@ -1063,6 +1068,58 @@ export default function Home() {
 
   const audioPlaylist = (mediaItems || []).filter(m => m.category === "audio");
 
+  const handleAiSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setAiSearchResults(null);
+      return;
+    }
+    setIsAiSearching(true);
+    try {
+      const res = await fetch("/api/ai/smart-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: query.trim() }),
+      });
+      if (!res.ok) throw new Error("Search failed");
+      const data = await res.json();
+      setAiSearchResults(data.matchedIds || []);
+    } catch {
+      toast({ title: "AI Search failed", description: "Falling back to text search.", variant: "destructive" });
+      setAiSearchResults(null);
+    } finally {
+      setIsAiSearching(false);
+    }
+  }, [toast]);
+
+  const handleAiSearchInputChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    if (aiSearchMode && value.trim()) {
+      if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
+      aiDebounceRef.current = setTimeout(() => {
+        handleAiSearch(value);
+      }, 800);
+    } else if (aiSearchMode && !value.trim()) {
+      setAiSearchResults(null);
+    }
+  }, [aiSearchMode, handleAiSearch]);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && aiSearchMode && searchQuery.trim()) {
+      if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
+      handleAiSearch(searchQuery);
+    }
+  }, [aiSearchMode, searchQuery, handleAiSearch]);
+
+  const toggleAiSearchMode = useCallback(() => {
+    setAiSearchMode(prev => {
+      if (prev) {
+        setAiSearchResults(null);
+      }
+      return !prev;
+    });
+  }, []);
+
   const handlePlay = (item: MediaResponse) => {
     if (item.category === "audio") {
       setNowPlayingItem(item);
@@ -1084,7 +1141,11 @@ export default function Home() {
     }
   }
 
-  if (searchQuery) {
+  if (aiSearchMode && aiSearchResults !== null) {
+    filtered = aiSearchResults
+      .map(id => filtered.find(m => m.id === id))
+      .filter((m): m is MediaResponse => m !== undefined);
+  } else if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(m =>
       m.title.toLowerCase().includes(q) ||
@@ -1161,15 +1222,31 @@ export default function Home() {
 
           <div className="flex items-center gap-3 flex-1 justify-end">
             <TrustLayerBadge />
-            <div className="relative hidden md:block w-56 lg:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                data-testid="input-search"
-                placeholder="Search files..."
-                className="pl-9 bg-white/5 border-white/10 rounded-full h-9 focus:ring-primary/20"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="hidden md:flex items-center gap-1.5">
+              <Button
+                size="icon"
+                variant={aiSearchMode ? "default" : "ghost"}
+                className={`toggle-elevate ${aiSearchMode ? 'toggle-elevated' : ''}`}
+                onClick={toggleAiSearchMode}
+                data-testid="button-ai-search-toggle"
+              >
+                {aiSearchMode ? <Sparkles className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+              </Button>
+              <div className="relative w-56 lg:w-64">
+                {isAiSearching ? (
+                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                )}
+                <Input
+                  data-testid="input-search"
+                  placeholder={aiSearchMode ? "Ask AI to find..." : "Search files..."}
+                  className="pl-9 bg-white/5 border-white/10 rounded-full h-9 focus:ring-primary/20"
+                  value={searchQuery}
+                  onChange={(e) => handleAiSearchInputChange(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-1 pl-3 border-l border-white/10">
@@ -1359,6 +1436,22 @@ export default function Home() {
       </header>
 
       <main className="pt-20 sm:pt-24 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {aiSearchMode && aiSearchResults !== null && (
+          <div className="hidden md:flex items-center gap-2 mb-4">
+            <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate gap-1" data-testid="badge-ai-results">
+              <Sparkles className="w-3 h-3" />
+              AI found {aiSearchResults.length} item{aiSearchResults.length !== 1 ? "s" : ""}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => { setAiSearchResults(null); setSearchQuery(""); }}
+              data-testid="button-clear-ai-results"
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
           <div>
             {activeCollection ? (
@@ -1466,15 +1559,49 @@ export default function Home() {
           </>
         )}
 
-        <div className="mb-5 md:hidden relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            data-testid="input-search-mobile"
-            placeholder="Search files..."
-            className="pl-9 bg-white/5 border-white/10 rounded-full h-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="mb-5 md:hidden space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="icon"
+              variant={aiSearchMode ? "default" : "ghost"}
+              className={`toggle-elevate ${aiSearchMode ? 'toggle-elevated' : ''}`}
+              onClick={toggleAiSearchMode}
+              data-testid="button-ai-search-toggle-mobile"
+            >
+              {aiSearchMode ? <Sparkles className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+            </Button>
+            <div className="relative flex-1">
+              {isAiSearching ? (
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
+              ) : (
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              )}
+              <Input
+                data-testid="input-search-mobile"
+                placeholder={aiSearchMode ? "Ask AI to find..." : "Search files..."}
+                className="pl-9 bg-white/5 border-white/10 rounded-full h-10"
+                value={searchQuery}
+                onChange={(e) => handleAiSearchInputChange(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+              />
+            </div>
+          </div>
+          {aiSearchMode && aiSearchResults !== null && (
+            <div className="flex items-center gap-2 px-1">
+              <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate gap-1">
+                <Sparkles className="w-3 h-3" />
+                AI found {aiSearchResults.length} item{aiSearchResults.length !== 1 ? "s" : ""}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setAiSearchResults(null); setSearchQuery(""); }}
+                data-testid="button-clear-ai-results-mobile"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {!activeCollectionId && (
