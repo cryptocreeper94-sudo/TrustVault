@@ -927,11 +927,12 @@ export default function AudioEditor() {
                   </Tooltip>
 
                   <Button
-                    size="icon"
+                    size="lg"
                     onClick={isPlaying ? handlePause : handlePlay}
+                    className="rounded-full px-3"
                     data-testid="button-play-pause"
                   >
-                    {isPlaying ? <Pause /> : <Play />}
+                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                   </Button>
 
                   <Tooltip>
@@ -983,12 +984,11 @@ export default function AudioEditor() {
                     return (
                       <Button
                         key={tool.id}
-                        size="sm"
                         variant={isActive ? "default" : "ghost"}
                         onClick={() => setActiveTool(tool.id)}
                         data-testid={`button-tool-${tool.id}`}
                       >
-                        <Icon className="w-4 h-4 mr-1" />
+                        <Icon className="w-4 h-4 mr-1.5" />
                         {tool.label}
                       </Button>
                     );

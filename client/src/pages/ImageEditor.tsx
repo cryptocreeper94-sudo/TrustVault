@@ -1170,7 +1170,7 @@ export default function ImageEditor() {
       )}
 
       <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
-        <div className="flex sm:flex-col gap-0.5 p-2 border-b sm:border-b-0 sm:border-r glass-morphism z-40 overflow-x-auto sm:overflow-x-visible sm:w-[88px]" data-testid="editor-toolbar">
+        <div className="flex sm:flex-col gap-1 p-2 border-b sm:border-b-0 sm:border-r glass-morphism z-40 overflow-x-auto sm:overflow-x-visible sm:w-[88px]" data-testid="editor-toolbar">
           {tools.map((tool) => {
             const Icon = tool.icon;
             const isActive = activeTool === tool.id;
@@ -1187,15 +1187,15 @@ export default function ImageEditor() {
                     setCropRect(null);
                   }
                 }}
-                className={`flex flex-col items-center gap-1 px-2 py-2 rounded-md text-xs transition-colors min-w-[64px] sm:min-w-0 ${
+                className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-md text-xs transition-colors min-w-[68px] sm:min-w-0 ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover-elevate"
                 }`}
                 data-testid={`button-tool-${tool.id}`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="leading-none">{tool.label}</span>
+                <Icon className="w-5 h-5 sm:w-5 sm:h-5" />
+                <span className="leading-none text-[11px]">{tool.label}</span>
               </button>
             );
           })}
@@ -1780,10 +1780,49 @@ export default function ImageEditor() {
             )}
             </div>
           ) : imageLoaded ? (
-            <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l glass-morphism p-3 sm:p-4 z-40 flex items-center justify-center" data-testid="editor-hint">
-              <div className="text-center space-y-2">
-                <Crop className="w-8 h-8 text-muted-foreground/50 mx-auto" />
-                <p className="text-xs text-muted-foreground leading-relaxed">Pick a tool from the left to start editing your photo</p>
+            <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l glass-morphism p-3 sm:p-4 z-40 overflow-y-auto max-h-[40vh] sm:max-h-none" data-testid="editor-hint">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Ready to Edit</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Tap any tool <span className="sm:hidden">above</span><span className="hidden sm:inline">on the left</span> to get started. Here are some ideas:
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { id: "filters" as EditorTool, icon: Palette, label: "Filters", desc: "Instantly change the mood" },
+                    { id: "crop" as EditorTool, icon: Crop, label: "Crop", desc: "Cut out the perfect frame" },
+                    { id: "text" as EditorTool, icon: Type, label: "Text", desc: "Add words to your photo" },
+                    { id: "draw" as EditorTool, icon: Pencil, label: "Draw", desc: "Sketch or annotate" },
+                  ].map((suggestion) => {
+                    const Icon = suggestion.icon;
+                    return (
+                      <button
+                        key={suggestion.id}
+                        onClick={() => {
+                          setActiveTool(suggestion.id);
+                          if (suggestion.id === "crop") {
+                            setIsCropping(true);
+                            setCropRect(null);
+                          }
+                        }}
+                        className="w-full flex items-center gap-3 p-2.5 rounded-md text-left hover-elevate"
+                        data-testid={`button-suggestion-${suggestion.id}`}
+                      >
+                        <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium">{suggestion.label}</p>
+                          <p className="text-[11px] text-muted-foreground">{suggestion.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground/60 text-center">
+                  When you're done, tap Save as New
+                </p>
               </div>
             </div>
           ) : null}

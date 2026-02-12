@@ -744,9 +744,9 @@ export default function VideoEditor() {
                 </Tooltip>
 
                 <Button
-                  size="icon"
-                  variant="ghost"
+                  size="lg"
                   onClick={isPlaying ? handlePause : handlePlay}
+                  className="rounded-full px-3"
                   data-testid="button-play-pause"
                 >
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
@@ -831,9 +831,9 @@ export default function VideoEditor() {
             <div className="border-t border-white/10 glass-morphism max-h-[45vh] sm:max-h-none overflow-y-auto" data-testid="tools-panel">
               <div className="flex border-b border-white/10">
                 {([
-                  { id: "trim" as VideoTool, icon: Scissors, label: "Trim" },
-                  { id: "adjustments" as VideoTool, icon: SlidersHorizontal, label: "Adjustments" },
-                  { id: "capture" as VideoTool, icon: Camera, label: "Capture" },
+                  { id: "trim" as VideoTool, icon: Scissors, label: "Trim", desc: "Cut your clip" },
+                  { id: "adjustments" as VideoTool, icon: SlidersHorizontal, label: "Color", desc: "Adjust look" },
+                  { id: "capture" as VideoTool, icon: Camera, label: "Screenshot", desc: "Save a frame" },
                 ]).map((tool) => {
                   const Icon = tool.icon;
                   return (
