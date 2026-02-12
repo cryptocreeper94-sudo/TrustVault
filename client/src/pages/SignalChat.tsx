@@ -12,6 +12,7 @@ import {
   X, LogIn, UserPlus, Loader2, Circle, Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useHaptic } from "@/hooks/use-haptic";
 
 const TL_TOKEN_KEY = "tl-sso-token";
 const TL_USER_KEY = "tl-sso-user";
@@ -293,6 +294,7 @@ function MessageBubble({
 
 export default function SignalChat() {
   const [, navigate] = useLocation();
+  const haptic = useHaptic();
   const [user, setUser] = useState<ChatUser | null>(getStoredUser);
   const [token, setToken] = useState<string | null>(getStoredToken);
   const [channels, setChannels] = useState<ChatChannel[]>([]);
@@ -514,8 +516,8 @@ export default function SignalChat() {
         <meta property="og:type" content="website" />
       </Helmet>
       <div className="h-screen flex flex-col bg-background" data-testid="signal-chat-container">
-        <header className="flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between gap-2 px-2 sm:px-3 py-2 border-b shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <Button size="icon" variant="ghost" onClick={() => navigate("/")} data-testid="button-chat-back">
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -528,19 +530,19 @@ export default function SignalChat() {
             >
               <Hash className="w-4 h-4" />
             </Button>
-            <MessageSquare className="w-5 h-5 text-primary" />
-            <span className="font-display font-semibold text-sm">Signal Chat</span>
+            <MessageSquare className="w-5 h-5 text-primary hidden sm:block" />
+            <span className="font-display font-semibold text-sm hidden sm:block">Signal Chat</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="flex items-center gap-1.5">
               <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500" />
-              <span className="text-[11px] text-muted-foreground" data-testid="text-online-count">{presence.onlineCount} online</span>
+              <span className="text-[11px] text-muted-foreground" data-testid="text-online-count">{presence.onlineCount}</span>
             </div>
-            <Badge variant="outline" className="text-[10px]" data-testid="text-trust-layer-id">
+            <Badge variant="outline" className="text-[10px] hidden sm:inline-flex" data-testid="text-trust-layer-id">
               {user.trustLayerId || user.username}
             </Badge>
-            <Button size="sm" variant="ghost" onClick={handleLogout} data-testid="button-chat-logout">
-              Sign Out
+            <Button size="icon" variant="ghost" onClick={handleLogout} data-testid="button-chat-logout" aria-label="Sign out">
+              <LogIn className="w-4 h-4 rotate-180" />
             </Button>
           </div>
         </header>
@@ -553,7 +555,7 @@ export default function SignalChat() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: -250, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="w-56 shrink-0 border-r p-3 overflow-y-auto bg-muted/20"
+                className="w-56 shrink-0 border-r p-3 overflow-y-auto bg-background md:bg-muted/20 absolute md:relative z-30 h-full md:h-auto shadow-xl md:shadow-none"
                 data-testid="channel-sidebar"
               >
                 <div className="flex items-center gap-2 mb-3">
@@ -660,7 +662,7 @@ export default function SignalChat() {
                   );
                 })()}
 
-                <div className="flex-1 overflow-y-auto py-3 space-y-1" data-testid="dm-messages-container">
+                <div className="flex-1 overflow-y-auto py-3 space-y-2 px-1" data-testid="dm-messages-container">
                   {(() => {
                     const filteredDms = dmMessages.filter(dm =>
                       (dm.senderId === activeDmUserId && dm.receiverId === user.id) ||
@@ -755,7 +757,7 @@ export default function SignalChat() {
               </>
             )}
 
-            <div className="flex items-center gap-2 px-3 py-2 border-t shrink-0">
+            <div className="flex items-center gap-2 px-2 sm:px-3 py-2 border-t shrink-0">
               <Input
                 placeholder={activeDmUserId
                   ? `Message ${presence.onlineUsers.find(u => u.userId === activeDmUserId)?.displayName || "user"}...`
@@ -763,13 +765,14 @@ export default function SignalChat() {
                 }
                 value={input}
                 onChange={(e) => { setInput(e.target.value); if (!activeDmUserId) sendTyping(); }}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); haptic("tap"); } }}
                 disabled={!activeChannelId && !activeDmUserId}
+                className="text-sm"
                 data-testid="input-chat-message"
               />
               <Button
                 size="icon"
-                onClick={sendMessage}
+                onClick={() => { sendMessage(); haptic("tap"); }}
                 disabled={!input.trim() || (!activeChannelId && !activeDmUserId)}
                 data-testid="button-send-message"
               >

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useHaptic } from "@/hooks/use-haptic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ListMusic, Plus, Trash2, Play, Share2, Users, Music, X, GripVertical, ChevronRight
@@ -50,6 +51,7 @@ export function PlaylistPanel({
   onPlayPlaylist?: (items: MediaResponse[]) => void;
 }) {
   const { toast } = useToast();
+  const haptic = useHaptic();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -57,7 +59,7 @@ export function PlaylistPanel({
   const [shareDialogId, setShareDialogId] = useState<number | null>(null);
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
 
-  const { data: playlistsData } = useQuery<{ owned: PlaylistData[]; shared: PlaylistData[] }>({
+  const { data: playlistsData, isLoading: playlistsLoading } = useQuery<{ owned: PlaylistData[]; shared: PlaylistData[] }>({
     queryKey: ["/api/playlists"],
   });
 
@@ -85,6 +87,7 @@ export function PlaylistPanel({
       setNewName("");
       setNewDesc("");
       setShowCreate(false);
+      haptic("success");
       toast({ title: "Playlist created" });
     },
   });
@@ -95,6 +98,7 @@ export function PlaylistPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/playlists"] });
+      haptic("warning");
       toast({ title: "Playlist deleted" });
     },
   });
@@ -118,6 +122,7 @@ export function PlaylistPanel({
       queryClient.invalidateQueries({ queryKey: ["/api/playlists"] });
       setShareDialogId(null);
       setSelectedTenants([]);
+      haptic("success");
       toast({ title: "Playlist shared with family" });
     },
   });
@@ -125,6 +130,29 @@ export function PlaylistPanel({
   const owned = playlistsData?.owned || [];
   const shared = playlistsData?.shared || [];
   const allPlaylists = [...owned, ...shared];
+
+  if (playlistsLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded shimmer" />
+            <div className="w-20 h-4 rounded shimmer" />
+          </div>
+          <div className="w-16 h-8 rounded-full shimmer" />
+        </div>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-lg border border-white/8 p-2.5 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg shimmer" />
+            <div className="flex-1 space-y-1.5">
+              <div className="w-24 h-3.5 rounded shimmer" />
+              <div className="w-16 h-2.5 rounded shimmer" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (allPlaylists.length === 0 && !showCreate) {
     return (
@@ -389,7 +417,7 @@ function PlaylistRow({
                       data-testid={`button-share-playlist-${playlist.id}`}
                       size="sm"
                       variant="ghost"
-                      className="gap-1 text-xs h-7"
+                      className="gap-1 text-xs"
                       onClick={onShare}
                     >
                       <Users className="w-3 h-3" />
@@ -401,7 +429,7 @@ function PlaylistRow({
                       data-testid={`button-delete-playlist-${playlist.id}`}
                       size="sm"
                       variant="ghost"
-                      className="gap-1 text-xs h-7 text-destructive"
+                      className="gap-1 text-xs text-destructive"
                       onClick={onDelete}
                     >
                       <Trash2 className="w-3 h-3" />
