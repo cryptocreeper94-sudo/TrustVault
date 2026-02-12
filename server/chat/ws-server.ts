@@ -7,6 +7,7 @@ interface ChatClient {
   ws: WebSocket;
   userId: string;
   username: string;
+  displayName: string;
   avatarColor: string;
   role: string;
   channelId: string | null;
@@ -33,11 +34,27 @@ function getChannelUsers(channelId: string): string[] {
   return Array.from(new Set(users));
 }
 
-function getPresence(): { onlineCount: number; channelUsers: Record<string, string[]> } {
+interface OnlineUser {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarColor: string;
+  role: string;
+}
+
+function getPresence(): { onlineCount: number; channelUsers: Record<string, string[]>; onlineUsers: OnlineUser[] } {
   const channelUsers: Record<string, string[]> = {};
-  const allUsers = new Set<string>();
+  const uniqueUsers = new Map<string, OnlineUser>();
   clients.forEach((client) => {
-    allUsers.add(client.userId);
+    if (!uniqueUsers.has(client.userId)) {
+      uniqueUsers.set(client.userId, {
+        userId: client.userId,
+        username: client.username,
+        displayName: client.displayName,
+        avatarColor: client.avatarColor,
+        role: client.role,
+      });
+    }
     if (client.channelId) {
       if (!channelUsers[client.channelId]) channelUsers[client.channelId] = [];
       if (!channelUsers[client.channelId].includes(client.username)) {
@@ -45,7 +62,7 @@ function getPresence(): { onlineCount: number; channelUsers: Record<string, stri
       }
     }
   });
-  return { onlineCount: allUsers.size, channelUsers };
+  return { onlineCount: uniqueUsers.size, channelUsers, onlineUsers: Array.from(uniqueUsers.values()) };
 }
 
 function broadcastPresence() {
@@ -112,6 +129,7 @@ export function setupChatWebSocket(server: Server): void {
             ws,
             userId: user.id,
             username: user.username,
+            displayName: user.displayName,
             avatarColor: user.avatarColor,
             role: user.role,
             channelId,
@@ -197,6 +215,28 @@ export function setupChatWebSocket(server: Server): void {
             content: msg.content,
             replyToId: msg.replyToId,
             createdAt: msg.createdAt,
+          });
+          return;
+        }
+
+        if (data.type === "dm") {
+          const dm = await storage.createDirectMessage(client.userId, data.receiverId, data.content);
+          const dmPayload = JSON.stringify({
+            type: "dm",
+            id: dm.id,
+            senderId: client.userId,
+            senderUsername: client.username,
+            senderDisplayName: client.displayName,
+            senderAvatarColor: client.avatarColor,
+            receiverId: data.receiverId,
+            content: data.content,
+            createdAt: dm.createdAt,
+          });
+          ws.send(dmPayload);
+          clients.forEach((c, clientWs) => {
+            if (c.userId === data.receiverId && clientWs.readyState === 1) {
+              clientWs.send(dmPayload);
+            }
           });
           return;
         }

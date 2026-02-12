@@ -530,4 +530,76 @@ export const insertCollectionShareSchema = createInsertSchema(collectionShares).
 export type CollectionShare = typeof collectionShares.$inferSelect;
 export type InsertCollectionShare = z.infer<typeof insertCollectionShareSchema>;
 
+// --- Media Shares Table ---
+
+export const mediaShares = pgTable("media_shares", {
+  id: serial("id").primaryKey(),
+  mediaItemId: integer("media_item_id").notNull(),
+  sharedByTenantId: varchar("shared_by_tenant_id").notNull(),
+  sharedWithTenantId: varchar("shared_with_tenant_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMediaShareSchema = createInsertSchema(mediaShares).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type MediaShare = typeof mediaShares.$inferSelect;
+export type InsertMediaShare = z.infer<typeof insertMediaShareSchema>;
+
+// --- Playlists Tables ---
+
+export const playlists = pgTable("playlists", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isShared: boolean("is_shared").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const playlistItems = pgTable("playlist_items", {
+  id: serial("id").primaryKey(),
+  playlistId: integer("playlist_id").notNull(),
+  mediaItemId: integer("media_item_id").notNull(),
+  addedByTenantId: varchar("added_by_tenant_id"),
+  sortOrder: integer("sort_order").default(0),
+  addedAt: timestamp("added_at").defaultNow(),
+});
+
+export const playlistShares = pgTable("playlist_shares", {
+  id: serial("id").primaryKey(),
+  playlistId: integer("playlist_id").notNull(),
+  sharedWithTenantId: varchar("shared_with_tenant_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPlaylistSchema = createInsertSchema(playlists).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPlaylistItemSchema = createInsertSchema(playlistItems).omit({
+  id: true,
+  addedAt: true,
+});
+
+export type Playlist = typeof playlists.$inferSelect;
+export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
+export type PlaylistItem = typeof playlistItems.$inferSelect;
+export type InsertPlaylistItem = z.infer<typeof insertPlaylistItemSchema>;
+export type PlaylistShare = typeof playlistShares.$inferSelect;
+export type PlaylistWithItems = Playlist & { itemCount: number; items?: (PlaylistItem & { mediaTitle?: string; mediaUrl?: string })[] };
+
+export const directMessages = pgTable("direct_messages", {
+  id: serial("id").primaryKey(),
+  senderId: varchar("sender_id").notNull(),
+  receiverId: varchar("receiver_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type DirectMessage = typeof directMessages.$inferSelect;
+
 export * from "./models/chat";

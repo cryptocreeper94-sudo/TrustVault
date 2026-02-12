@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Hash, Send, ArrowLeft, Users, MessageSquare, Reply,
-  X, LogIn, UserPlus, Loader2, Circle,
+  X, LogIn, UserPlus, Loader2, Circle, Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -301,8 +301,11 @@ export default function SignalChat() {
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [typing, setTyping] = useState<{ userId: string; username: string }[]>([]);
-  const [presence, setPresence] = useState<{ onlineCount: number; channelUsers: Record<string, string[]> }>({ onlineCount: 0, channelUsers: {} });
+  const [presence, setPresence] = useState<{ onlineCount: number; channelUsers: Record<string, string[]>; onlineUsers: { userId: string; username: string; displayName: string; avatarColor: string; role: string }[] }>({ onlineCount: 0, channelUsers: {}, onlineUsers: [] });
   const [showChannels, setShowChannels] = useState(true);
+  const [activeDmUserId, setActiveDmUserId] = useState<string | null>(null);
+  const [dmMessages, setDmMessages] = useState<{ id: number; senderId: string; receiverId: string; senderUsername?: string; senderDisplayName?: string; senderAvatarColor?: string; content: string; createdAt: string }[]>([]);
+  const [dmPartners, setDmPartners] = useState<string[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -363,7 +366,18 @@ export default function SignalChat() {
           setTyping((prev) => prev.filter((t) => t.userId !== data.userId));
         }, 3000);
       } else if (data.type === "presence") {
-        setPresence({ onlineCount: data.onlineCount, channelUsers: data.channelUsers });
+        setPresence({ onlineCount: data.onlineCount, channelUsers: data.channelUsers, onlineUsers: data.onlineUsers || [] });
+      } else if (data.type === "dm") {
+        setDmMessages((prev) => {
+          if (prev.find(m => m.id === data.id)) return prev;
+          return [...prev, data];
+        });
+        setDmPartners((prev) => {
+          const partnerId = data.senderId === user?.id ? data.receiverId : data.senderId;
+          if (prev.includes(partnerId)) return prev;
+          return [...prev, partnerId];
+        });
+        setTimeout(scrollToBottom, 100);
       } else if (data.type === "error") {
         toast({ title: "Chat Error", description: data.message, variant: "destructive" });
       }
@@ -379,16 +393,69 @@ export default function SignalChat() {
     };
   }, [token, activeChannelId]);
 
-  const handleChannelSwitch = (channelId: string) => {
-    setActiveChannelId(channelId);
+  const loadDmHistory = useCallback(async (targetUserId: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/chat/dm/${targetUserId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDmMessages(data.messages || []);
+        setTimeout(scrollToBottom, 100);
+      }
+    } catch (err) {
+      console.error("Failed to load DM history:", err);
+    }
+  }, [token, scrollToBottom]);
+
+  const loadDmPartners = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch("/api/chat/dm/partners", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDmPartners(data.partners || []);
+      }
+    } catch {}
+  }, [token]);
+
+  useEffect(() => {
+    if (token) loadDmPartners();
+  }, [token, loadDmPartners]);
+
+  const startDm = useCallback((targetUserId: string) => {
+    setActiveDmUserId(targetUserId);
+    setActiveChannelId(null);
     setMessages([]);
     setReplyTo(null);
     setTyping([]);
-    if (window.innerWidth < 768) setShowChannels(false);
+    loadDmHistory(targetUserId);
+  }, [loadDmHistory]);
+
+  const handleChannelSwitch = (channelId: string) => {
+    setActiveChannelId(channelId);
+    setActiveDmUserId(null);
+    setDmMessages([]);
+    setMessages([]);
+    setReplyTo(null);
+    setTyping([]);
+    if (typeof document !== "undefined" && document.documentElement.clientWidth < 768) setShowChannels(false);
   };
 
   const sendMessage = () => {
     if (!input.trim() || !wsRef.current) return;
+    if (activeDmUserId) {
+      wsRef.current.send(JSON.stringify({
+        type: "dm",
+        receiverId: activeDmUserId,
+        content: input.trim(),
+      }));
+      setInput("");
+      return;
+    }
     wsRef.current.send(JSON.stringify({
       type: "message",
       content: input.trim(),
@@ -499,70 +566,211 @@ export default function SignalChat() {
                   onSelect={handleChannelSwitch}
                   presence={presence.channelUsers}
                 />
+
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center gap-2 mb-2 px-2">
+                    <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Direct Messages
+                    </span>
+                  </div>
+                  <div className="space-y-0.5 mb-3">
+                    {(() => {
+                      const onlineIds = new Set(presence.onlineUsers.map(ou => ou.userId));
+                      const onlineOthers = presence.onlineUsers.filter(ou => ou.userId !== user.id);
+                      const offlinePartnerIds = dmPartners.filter(pid => pid !== user.id && !onlineIds.has(pid));
+
+                      return (
+                        <>
+                          {onlineOthers.map((ou) => (
+                            <button
+                              key={ou.userId}
+                              onClick={() => { startDm(ou.userId); if (typeof document !== "undefined" && document.documentElement.clientWidth < 768) setShowChannels(false); }}
+                              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${
+                                activeDmUserId === ou.userId
+                                  ? "bg-primary/10 text-primary"
+                                  : "hover-elevate"
+                              }`}
+                              data-testid={`button-dm-${ou.userId}`}
+                            >
+                              <div className="relative">
+                                <Avatar className="w-6 h-6">
+                                  <AvatarFallback style={{ backgroundColor: ou.avatarColor, color: "white" }} className="text-[10px] font-bold">
+                                    {ou.displayName.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <Circle className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 fill-emerald-500 text-emerald-500 border border-background rounded-full" />
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-medium truncate">{ou.displayName}</span>
+                                {ou.role === "admin" && (
+                                  <span className="text-[9px] text-muted-foreground">Admin</span>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                          {offlinePartnerIds.map((pid) => (
+                            <button
+                              key={pid}
+                              onClick={() => { startDm(pid); if (typeof document !== "undefined" && document.documentElement.clientWidth < 768) setShowChannels(false); }}
+                              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${
+                                activeDmUserId === pid
+                                  ? "bg-primary/10 text-primary"
+                                  : "hover-elevate"
+                              }`}
+                              data-testid={`button-dm-${pid}`}
+                            >
+                              <Avatar className="w-6 h-6">
+                                <AvatarFallback className="text-[10px] font-bold bg-muted-foreground/20">
+                                  ?
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs text-muted-foreground truncate">{pid}</span>
+                            </button>
+                          ))}
+                          {onlineOthers.length === 0 && offlinePartnerIds.length === 0 && (
+                            <p className="text-[10px] text-muted-foreground/50 px-2 py-1">No conversations yet</p>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
               </motion.aside>
             )}
           </AnimatePresence>
 
           <main className="flex-1 flex flex-col overflow-hidden">
-            {activeChannel && (
-              <div className="flex items-center gap-2 px-4 py-2 border-b shrink-0">
-                <Hash className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium" data-testid="text-active-channel">{activeChannel.name}</span>
-                {activeChannel.description && (
-                  <span className="text-xs text-muted-foreground/60 hidden sm:inline truncate">{activeChannel.description}</span>
-                )}
-              </div>
-            )}
+            {activeDmUserId ? (
+              <>
+                {(() => {
+                  const dmUser = presence.onlineUsers.find(u => u.userId === activeDmUserId);
+                  const dmName = dmUser?.displayName || activeDmUserId;
+                  const dmColor = dmUser?.avatarColor || "#6366f1";
+                  return (
+                    <div className="flex items-center gap-2 px-4 py-2 border-b shrink-0">
+                      <Avatar className="w-6 h-6">
+                        <AvatarFallback style={{ backgroundColor: dmColor, color: "white" }} className="text-[10px] font-bold">
+                          {dmName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium" data-testid="text-dm-partner">{dmName}</span>
+                      <Badge variant="outline" className="text-[9px]">DM</Badge>
+                    </div>
+                  );
+                })()}
 
-            <div className="flex-1 overflow-y-auto py-3 space-y-1" data-testid="messages-container">
-              {messages.length === 0 && (
-                <div className="flex items-center justify-center h-full text-muted-foreground/40 text-sm">
-                  No messages yet. Start the conversation!
+                <div className="flex-1 overflow-y-auto py-3 space-y-1" data-testid="dm-messages-container">
+                  {(() => {
+                    const filteredDms = dmMessages.filter(dm =>
+                      (dm.senderId === activeDmUserId && dm.receiverId === user.id) ||
+                      (dm.senderId === user.id && dm.receiverId === activeDmUserId)
+                    );
+                    if (filteredDms.length === 0) return (
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground/40 text-sm gap-2">
+                        <Mail className="w-8 h-8" />
+                        <span>No messages yet. Say hello!</span>
+                      </div>
+                    );
+                    return filteredDms.map((dm) => {
+                    const isOwn = dm.senderId === user.id;
+                    const senderName = isOwn ? (user.displayName || user.username) : (dm.senderDisplayName || dm.senderUsername || dm.senderId);
+                    const senderColor = isOwn ? user.avatarColor : (dm.senderAvatarColor || "#6366f1");
+                    const time = new Date(dm.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+                    return (
+                      <motion.div
+                        key={dm.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`flex gap-2 px-3 py-1 ${isOwn ? "flex-row-reverse" : ""}`}
+                      >
+                        <Avatar className="w-7 h-7 shrink-0 mt-0.5">
+                          <AvatarFallback style={{ backgroundColor: senderColor, color: "white" }} className="text-xs font-bold">
+                            {senderName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`flex flex-col max-w-[75%] ${isOwn ? "items-end" : ""}`}>
+                          <div className="flex items-baseline gap-2 mb-0.5">
+                            <span className="text-xs font-medium">{senderName}</span>
+                            <span className="text-[10px] text-muted-foreground/50">{time}</span>
+                          </div>
+                          <div className={`rounded-xl px-3 py-1.5 text-sm ${isOwn ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                            {dm.content}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  });
+                  })()}
+                  <div ref={messagesEndRef} />
                 </div>
-              )}
-              {messages.map((msg) => (
-                <MessageBubble
-                  key={msg.id}
-                  msg={msg}
-                  currentUserId={user.id}
-                  onReply={setReplyTo}
-                  replyTarget={msg.replyToId ? messagesMap.get(msg.replyToId) : undefined}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
+              </>
+            ) : (
+              <>
+                {activeChannel && (
+                  <div className="flex items-center gap-2 px-4 py-2 border-b shrink-0">
+                    <Hash className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium" data-testid="text-active-channel">{activeChannel.name}</span>
+                    {activeChannel.description && (
+                      <span className="text-xs text-muted-foreground/60 hidden sm:inline truncate">{activeChannel.description}</span>
+                    )}
+                  </div>
+                )}
 
-            {typing.length > 0 && (
-              <div className="px-4 py-1 text-[11px] text-muted-foreground/60 shrink-0" data-testid="text-typing-indicator">
-                {typing.map((t) => t.username).join(", ")} {typing.length === 1 ? "is" : "are"} typing...
-              </div>
-            )}
+                <div className="flex-1 overflow-y-auto py-3 space-y-1" data-testid="messages-container">
+                  {messages.length === 0 && (
+                    <div className="flex items-center justify-center h-full text-muted-foreground/40 text-sm">
+                      No messages yet. Start the conversation!
+                    </div>
+                  )}
+                  {messages.map((msg) => (
+                    <MessageBubble
+                      key={msg.id}
+                      msg={msg}
+                      currentUserId={user.id}
+                      onReply={setReplyTo}
+                      replyTarget={msg.replyToId ? messagesMap.get(msg.replyToId) : undefined}
+                    />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
 
-            {replyTo && (
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/30 border-t shrink-0">
-                <Reply className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground truncate flex-1">
-                  Replying to <strong>{replyTo.username}</strong>: {replyTo.content.slice(0, 80)}
-                </span>
-                <Button size="icon" variant="ghost" onClick={() => setReplyTo(null)} data-testid="button-cancel-reply">
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
+                {typing.length > 0 && (
+                  <div className="px-4 py-1 text-[11px] text-muted-foreground/60 shrink-0" data-testid="text-typing-indicator">
+                    {typing.map((t) => t.username).join(", ")} {typing.length === 1 ? "is" : "are"} typing...
+                  </div>
+                )}
+
+                {replyTo && (
+                  <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/30 border-t shrink-0">
+                    <Reply className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground truncate flex-1">
+                      Replying to <strong>{replyTo.username}</strong>: {replyTo.content.slice(0, 80)}
+                    </span>
+                    <Button size="icon" variant="ghost" onClick={() => setReplyTo(null)} data-testid="button-cancel-reply">
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="flex items-center gap-2 px-3 py-2 border-t shrink-0">
               <Input
-                placeholder={activeChannel ? `Message #${activeChannel.name}` : "Select a channel"}
+                placeholder={activeDmUserId
+                  ? `Message ${presence.onlineUsers.find(u => u.userId === activeDmUserId)?.displayName || "user"}...`
+                  : activeChannel ? `Message #${activeChannel.name}` : "Select a channel"
+                }
                 value={input}
-                onChange={(e) => { setInput(e.target.value); sendTyping(); }}
+                onChange={(e) => { setInput(e.target.value); if (!activeDmUserId) sendTyping(); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                disabled={!activeChannelId}
+                disabled={!activeChannelId && !activeDmUserId}
                 data-testid="input-chat-message"
               />
               <Button
                 size="icon"
                 onClick={sendMessage}
-                disabled={!input.trim() || !activeChannelId}
+                disabled={!input.trim() || (!activeChannelId && !activeDmUserId)}
                 data-testid="button-send-message"
               >
                 <Send className="w-4 h-4" />

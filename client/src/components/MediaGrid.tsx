@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
-import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download } from "lucide-react";
+import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,10 +58,12 @@ interface MediaGridProps {
   items: MediaResponse[];
   onPlay: (item: MediaResponse) => void;
   onEdit: (item: MediaResponse) => void;
+  onShare?: (item: MediaResponse) => void;
+  onAddToPlaylist?: (itemId: number) => void;
   bento?: boolean;
 }
 
-export function MediaGrid({ items, onPlay, onEdit, bento = true }: MediaGridProps) {
+export function MediaGrid({ items, onPlay, onEdit, onShare, onAddToPlaylist, bento = true }: MediaGridProps) {
   if (items.length === 0) {
     return (
       <motion.div
@@ -82,7 +84,7 @@ export function MediaGrid({ items, onPlay, onEdit, bento = true }: MediaGridProp
   }
 
   if (bento && items.length >= 3) {
-    return <BentoMediaGrid items={items} onPlay={onPlay} onEdit={onEdit} />;
+    return <BentoMediaGrid items={items} onPlay={onPlay} onEdit={onEdit} onShare={onShare} onAddToPlaylist={onAddToPlaylist} />;
   }
 
   return (
@@ -93,6 +95,8 @@ export function MediaGrid({ items, onPlay, onEdit, bento = true }: MediaGridProp
           item={item}
           onPlay={() => onPlay(item)}
           onEdit={() => onEdit(item)}
+          onShare={onShare ? () => onShare(item) : undefined}
+          onAddToPlaylist={onAddToPlaylist && item.category === "audio" ? () => onAddToPlaylist(item.id) : undefined}
           index={index}
         />
       ))}
@@ -100,7 +104,7 @@ export function MediaGrid({ items, onPlay, onEdit, bento = true }: MediaGridProp
   );
 }
 
-function BentoMediaGrid({ items, onPlay, onEdit }: { items: MediaResponse[]; onPlay: (item: MediaResponse) => void; onEdit: (item: MediaResponse) => void }) {
+function BentoMediaGrid({ items, onPlay, onEdit, onShare, onAddToPlaylist }: { items: MediaResponse[]; onPlay: (item: MediaResponse) => void; onEdit: (item: MediaResponse) => void; onShare?: (item: MediaResponse) => void; onAddToPlaylist?: (itemId: number) => void }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 auto-rows-auto">
       {items.map((item, index) => {
@@ -114,6 +118,8 @@ function BentoMediaGrid({ items, onPlay, onEdit }: { items: MediaResponse[]; onP
               item={item}
               onPlay={() => onPlay(item)}
               onEdit={() => onEdit(item)}
+              onShare={onShare ? () => onShare(item) : undefined}
+              onAddToPlaylist={onAddToPlaylist && item.category === "audio" ? () => onAddToPlaylist(item.id) : undefined}
               index={index}
               featured={isFeature}
             />
@@ -124,10 +130,12 @@ function BentoMediaGrid({ items, onPlay, onEdit }: { items: MediaResponse[]; onP
   );
 }
 
-function MediaCard({ item, onPlay, onEdit, index, featured = false }: {
+function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, featured = false }: {
   item: MediaResponse;
   onPlay: () => void;
   onEdit: () => void;
+  onShare?: () => void;
+  onAddToPlaylist?: () => void;
   index: number;
   featured?: boolean;
 }) {
@@ -328,6 +336,36 @@ function MediaCard({ item, onPlay, onEdit, index, featured = false }: {
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">Download</TooltipContent>
               </Tooltip>
+              {onShare && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => { e.stopPropagation(); haptic("tap"); onShare(); }}
+                      data-testid={`button-share-${item.id}`}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">Share</TooltipContent>
+                </Tooltip>
+              )}
+              {onAddToPlaylist && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => { e.stopPropagation(); haptic("tap"); onAddToPlaylist(); }}
+                      data-testid={`button-add-playlist-${item.id}`}
+                    >
+                      <ListMusic className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">Add to Playlist</TooltipContent>
+                </Tooltip>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

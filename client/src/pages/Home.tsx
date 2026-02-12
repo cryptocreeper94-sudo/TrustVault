@@ -76,7 +76,8 @@ import { TrustLayerBadge } from "@/components/TrustLayerBadge";
 import { VaultStats, StorageUsage, RecentCarousel } from "@/components/VaultDashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
-import { HelpCircle, Share2, Users, Activity, Sparkles } from "lucide-react";
+import { HelpCircle, Share2, Users, Activity, Sparkles, ListMusic } from "lucide-react";
+import { PlaylistPanel, AddToPlaylistDialog } from "@/components/PlaylistPanel";
 
 function getGreeting(): string {
   const now = new Date();
@@ -101,6 +102,7 @@ const FILTER_TABS: { key: string; label: string; icon: any }[] = [
   { key: "image", label: "Images", icon: ImageIcon },
   { key: "document", label: "Docs", icon: FileText },
   { key: "favorites", label: "Favorites", icon: Heart },
+  { key: "shared", label: "Shared with me", icon: Share2 },
 ];
 
 type SortOption = "date-desc" | "date-asc" | "name-asc" | "name-desc" | "size-desc" | "size-asc";
@@ -567,6 +569,123 @@ function ShareCollectionDialog({
   );
 }
 
+function ShareMediaDialog({
+  open,
+  onOpenChange,
+  mediaItem,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  mediaItem: MediaResponse | null;
+}) {
+  const [selectedTenants, setSelectedTenants] = useState<Set<string>>(new Set());
+  const [sharing, setSharing] = useState(false);
+  const { toast } = useToast();
+
+  const { data: familyMembers } = useQuery({
+    queryKey: ["/api/family-members"],
+    queryFn: async () => {
+      const res = await fetch("/api/family-members", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json() as Promise<{ id: string; name: string }[]>;
+    },
+    enabled: open,
+  });
+
+  const toggleTenant = (tenantId: string) => {
+    setSelectedTenants(prev => {
+      const next = new Set(prev);
+      if (next.has(tenantId)) next.delete(tenantId);
+      else next.add(tenantId);
+      return next;
+    });
+  };
+
+  const handleShare = async () => {
+    if (!mediaItem || selectedTenants.size === 0) return;
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/media/${mediaItem.id}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ sharedWithTenantIds: Array.from(selectedTenants) }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast({ title: "Shared", description: `Shared "${mediaItem.title}" with ${selectedTenants.size} family member(s).` });
+      setSelectedTenants(new Set());
+      onOpenChange(false);
+    } catch {
+      toast({ title: "Error", description: "Failed to share media.", variant: "destructive" });
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const members = familyMembers || [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md glass-morphism text-foreground">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-primary" />
+            Share Media
+          </DialogTitle>
+        </DialogHeader>
+        {mediaItem && (
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground">
+              Share <span className="font-semibold text-foreground">"{mediaItem.title}"</span> with family members
+            </p>
+            <div className="space-y-2">
+              {members.map(member => (
+                <button
+                  key={member.id}
+                  onClick={() => toggleTenant(member.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
+                    selectedTenants.has(member.id)
+                      ? "bg-primary/15 ring-1 ring-primary/30"
+                      : "bg-white/5"
+                  }`}
+                  data-testid={`button-share-media-${member.name?.toLowerCase()}`}
+                >
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                    selectedTenants.has(member.id)
+                      ? "bg-primary text-white"
+                      : "bg-white/10 text-muted-foreground"
+                  }`}>
+                    {member.name?.[0] || "?"}
+                  </div>
+                  <span className="text-sm font-medium flex-1 text-left">{member.name}</span>
+                  {selectedTenants.has(member.id) && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+              ))}
+              {members.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No family members found</p>
+              )}
+            </div>
+            <Button
+              data-testid="button-confirm-share-media"
+              onClick={handleShare}
+              disabled={selectedTenants.size === 0 || sharing}
+              className="w-full bg-primary text-white"
+            >
+              {sharing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                `Share with ${selectedTenants.size} member${selectedTenants.size !== 1 ? "s" : ""}`
+              )}
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function BulkActionBar({
   selectedIds,
   allItems,
@@ -881,8 +1000,10 @@ export default function Home() {
   const [activeCollectionId, setActiveCollectionId] = useState<number | null>(null);
   const [showNewCollectionDialog, setShowNewCollectionDialog] = useState(false);
   const [sharingCollection, setSharingCollection] = useState<CollectionWithCount | null>(null);
+  const [sharingMedia, setSharingMedia] = useState<MediaResponse | null>(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [nowPlayingItem, setNowPlayingItem] = useState<MediaResponse | null>(null);
+  const [addToPlaylistItemId, setAddToPlaylistItemId] = useState<number | null>(null);
   const [showAmbientMode, setShowAmbientMode] = useState(false);
   const [showSpinny, setShowSpinny] = useState(false);
   const { showOnboarding, setShowOnboarding, openGuide } = useOnboarding(user?.name);
@@ -890,6 +1011,16 @@ export default function Home() {
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
 
   const { data: sharedCollectionsData } = useSharedCollections();
+
+  const { data: sharedWithMeItems } = useQuery({
+    queryKey: ["/api/media/shared-with-me"],
+    queryFn: async () => {
+      const res = await fetch("/api/media/shared-with-me", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json() as Promise<MediaResponse[]>;
+    },
+    enabled: !!user,
+  });
 
   const collections = collectionsData || [];
   const sharedCollections = sharedCollectionsData || [];
@@ -940,13 +1071,14 @@ export default function Home() {
     }
   };
 
-  const baseItems = activeCollectionId ? (collectionItems || []) : (mediaItems || []);
+  const baseItems = activeCollectionId ? (collectionItems || []) : (activeFilter === "shared" ? (sharedWithMeItems || []) : (mediaItems || []));
 
   let filtered = baseItems;
 
   if (!activeCollectionId) {
     if (activeFilter === "favorites") {
       filtered = filtered.filter(m => m.isFavorite);
+    } else if (activeFilter === "shared") {
     } else if (activeFilter !== "all") {
       filtered = filtered.filter(m => m.category === activeFilter);
     }
@@ -982,7 +1114,7 @@ export default function Home() {
 
   const greeting = getGreeting();
 
-  const categoryCounts: Record<string, number> = { all: mediaItems?.length || 0, favorites: 0 };
+  const categoryCounts: Record<string, number> = { all: mediaItems?.length || 0, favorites: 0, shared: sharedWithMeItems?.length || 0 };
   mediaItems?.forEach(m => {
     categoryCounts[m.category] = (categoryCounts[m.category] || 0) + 1;
     if (m.isFavorite) categoryCounts.favorites++;
@@ -1542,7 +1674,19 @@ export default function Home() {
             items={filtered}
             onPlay={handlePlay}
             onEdit={setEditingItem}
+            onShare={setSharingMedia}
+            onAddToPlaylist={setAddToPlaylistItemId}
           />
+        )}
+
+        {!activeCollectionId && (activeFilter === "audio" || activeFilter === "all") && (
+          <div className="mt-6">
+            <PlaylistPanel
+              onPlayTrack={(item) => {
+                if (item.category === "audio") setNowPlayingItem(item);
+              }}
+            />
+          </div>
         )}
 
         {!activeCollectionId && (
@@ -1598,6 +1742,12 @@ export default function Home() {
         onClose={() => setShowAmbientMode(false)}
       />
 
+      <AddToPlaylistDialog
+        open={!!addToPlaylistItemId}
+        onOpenChange={(open) => !open && setAddToPlaylistItemId(null)}
+        mediaItemId={addToPlaylistItemId || 0}
+      />
+
       <VinylAgent externalOpen={showSpinny} onExternalOpenChange={setShowSpinny} />
 
       <EditMediaDialog
@@ -1616,6 +1766,12 @@ export default function Home() {
         open={!!sharingCollection}
         onOpenChange={(open) => { if (!open) setSharingCollection(null); }}
         collection={sharingCollection}
+      />
+
+      <ShareMediaDialog
+        open={!!sharingMedia}
+        onOpenChange={(open) => { if (!open) setSharingMedia(null); }}
+        mediaItem={sharingMedia}
       />
 
       <ChangePasswordDialog

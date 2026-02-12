@@ -991,6 +991,76 @@ export async function registerRoutes(
     }
   });
 
+  // --- Media Sharing ---
+
+  app.get("/api/media/shared-with-me", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const items = await storage.getSharedWithMe(tenantId);
+      res.json(items);
+    } catch (err) {
+      console.error("Error fetching shared media:", err);
+      res.status(500).json({ message: "Failed to fetch shared media" });
+    }
+  });
+
+  app.post("/api/media/:id/share", isAuthenticated, async (req, res) => {
+    try {
+      const mediaItemId = Number(req.params.id);
+      const tenantId = (req.session as any).tenantId;
+      const { sharedWithTenantIds } = req.body;
+      if (!Array.isArray(sharedWithTenantIds) || sharedWithTenantIds.length === 0) {
+        return res.status(400).json({ message: "sharedWithTenantIds required" });
+      }
+      const item = await storage.getMediaItem(mediaItemId);
+      if (!item || item.tenantId !== tenantId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const shares = await storage.shareMedia(mediaItemId, tenantId, sharedWithTenantIds);
+      await storage.createActivity({
+        tenantId,
+        actorName: (req.session as any).userName || "User",
+        actionType: "share",
+        entityType: "media",
+        entityId: mediaItemId,
+        entityTitle: item.title,
+        metadata: JSON.stringify({ sharedWith: sharedWithTenantIds }),
+      });
+      res.json({ success: true, shares });
+    } catch (err) {
+      console.error("Error sharing media:", err);
+      res.status(500).json({ message: "Failed to share media" });
+    }
+  });
+
+  app.get("/api/media/:id/shares", isAuthenticated, async (req, res) => {
+    try {
+      const mediaItemId = Number(req.params.id);
+      const shares = await storage.getMediaShares(mediaItemId);
+      res.json(shares);
+    } catch (err) {
+      console.error("Error fetching shares:", err);
+      res.status(500).json({ message: "Failed to fetch shares" });
+    }
+  });
+
+  app.delete("/api/media/:id/share/:tenantId", isAuthenticated, async (req, res) => {
+    try {
+      const mediaItemId = Number(req.params.id);
+      const sharedWithTenantId = req.params.tenantId;
+      const currentTenantId = (req.session as any).tenantId;
+      const item = await storage.getMediaItem(mediaItemId);
+      if (!item || item.tenantId !== currentTenantId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      await storage.unshareMedia(mediaItemId, sharedWithTenantId as string);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error unsharing media:", err);
+      res.status(500).json({ message: "Failed to unshare media" });
+    }
+  });
+
   // --- Media Routes ---
 
   // Batch routes must come before parameterized :id routes
@@ -1252,6 +1322,125 @@ export async function registerRoutes(
     const job = await storage.getProcessingJob(Number(req.params.id));
     if (!job) return res.status(404).json({ message: "Job not found" });
     res.json(job);
+  });
+
+  // --- Playlists ---
+  app.get("/api/playlists", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const owned = await storage.getPlaylists(tenantId);
+      const shared = await storage.getSharedPlaylists(tenantId);
+      res.json({ owned, shared });
+    } catch (err) {
+      console.error("Error fetching playlists:", err);
+      res.status(500).json({ message: "Failed to fetch playlists" });
+    }
+  });
+
+  app.post("/api/playlists", isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = (req.session as any).tenantId;
+      const { name, description } = req.body;
+      if (!name) return res.status(400).json({ message: "Name required" });
+      const playlist = await storage.createPlaylist({ tenantId, name, description });
+      res.json(playlist);
+    } catch (err) {
+      console.error("Error creating playlist:", err);
+      res.status(500).json({ message: "Failed to create playlist" });
+    }
+  });
+
+  app.delete("/api/playlists/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const tenantId = (req.session as any).tenantId;
+      const pl = await storage.getPlaylist(id);
+      if (!pl || pl.tenantId !== tenantId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deletePlaylist(id);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting playlist:", err);
+      res.status(500).json({ message: "Failed to delete playlist" });
+    }
+  });
+
+  app.get("/api/playlists/:id/items", isAuthenticated, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const items = await storage.getPlaylistItems(id);
+      res.json(items);
+    } catch (err) {
+      console.error("Error fetching playlist items:", err);
+      res.status(500).json({ message: "Failed to fetch playlist items" });
+    }
+  });
+
+  app.post("/api/playlists/:id/items", isAuthenticated, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const tenantId = (req.session as any).tenantId;
+      const { mediaItemId } = req.body;
+      if (!mediaItemId) return res.status(400).json({ message: "mediaItemId required" });
+      const item = await storage.addToPlaylist(id, mediaItemId, tenantId);
+      res.json(item);
+    } catch (err) {
+      console.error("Error adding to playlist:", err);
+      res.status(500).json({ message: "Failed to add to playlist" });
+    }
+  });
+
+  app.delete("/api/playlists/:id/items/:mediaId", isAuthenticated, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const mediaId = Number(req.params.mediaId);
+      await storage.removeFromPlaylist(id, mediaId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error removing from playlist:", err);
+      res.status(500).json({ message: "Failed to remove from playlist" });
+    }
+  });
+
+  app.post("/api/playlists/:id/share", isAuthenticated, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const tenantId = (req.session as any).tenantId;
+      const { sharedWithTenantIds } = req.body;
+      const pl = await storage.getPlaylist(id);
+      if (!pl || pl.tenantId !== tenantId) return res.status(403).json({ message: "Not authorized" });
+      await storage.sharePlaylist(id, sharedWithTenantIds);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error sharing playlist:", err);
+      res.status(500).json({ message: "Failed to share playlist" });
+    }
+  });
+
+  // --- Direct Messages ---
+  app.get("/api/chat/dm/partners", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) return res.status(401).json({ message: "Unauthorized" });
+      const jwt = await import("jsonwebtoken");
+      const decoded = jwt.default.verify(authHeader.split(" ")[1], process.env.JWT_SECRET!) as any;
+      const partners = await storage.getDirectMessagePartners(decoded.userId);
+      res.json({ partners });
+    } catch (err) {
+      res.status(401).json({ message: "Unauthorized" });
+    }
+  });
+
+  app.get("/api/chat/dm/:userId", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) return res.status(401).json({ message: "Unauthorized" });
+      const jwt = await import("jsonwebtoken");
+      const decoded = jwt.default.verify(authHeader.split(" ")[1], process.env.JWT_SECRET!) as any;
+      const messages = await storage.getDirectMessages(decoded.userId, req.params.userId);
+      res.json({ messages });
+    } catch (err) {
+      res.status(401).json({ message: "Unauthorized" });
+    }
   });
 
   return httpServer;

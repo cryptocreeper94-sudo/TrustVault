@@ -15,6 +15,7 @@ import {
   DEFAULT_CHANNELS,
   activityLog,
   collectionShares,
+  mediaShares,
   type MediaItem, 
   type InsertMediaItem, 
   type UpdateMediaRequest,
@@ -45,10 +46,20 @@ import {
   type ActivityLog,
   type CollectionShare,
   type InsertCollectionShare,
+  type MediaShare,
+  directMessages,
+  type DirectMessage,
+  playlists,
+  playlistItems,
+  playlistShares,
   featureRequests,
   featureVotes,
+  type Playlist,
+  type InsertPlaylist,
+  type PlaylistItem,
+  type PlaylistWithItems,
 } from "@shared/schema";
-import { eq, desc, asc, and, inArray, sql, count } from "drizzle-orm";
+import { eq, desc, asc, and, or, inArray, sql, count } from "drizzle-orm";
 
 export interface IStorage {
   // Tenant methods
@@ -141,6 +152,23 @@ export interface IStorage {
   reorderCollections(tenantId: string, orderedIds: number[]): Promise<void>;
   reorderCollectionItems(collectionId: number, orderedMediaIds: number[]): Promise<void>;
 
+  // Playlists
+  getPlaylists(tenantId: string): Promise<PlaylistWithItems[]>;
+  getPlaylist(id: number): Promise<Playlist | undefined>;
+  createPlaylist(data: InsertPlaylist): Promise<Playlist>;
+  deletePlaylist(id: number): Promise<void>;
+  addToPlaylist(playlistId: number, mediaItemId: number, addedByTenantId: string): Promise<PlaylistItem>;
+  removeFromPlaylist(playlistId: number, mediaItemId: number): Promise<void>;
+  getPlaylistItems(playlistId: number): Promise<(PlaylistItem & { mediaTitle: string; mediaUrl: string; mediaCategory: string; mediaDuration: number | null })[]>;
+  sharePlaylist(playlistId: number, sharedWithTenantIds: string[]): Promise<void>;
+  getSharedPlaylists(tenantId: string): Promise<PlaylistWithItems[]>;
+
+  // Media Sharing
+  shareMedia(mediaItemId: number, sharedByTenantId: string, sharedWithTenantIds: string[]): Promise<MediaShare[]>;
+  getSharedWithMe(tenantId: string): Promise<MediaItem[]>;
+  getMediaShares(mediaItemId: number): Promise<MediaShare[]>;
+  unshareMedia(mediaItemId: number, sharedWithTenantId: string): Promise<void>;
+
   // Signal Chat / SSO
   getChatUserByUsername(username: string): Promise<ChatUser | undefined>;
   getChatUserByEmail(email: string): Promise<ChatUser | undefined>;
@@ -156,6 +184,11 @@ export interface IStorage {
   seedDefaultChannels(): Promise<void>;
   getChatMessages(channelId: string, limit?: number): Promise<(ChatMessage & { username: string; avatarColor: string; role: string; displayName: string })[]>;
   createChatMessage(data: { channelId: string; userId: string; content: string; replyToId?: string }): Promise<ChatMessage>;
+
+  // Direct Messages
+  getDirectMessages(userId1: string, userId2: string, limit?: number): Promise<DirectMessage[]>;
+  createDirectMessage(senderId: string, receiverId: string, content: string): Promise<DirectMessage>;
+  getDirectMessagePartners(userId: string): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -674,6 +707,33 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  // --- Direct Messages ---
+
+  async getDirectMessages(userId1: string, userId2: string, limit = 50): Promise<DirectMessage[]> {
+    const msgs = await db.select().from(directMessages)
+      .where(
+        or(
+          and(eq(directMessages.senderId, userId1), eq(directMessages.receiverId, userId2)),
+          and(eq(directMessages.senderId, userId2), eq(directMessages.receiverId, userId1))
+        )
+      )
+      .orderBy(directMessages.createdAt)
+      .limit(limit);
+    return msgs;
+  }
+
+  async createDirectMessage(senderId: string, receiverId: string, content: string): Promise<DirectMessage> {
+    const [msg] = await db.insert(directMessages).values({ senderId, receiverId, content }).returning();
+    return msg;
+  }
+
+  async getDirectMessagePartners(userId: string): Promise<string[]> {
+    const sent = await db.selectDistinct({ id: directMessages.receiverId }).from(directMessages).where(eq(directMessages.senderId, userId));
+    const received = await db.selectDistinct({ id: directMessages.senderId }).from(directMessages).where(eq(directMessages.receiverId, userId));
+    const all = new Set([...sent.map(r => r.id), ...received.map(r => r.id)]);
+    return Array.from(all);
+  }
+
   // --- Activity Log ---
 
   async createActivity(data: InsertActivityLog): Promise<ActivityLog> {
@@ -812,6 +872,128 @@ export class DatabaseStorage implements IStorage {
           eq(collectionItems.mediaItemId, orderedMediaIds[i])
         ));
     }
+  }
+
+  async shareMedia(mediaItemId: number, sharedByTenantId: string, sharedWithTenantIds: string[]): Promise<MediaShare[]> {
+    const results: MediaShare[] = [];
+    for (const tid of sharedWithTenantIds) {
+      const existing = await db.select().from(mediaShares).where(
+        and(eq(mediaShares.mediaItemId, mediaItemId), eq(mediaShares.sharedWithTenantId, tid))
+      );
+      if (existing.length === 0) {
+        const [share] = await db.insert(mediaShares).values({
+          mediaItemId,
+          sharedByTenantId,
+          sharedWithTenantId: tid,
+        }).returning();
+        results.push(share);
+      }
+    }
+    return results;
+  }
+
+  async getSharedWithMe(tenantId: string): Promise<MediaItem[]> {
+    const shares = await db.select().from(mediaShares).where(eq(mediaShares.sharedWithTenantId, tenantId));
+    if (shares.length === 0) return [];
+    const mediaIds = shares.map(s => s.mediaItemId);
+    return db.select().from(mediaItems).where(inArray(mediaItems.id, mediaIds));
+  }
+
+  async getMediaShares(mediaItemId: number): Promise<MediaShare[]> {
+    return db.select().from(mediaShares).where(eq(mediaShares.mediaItemId, mediaItemId));
+  }
+
+  async unshareMedia(mediaItemId: number, sharedWithTenantId: string): Promise<void> {
+    await db.delete(mediaShares).where(
+      and(eq(mediaShares.mediaItemId, mediaItemId), eq(mediaShares.sharedWithTenantId, sharedWithTenantId))
+    );
+  }
+
+  // --- Playlists ---
+
+  async getPlaylists(tenantId: string): Promise<PlaylistWithItems[]> {
+    const allPlaylists = await db.select().from(playlists).where(eq(playlists.tenantId, tenantId));
+    const result: PlaylistWithItems[] = [];
+    for (const pl of allPlaylists) {
+      const items = await db.select().from(playlistItems).where(eq(playlistItems.playlistId, pl.id));
+      result.push({ ...pl, itemCount: items.length });
+    }
+    return result;
+  }
+
+  async getPlaylist(id: number): Promise<Playlist | undefined> {
+    const [pl] = await db.select().from(playlists).where(eq(playlists.id, id));
+    return pl;
+  }
+
+  async createPlaylist(data: InsertPlaylist): Promise<Playlist> {
+    const [pl] = await db.insert(playlists).values(data).returning();
+    return pl;
+  }
+
+  async deletePlaylist(id: number): Promise<void> {
+    await db.delete(playlistItems).where(eq(playlistItems.playlistId, id));
+    await db.delete(playlistShares).where(eq(playlistShares.playlistId, id));
+    await db.delete(playlists).where(eq(playlists.id, id));
+  }
+
+  async addToPlaylist(playlistId: number, mediaItemId: number, addedByTenantId: string): Promise<PlaylistItem> {
+    const existing = await db.select().from(playlistItems).where(
+      and(eq(playlistItems.playlistId, playlistId), eq(playlistItems.mediaItemId, mediaItemId))
+    );
+    if (existing.length > 0) return existing[0];
+    const maxOrder = await db.select().from(playlistItems).where(eq(playlistItems.playlistId, playlistId));
+    const [item] = await db.insert(playlistItems).values({
+      playlistId,
+      mediaItemId,
+      addedByTenantId,
+      sortOrder: maxOrder.length,
+    }).returning();
+    return item;
+  }
+
+  async removeFromPlaylist(playlistId: number, mediaItemId: number): Promise<void> {
+    await db.delete(playlistItems).where(
+      and(eq(playlistItems.playlistId, playlistId), eq(playlistItems.mediaItemId, mediaItemId))
+    );
+  }
+
+  async getPlaylistItems(playlistId: number): Promise<(PlaylistItem & { mediaTitle: string; mediaUrl: string; mediaCategory: string; mediaDuration: number | null })[]> {
+    const items = await db.select().from(playlistItems).where(eq(playlistItems.playlistId, playlistId)).orderBy(playlistItems.sortOrder);
+    const result = [];
+    for (const item of items) {
+      const [media] = await db.select().from(mediaItems).where(eq(mediaItems.id, item.mediaItemId));
+      if (media) {
+        result.push({ ...item, mediaTitle: media.title, mediaUrl: media.url, mediaCategory: media.category, mediaDuration: media.durationSeconds });
+      }
+    }
+    return result;
+  }
+
+  async sharePlaylist(playlistId: number, sharedWithTenantIds: string[]): Promise<void> {
+    await db.update(playlists).set({ isShared: true }).where(eq(playlists.id, playlistId));
+    for (const tid of sharedWithTenantIds) {
+      const existing = await db.select().from(playlistShares).where(
+        and(eq(playlistShares.playlistId, playlistId), eq(playlistShares.sharedWithTenantId, tid))
+      );
+      if (existing.length === 0) {
+        await db.insert(playlistShares).values({ playlistId, sharedWithTenantId: tid });
+      }
+    }
+  }
+
+  async getSharedPlaylists(tenantId: string): Promise<PlaylistWithItems[]> {
+    const shares = await db.select().from(playlistShares).where(eq(playlistShares.sharedWithTenantId, tenantId));
+    if (shares.length === 0) return [];
+    const result: PlaylistWithItems[] = [];
+    for (const share of shares) {
+      const [pl] = await db.select().from(playlists).where(eq(playlists.id, share.playlistId));
+      if (pl) {
+        const items = await db.select().from(playlistItems).where(eq(playlistItems.playlistId, pl.id));
+        result.push({ ...pl, itemCount: items.length });
+      }
+    }
+    return result;
   }
 }
 
