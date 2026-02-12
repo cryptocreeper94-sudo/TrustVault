@@ -18,6 +18,8 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+setTimeout(dismissSplash, 4000);
+
 createRoot(document.getElementById("root")!).render(<App />);
 
 window.addEventListener("load", () => {

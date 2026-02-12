@@ -1925,9 +1925,18 @@ function PasswordLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const [devMode, setDevMode] = useState(false);
   const [devPin, setDevPin] = useState("");
-  const [claimMode, setClaimMode] = useState(false);
+  const [claimMode, setClaimMode] = useState(() => {
+    return typeof window !== "undefined" && new URLSearchParams(window.location.search).get("setup") === "1";
+  });
   const [claimEmail, setClaimEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("setup") === "1") {
+      setClaimMode(true);
+    }
+  }, []);
 
   const multiUser = accountCount > 1;
 
@@ -1994,15 +2003,15 @@ function PasswordLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      <div className="relative w-full md:w-1/2 lg:w-3/5 h-[40vh] md:h-screen overflow-hidden bg-black">
+    <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row">
+      <div className="relative w-full md:w-1/2 lg:w-3/5 h-[28vh] sm:h-[35vh] md:h-screen shrink-0 overflow-hidden bg-black">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-background to-background opacity-80" />
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen" />
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 md:p-16 z-10 bg-gradient-to-t from-black/60 via-transparent to-transparent">
-          <img src={trustlayerEmblem} alt="DW Media Studio" className="w-32 h-32 md:w-44 md:h-44 object-cover mb-8" />
-          <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4 leading-tight text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-16 z-10 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+          <img src={trustlayerEmblem} alt="DW Media Studio" className="w-20 h-20 sm:w-32 sm:h-32 md:w-44 md:h-44 object-cover mb-4 md:mb-8" />
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-bold text-white mb-2 md:mb-4 leading-tight text-center">
             Your digital assets,<br />
             <span className="theme-gradient-text">
               secured forever.
@@ -2014,7 +2023,7 @@ function PasswordLogin() {
         </div>
       </div>
 
-      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center justify-center p-6 sm:p-8 bg-card border-l border-white/5 overflow-y-auto">
+      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center md:justify-center p-5 sm:p-8 bg-card border-l border-white/5 overflow-y-auto flex-1">
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">

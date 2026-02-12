@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Lock, ExternalLink, Layers, Zap, ArrowRight, Fingerprint, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Link } from "wouter";
+
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 
 export default function Invite() {
@@ -24,7 +24,7 @@ export default function Invite() {
           <div className="absolute top-1/3 left-0 w-[400px] h-[400px] bg-indigo-600/5 rounded-full blur-[120px]" />
         </div>
 
-        <div className="relative z-10 max-w-lg mx-auto px-5 py-10 sm:py-16 flex flex-col items-center min-h-screen">
+        <div className="relative z-10 max-w-lg mx-auto px-5 py-8 sm:py-16 flex flex-col items-center min-h-[100dvh]">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -93,21 +93,33 @@ export default function Invite() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="w-full mb-10"
           >
-            <div className="w-full flex">
+            <div className="w-full flex flex-col gap-3">
               <Button
                 asChild
                 size="lg"
                 className="flex-1 gap-2"
                 data-testid="button-invite-login"
               >
-                <Link href="/">
-                  Open TrustVault
+                <a href="/?setup=1">
+                  Set Up My Account
                   <ArrowRight className="w-5 h-5" />
-                </Link>
+                </a>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="flex-1 gap-2"
+                data-testid="button-invite-login-existing"
+              >
+                <a href="/">
+                  Already set up? Log in
+                  <ArrowRight className="w-5 h-5" />
+                </a>
               </Button>
             </div>
             <p className="text-center text-xs text-muted-foreground/60 mt-3" data-testid="text-invite-instructions">
-              Log in with your first name and the temporary password below.
+              Use the temporary password below, then you'll create your own.
             </p>
           </motion.div>
 
@@ -118,18 +130,32 @@ export default function Invite() {
             className="w-full mb-8"
           >
             <Card className="p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Your Login Info</p>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Name</span>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">How To Get Started</p>
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-sm font-semibold text-primary shrink-0">1.</span>
+                  <p className="text-sm text-muted-foreground">Tap <strong className="text-foreground">"Set Up My Account"</strong> above</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-sm font-semibold text-primary shrink-0">2.</span>
+                  <p className="text-sm text-muted-foreground">Enter your <strong className="text-foreground">first name</strong> (exactly as shown below)</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-sm font-semibold text-primary shrink-0">3.</span>
+                  <p className="text-sm text-muted-foreground">Add your email and create your own password</p>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-border/50 space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <span className="text-sm text-muted-foreground">Your Name</span>
                   <span className="text-sm font-medium font-mono" data-testid="text-invite-username">Your first name</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Temporary Password</span>
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <span className="text-sm text-muted-foreground">Temp Password</span>
                   <span className="text-sm font-medium font-mono" data-testid="text-invite-password">Temp12345!</span>
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground/60 mt-3">You'll be asked to set your own password when you first log in.</p>
+              <p className="text-[11px] text-muted-foreground/60 mt-3">The temporary password is only needed if you use the regular login instead of the setup button.</p>
             </Card>
           </motion.div>
 
