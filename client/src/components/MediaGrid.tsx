@@ -2,7 +2,8 @@ import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
-import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic, Sparkles, Loader2 } from "lucide-react";
+import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic, Sparkles, Loader2, Upload, Edit3, Tag, Users, Zap, Lock } from "lucide-react";
+import { UploadDialog } from "@/components/UploadDialog";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,18 +69,115 @@ export function MediaGrid({ items, onPlay, onEdit, onShare, onAddToPlaylist, ben
   if (items.length === 0) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
-        className="flex flex-col items-center justify-center py-20 text-center opacity-60"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col items-center justify-center py-16 sm:py-20 px-4 text-center min-h-[600px]"
       >
-        <div className="w-24 h-24 rounded-2xl premium-gradient-other flex items-center justify-center mb-6 shadow-xl">
-          <File className="w-10 h-10 text-white/60" />
+        <div className="max-w-3xl w-full space-y-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="space-y-4"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full premium-gradient-image flex items-center justify-center mx-auto shadow-2xl card-glow">
+              <Zap className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-display font-bold theme-gradient-text" data-testid="text-welcome-heading">
+              Welcome to Your Vault
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-xl mx-auto" data-testid="text-welcome-description">
+              Your secure digital sanctuary for all your precious memories and creative content
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5"
+          >
+            {[
+              { icon: Upload, title: "Upload & Store", description: "Securely upload videos, photos, audio, and documents in one place" },
+              { icon: Edit3, title: "Edit & Create", description: "Trim videos, enhance images, and customize your content effortlessly" },
+              { icon: Tag, title: "Organize & Tag", description: "Add tags, labels, and descriptions to keep everything organized" },
+              { icon: Users, title: "Share & Collaborate", description: "Share your vault with others and collaborate on projects" },
+            ].map((feature, idx) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 + idx * 0.08 }}
+                className="glass-card rounded-md p-5 sm:p-6 hover-elevate"
+                data-testid={`card-feature-${idx + 1}`}
+              >
+                <div className="flex flex-col items-start gap-3">
+                  <div className="p-3 rounded-md bg-primary/10">
+                    <feature.icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-display font-semibold text-foreground mb-1.5" data-testid={`text-feature-title-${idx + 1}`}>
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-feature-description-${idx + 1}`}>
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="space-y-6"
+          >
+            <UploadDialog>
+              <Button 
+                size="lg" 
+                className="gap-2 rounded-md" 
+                data-testid="button-upload-cta"
+              >
+                <Upload className="w-5 h-5" />
+                Get Started - Upload Your First File
+              </Button>
+            </UploadDialog>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+              className="space-y-3"
+            >
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium" data-testid="text-media-types-label">
+                Supported Media Types
+              </p>
+              <div className="flex justify-center items-center gap-4 sm:gap-6 flex-wrap" data-testid="container-media-types">
+                {[
+                  { icon: Film, label: "Videos", testId: "icon-video-type" },
+                  { icon: Music, label: "Audio", testId: "icon-audio-type" },
+                  { icon: ImageIcon, label: "Images", testId: "icon-image-type" },
+                  { icon: FileText, label: "Documents", testId: "icon-document-type" },
+                ].map((media) => (
+                  <motion.div
+                    key={media.label}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.4, delay: 0.9 }}
+                    className="flex flex-col items-center gap-1.5"
+                    data-testid={media.testId}
+                  >
+                    <media.icon className="w-6 h-6 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{media.label}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
-        <h3 className="text-2xl font-display font-semibold mb-2" data-testid="text-empty-state">No files yet</h3>
-        <p className="text-muted-foreground max-w-md">
-          Upload your first file to start building your vault.
-        </p>
       </motion.div>
     );
   }

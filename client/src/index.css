@@ -200,6 +200,15 @@
               0 16px 56px -8px hsl(var(--primary) / 0.12);
 }
 
+@keyframes fab-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); }
+  50% { box-shadow: 0 0 0 12px hsl(var(--primary) / 0); }
+}
+
+.fab-pulse {
+  animation: fab-pulse 2.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shimmer {
     animation: none;
@@ -215,6 +224,9 @@
   .premium-gradient-document,
   .premium-gradient-other,
   .premium-gradient-collection {
+    animation: none;
+  }
+  .fab-pulse {
     animation: none;
   }
 }

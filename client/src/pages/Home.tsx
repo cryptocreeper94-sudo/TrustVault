@@ -1452,7 +1452,12 @@ export default function Home() {
             </Button>
           </div>
         )}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6"
+        >
           <div>
             {activeCollection ? (
               <>
@@ -1549,7 +1554,7 @@ export default function Home() {
               </Button>
             </UploadDialog>
           </div>
-        </div>
+        </motion.div>
 
         {!activeCollectionId && (
           <>
@@ -1605,7 +1610,12 @@ export default function Home() {
         </div>
 
         {!activeCollectionId && (
-          <div className="flex gap-2.5 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="flex gap-2.5 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0"
+          >
             {FILTER_TABS.map(tab => {
               const isActive = activeFilter === tab.key;
               const count = categoryCounts[tab.key] || 0;
@@ -1634,10 +1644,15 @@ export default function Home() {
                 </button>
               );
             })}
-          </div>
+          </motion.div>
         )}
 
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0"
+        >
           {(() => {
             const rootCollections = collections.filter(c => !(c as any).parentId);
             const childCollections = activeCollectionId
@@ -1670,7 +1685,7 @@ export default function Home() {
             </div>
             <p className="text-xs font-semibold text-muted-foreground">New Collection</p>
           </button>
-        </div>
+        </motion.div>
 
         {sharedCollections.length > 0 && !activeCollectionId && (
           <div className="mb-6">
@@ -1910,6 +1925,17 @@ export default function Home() {
         open={showOnboarding}
         onOpenChange={setShowOnboarding}
       />
+
+      <UploadDialog>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-6 right-6 md:hidden w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/30 flex items-center justify-center z-30 fab-pulse"
+          data-testid="button-fab-upload"
+          aria-label="Upload media"
+        >
+          <Plus className="w-6 h-6 text-primary-foreground" />
+        </motion.button>
+      </UploadDialog>
     </div>
   );
 }
@@ -2006,24 +2032,56 @@ function PasswordLogin() {
     <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row">
       <div className="relative w-full md:w-1/2 lg:w-3/5 h-[28vh] sm:h-[35vh] md:h-screen shrink-0 overflow-hidden bg-black">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-background to-background opacity-80" />
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen" />
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen animate-pulse"
+        />
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.4, delay: 0.2, ease: "easeOut" }}
+          className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen"
+        />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-16 z-10 bg-gradient-to-t from-black/60 via-transparent to-transparent">
-          <img src={trustlayerEmblem} alt="DW Media Studio" className="w-20 h-20 sm:w-32 sm:h-32 md:w-44 md:h-44 object-cover mb-4 md:mb-8" />
-          <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-bold text-white mb-2 md:mb-4 leading-tight text-center">
+          <motion.img
+            initial={{ opacity: 0, scale: 0.7, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
+            src={trustlayerEmblem}
+            alt="DW Media Studio"
+            className="w-20 h-20 sm:w-32 sm:h-32 md:w-44 md:h-44 object-cover mb-4 md:mb-8"
+          />
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="text-2xl sm:text-3xl md:text-5xl font-display font-bold text-white mb-2 md:mb-4 leading-tight text-center"
+          >
             Your digital assets,<br />
             <span className="theme-gradient-text">
               secured forever.
             </span>
-          </h2>
-          <p className="text-white/60 text-lg hidden md:block text-center max-w-md">
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="text-white/60 text-lg hidden md:block text-center max-w-md"
+          >
             A private vault for your most valuable media and memories.
-          </p>
+          </motion.p>
         </div>
       </div>
 
-      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center md:justify-center p-5 sm:p-8 bg-card border-l border-white/5 overflow-y-auto flex-1">
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="w-full md:w-1/2 lg:w-2/5 flex flex-col items-center md:justify-center p-5 sm:p-8 bg-card border-l border-white/5 overflow-y-auto flex-1"
+      >
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">
@@ -2243,7 +2301,7 @@ function PasswordLogin() {
             </p>
           </form>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
