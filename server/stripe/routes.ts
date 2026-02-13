@@ -2,8 +2,43 @@ import { type Express, type Request, type Response, type NextFunction } from "ex
 import Stripe from "stripe";
 import { storage } from "../storage";
 import { TIER_PRICING, type SubscriptionTier } from "@shared/schema";
+import {
+  sendPurchaseConfirmation,
+  sendSubscriptionChangeNotification,
+  sendCancellationNotification,
+  sendPaymentFailedNotification,
+} from "../services/emailService";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+async function resolveCustomerEmail(customerId: string): Promise<{ email: string | null; name: string }> {
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    if (customer.deleted) return { email: null, name: "Subscriber" };
+    const tenantId = (customer as Stripe.Customer).metadata?.tenantId;
+    let email = (customer as Stripe.Customer).email;
+    let name = (customer as Stripe.Customer).name || "Subscriber";
+
+    if (!email && tenantId) {
+      const tenant = await storage.getTenant(tenantId);
+      if (tenant?.pinAuthId) {
+        const auth = await storage.getPinAuthById(tenant.pinAuthId);
+        if (auth?.email) email = auth.email;
+        if (auth?.name) name = auth.name;
+      }
+    }
+
+    return { email, name };
+  } catch {
+    return { email: null, name: "Subscriber" };
+  }
+}
+
+function getBaseUrl(req: Request): string {
+  const host = req.headers.host || "localhost:5000";
+  const protocol = req.headers["x-forwarded-proto"] || "http";
+  return `${protocol}://${host}`;
+}
 
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.session && req.session.authenticated) {
@@ -158,8 +193,15 @@ export function registerStripeRoutes(app: Express) {
       const protocol = req.headers["x-forwarded-proto"] || "http";
       const baseUrl = `${protocol}://${host}`;
 
+      let customerEmail: string | undefined;
+      if (req.session.pinAuthId) {
+        const auth = await storage.getPinAuthById(req.session.pinAuthId);
+        if (auth?.email) customerEmail = auth.email;
+      }
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
+        customer_email: customerEmail && !sub?.stripeCustomerId ? customerEmail : undefined,
         mode: "subscription",
         line_items: [{ price: priceEntry[0], quantity: 1 }],
         success_url: `${baseUrl}/pricing?success=true`,
@@ -267,6 +309,37 @@ export function registerStripeRoutes(app: Express) {
             });
 
             console.log(`Subscription activated for tenant ${tenant.name}: ${tierInfo?.tier || "personal"}`);
+
+            const { email: custEmail, name: custName } = await resolveCustomerEmail(customerId);
+            if (custEmail) {
+              const invoiceId = (session as any).invoice as string | undefined;
+              let invoiceUrl: string | undefined;
+              let receiptUrl: string | undefined;
+              if (invoiceId) {
+                try {
+                  const inv = await stripe.invoices.retrieve(invoiceId);
+                  invoiceUrl = inv.invoice_pdf || undefined;
+                  receiptUrl = inv.hosted_invoice_url || undefined;
+                } catch {}
+              }
+
+              const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+              sendPurchaseConfirmation({
+                customerName: custName,
+                customerEmail: custEmail,
+                tier: tierInfo?.tier || "personal",
+                interval: tierInfo?.interval || "month",
+                amount: subscription.items.data[0]?.price.unit_amount || 0,
+                currency: subscription.currency || "usd",
+                subscriptionId: subscription.id,
+                invoiceUrl,
+                receiptUrl,
+                portalUrl: `${baseUrl}/pricing`,
+                vaultUrl: baseUrl,
+                periodStart: new Date((subscription as any).current_period_start * 1000),
+                periodEnd: new Date((subscription as any).current_period_end * 1000),
+              }).catch((err: any) => console.error("[Email] Purchase confirmation failed:", err.message));
+            }
           }
           break;
         }
@@ -294,6 +367,26 @@ export function registerStripeRoutes(app: Express) {
                 tier: tierInfo?.tier || existing.tier as SubscriptionTier,
               });
             }
+
+            const newTier = tierInfo?.tier || existing.tier as SubscriptionTier;
+            if (newTier !== existing.tier) {
+              const { email: updEmail, name: updName } = await resolveCustomerEmail(subscription.customer as string);
+              if (updEmail) {
+                const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+                sendSubscriptionChangeNotification({
+                  customerName: updName,
+                  customerEmail: updEmail,
+                  oldTier: existing.tier as SubscriptionTier,
+                  newTier,
+                  interval: tierInfo?.interval || "month",
+                  amount: subscription.items.data[0]?.price.unit_amount || 0,
+                  currency: subscription.currency || "usd",
+                  portalUrl: `${baseUrl}/pricing`,
+                  vaultUrl: baseUrl,
+                  periodEnd: new Date((subscription as any).current_period_end * 1000),
+                }).catch((err: any) => console.error("[Email] Subscription change email failed:", err.message));
+              }
+            }
           }
           break;
         }
@@ -314,6 +407,18 @@ export function registerStripeRoutes(app: Express) {
             if (existing.tenantId) {
               await storage.updateTenant(existing.tenantId, { tier: "free" });
             }
+
+            const { email: cancelEmail, name: cancelName } = await resolveCustomerEmail(subscription.customer as string);
+            if (cancelEmail) {
+              const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+              sendCancellationNotification({
+                customerName: cancelName,
+                customerEmail: cancelEmail,
+                tier: existing.tier as SubscriptionTier,
+                portalUrl: `${baseUrl}/pricing`,
+                vaultUrl: baseUrl,
+              }).catch((err: any) => console.error("[Email] Cancellation email failed:", err.message));
+            }
           }
           break;
         }
@@ -328,6 +433,19 @@ export function registerStripeRoutes(app: Express) {
               await storage.updateSubscription(existing.id, {
                 status: "past_due",
               });
+
+              const { email: failEmail, name: failName } = await resolveCustomerEmail(invoice.customer as string);
+              if (failEmail) {
+                const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+                sendPaymentFailedNotification({
+                  customerName: failName,
+                  customerEmail: failEmail,
+                  tier: existing.tier as SubscriptionTier,
+                  amount: invoice.amount_due || 0,
+                  currency: invoice.currency || "usd",
+                  portalUrl: `${baseUrl}/pricing`,
+                }).catch((err: any) => console.error("[Email] Payment failed email failed:", err.message));
+              }
             }
           }
           break;
