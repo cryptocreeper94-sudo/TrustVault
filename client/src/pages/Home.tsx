@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { queryClient } from "@/lib/queryClient";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -1010,6 +1011,10 @@ export default function Home() {
   const [addToPlaylistItemId, setAddToPlaylistItemId] = useState<number | null>(null);
   const [showAmbientMode, setShowAmbientMode] = useState(false);
   const [showSpinny, setShowSpinny] = useState(false);
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullProgress, setPullProgress] = useState(0);
+  const pullStartY = useRef(0);
+  const isPullActive = useRef(false);
   const { showOnboarding, setShowOnboarding, openGuide } = useOnboarding(user?.name);
   const { toast } = useToast();
 
@@ -1128,6 +1133,34 @@ export default function Home() {
     }
   };
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      pullStartY.current = e.touches[0].clientY;
+      isPullActive.current = true;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isPullActive.current) return;
+    const diff = e.touches[0].clientY - pullStartY.current;
+    if (diff > 0 && diff < 150) {
+      setPullProgress(Math.min(diff / 80, 1));
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (pullProgress >= 1) {
+      setIsPulling(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/media"] }).then(() => {
+        setIsPulling(false);
+        setPullProgress(0);
+      });
+    } else {
+      setPullProgress(0);
+    }
+    isPullActive.current = false;
+  }, [pullProgress]);
+
   const baseItems = activeCollectionId ? (collectionItems || []) : (activeFilter === "shared" ? (sharedWithMeItems || []) : (mediaItems || []));
 
   let filtered = baseItems;
@@ -1205,7 +1238,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="fixed top-0 left-0 right-0 z-40 glass-morphism">
+      <header className="fixed top-0 left-0 right-0 z-40 glass-morphism safe-area-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a
             href="https://darkwavestudios.io"
@@ -1435,7 +1468,17 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="pt-20 sm:pt-24 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <main className="pt-20 sm:pt-24 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+        {(pullProgress > 0 || isPulling) && (
+          <div className="flex items-center justify-center pb-4 -mt-4">
+            <motion.div
+              animate={{ rotate: isPulling ? 360 : pullProgress * 180, scale: isPulling ? 1 : pullProgress }}
+              transition={isPulling ? { repeat: Infinity, duration: 0.8, ease: "linear" } : { duration: 0 }}
+            >
+              <Loader2 className={`w-6 h-6 ${isPulling ? 'text-primary animate-spin' : 'text-muted-foreground'}`} />
+            </motion.div>
+          </div>
+        )}
         {aiSearchMode && aiSearchResults !== null && (
           <div className="hidden md:flex items-center gap-2 mb-4">
             <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate gap-1" data-testid="badge-ai-results">

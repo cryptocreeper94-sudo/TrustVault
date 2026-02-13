@@ -1,10 +1,11 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { AnimatePresence, motion } from "framer-motion";
 import Home from "@/pages/Home";
 import ImageEditor from "@/pages/ImageEditor";
 import AudioEditor from "@/pages/AudioEditor";
@@ -23,24 +24,36 @@ import { SignalChatPanel } from "@/components/SignalChatPanel";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const [location] = useLocation();
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/editor/image/:id" component={ImageEditor} />
-      <Route path="/editor/audio/:id" component={AudioEditor} />
-      <Route path="/editor/video/:id" component={VideoEditor} />
-      <Route path="/merge" component={MergeEditor} />
-      <Route path="/blog" component={Blog} />
-      <Route path="/blog/admin" component={BlogAdmin} />
-      <Route path="/blog/:slug" component={BlogPostPage} />
-      <Route path="/pricing" component={Pricing} />
-      <Route path="/invite" component={Invite} />
-      <Route path="/invite-message" component={InviteMessage} />
-      <Route path="/join" component={Join} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/roadmap" component={Roadmap} />
-      <Route component={NotFound} />
-    </Switch>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="flex-1"
+      >
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/editor/image/:id" component={ImageEditor} />
+          <Route path="/editor/audio/:id" component={AudioEditor} />
+          <Route path="/editor/video/:id" component={VideoEditor} />
+          <Route path="/merge" component={MergeEditor} />
+          <Route path="/blog" component={Blog} />
+          <Route path="/blog/admin" component={BlogAdmin} />
+          <Route path="/blog/:slug" component={BlogPostPage} />
+          <Route path="/pricing" component={Pricing} />
+          <Route path="/invite" component={Invite} />
+          <Route path="/invite-message" component={InviteMessage} />
+          <Route path="/join" component={Join} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/roadmap" component={Roadmap} />
+          <Route component={NotFound} />
+        </Switch>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
