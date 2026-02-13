@@ -310,7 +310,23 @@ export function registerStripeRoutes(app: Express) {
 
             console.log(`Subscription activated for tenant ${tenant.name}: ${tierInfo?.tier || "personal"}`);
 
-            const { email: custEmail, name: custName } = await resolveCustomerEmail(customerId);
+            const checkoutEmail = session.customer_details?.email;
+            const checkoutName = session.customer_details?.name;
+            let custEmail = checkoutEmail || null;
+            let custName = checkoutName || "Subscriber";
+
+            if (!custEmail) {
+              const resolved = await resolveCustomerEmail(customerId);
+              custEmail = resolved.email;
+              if (!custName || custName === "Subscriber") custName = resolved.name;
+            }
+
+            if (custEmail && checkoutEmail) {
+              try {
+                await stripe.customers.update(customerId, { email: checkoutEmail });
+              } catch {}
+            }
+
             if (custEmail) {
               const invoiceId = (session as any).invoice as string | undefined;
               let invoiceUrl: string | undefined;
@@ -323,7 +339,7 @@ export function registerStripeRoutes(app: Express) {
                 } catch {}
               }
 
-              const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+              const baseUrl = getBaseUrl(req);
               sendPurchaseConfirmation({
                 customerName: custName,
                 customerEmail: custEmail,
@@ -372,7 +388,7 @@ export function registerStripeRoutes(app: Express) {
             if (newTier !== existing.tier) {
               const { email: updEmail, name: updName } = await resolveCustomerEmail(subscription.customer as string);
               if (updEmail) {
-                const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+                const baseUrl = getBaseUrl(req);
                 sendSubscriptionChangeNotification({
                   customerName: updName,
                   customerEmail: updEmail,
@@ -410,7 +426,7 @@ export function registerStripeRoutes(app: Express) {
 
             const { email: cancelEmail, name: cancelName } = await resolveCustomerEmail(subscription.customer as string);
             if (cancelEmail) {
-              const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+              const baseUrl = getBaseUrl(req);
               sendCancellationNotification({
                 customerName: cancelName,
                 customerEmail: cancelEmail,
@@ -436,7 +452,7 @@ export function registerStripeRoutes(app: Express) {
 
               const { email: failEmail, name: failName } = await resolveCustomerEmail(invoice.customer as string);
               if (failEmail) {
-                const baseUrl = `https://${req.headers.host || "localhost:5000"}`;
+                const baseUrl = getBaseUrl(req);
                 sendPaymentFailedNotification({
                   customerName: failName,
                   customerEmail: failEmail,

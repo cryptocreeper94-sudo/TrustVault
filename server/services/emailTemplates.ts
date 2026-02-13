@@ -20,10 +20,10 @@ const TIER_FEATURES: Record<SubscriptionTier, string[]> = {
 };
 
 const TIER_ICONS: Record<SubscriptionTier, string> = {
-  free: "&#9734;",
-  personal: "&#9733;",
-  pro: "&#9733;&#9733;",
-  studio: "&#9733;&#9733;&#9733;",
+  free: "I",
+  personal: "II",
+  pro: "III",
+  studio: "IV",
 };
 
 function baseLayout(content: string, preheaderText: string): string {
@@ -158,7 +158,7 @@ export function buildPurchaseConfirmationEmail(data: PurchaseEmailData): { subje
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td class="hero-padding" style="padding: 48px 40px; text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">&#127881;</div>
+                    <div style="font-size: 36px; font-weight: 800; margin-bottom: 16px; color: rgba(255,255,255,0.3); letter-spacing: 6px;">&#10003;</div>
                     <h1 style="font-size: 28px; font-weight: 800; color: white; margin: 0 0 8px; line-height: 1.2;">You're In, ${data.customerName}!</h1>
                     <p style="font-size: 16px; color: rgba(255,255,255,0.85); margin: 0; font-weight: 400;">Your <strong>${pricing.name}</strong> subscription is now active</p>
                   </td>
@@ -326,9 +326,9 @@ export function buildSubscriptionChangeEmail(data: SubscriptionChangeEmailData):
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td class="hero-padding" style="padding: 40px; text-align: center;">
-                    <div style="font-size: 40px; margin-bottom: 12px;">${isUpgrade ? "&#128640;" : "&#128221;"}</div>
+                    <div style="font-size: 28px; font-weight: 800; margin-bottom: 12px; color: rgba(255,255,255,0.3); letter-spacing: 4px;">${isUpgrade ? "&#9650;" : "&#9660;"}</div>
                     <h1 style="font-size: 24px; font-weight: 800; color: white; margin: 0 0 8px;">Plan ${isUpgrade ? "Upgraded" : "Changed"}</h1>
-                    <p style="font-size: 15px; color: rgba(255,255,255,0.85); margin: 0;">${oldPricing.name} &#8594; <strong>${newPricing.name}</strong></p>
+                    <p style="font-size: 15px; color: rgba(255,255,255,0.85); margin: 0;">${oldPricing.name} &rarr; <strong>${newPricing.name}</strong></p>
                   </td>
                 </tr>
               </table>
@@ -382,7 +382,7 @@ export function buildCancellationEmail(data: CancellationEmailData): { subject: 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td class="hero-padding" style="padding: 40px; text-align: center;">
-                    <div style="font-size: 40px; margin-bottom: 12px;">&#128075;</div>
+                    <div style="font-size: 28px; font-weight: 800; margin-bottom: 12px; color: rgba(255,255,255,0.3); letter-spacing: 4px;">&#9711;</div>
                     <h1 style="font-size: 24px; font-weight: 800; color: white; margin: 0 0 8px;">Subscription Canceled</h1>
                     <p style="font-size: 15px; color: rgba(255,255,255,0.75); margin: 0;">We're sorry to see you go</p>
                   </td>
@@ -438,7 +438,7 @@ export function buildPaymentFailedEmail(data: PaymentFailedEmailData): { subject
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td class="hero-padding" style="padding: 40px; text-align: center;">
-                    <div style="font-size: 40px; margin-bottom: 12px;">&#9888;&#65039;</div>
+                    <div style="font-size: 28px; font-weight: 800; margin-bottom: 12px; color: rgba(255,255,255,0.3); letter-spacing: 4px;">&#9888;</div>
                     <h1 style="font-size: 24px; font-weight: 800; color: white; margin: 0 0 8px;">Payment Failed</h1>
                     <p style="font-size: 15px; color: rgba(255,255,255,0.75); margin: 0;">We couldn't process your ${amountFormatted} payment</p>
                   </td>
