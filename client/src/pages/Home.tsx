@@ -1565,33 +1565,32 @@ export default function Home() {
           <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               variant={bulkMode ? "default" : "outline"}
-              size="sm"
               onClick={() => bulkMode ? exitBulk() : setBulkMode(true)}
               data-testid="button-toggle-bulk"
-              className={bulkMode ? "bg-primary text-white" : "backdrop-blur-sm"}
+              className={`gap-1.5 ${bulkMode ? "bg-primary text-white" : "backdrop-blur-sm"}`}
             >
               {bulkMode ? (
                 <>
-                  <X className="w-4 h-4 mr-1" />
+                  <X className="w-4 h-4" />
                   Cancel
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4 mr-1" />
+                  <Check className="w-4 h-4" />
                   Select
                 </>
               )}
             </Button>
 
             <Link href="/merge">
-              <Button data-testid="button-merge" variant="outline" className="rounded-full gap-2 backdrop-blur-sm">
+              <Button data-testid="button-merge" variant="outline" className="gap-2 backdrop-blur-sm">
                 <Layers className="w-4 h-4" />
                 Create Mix
               </Button>
             </Link>
 
             <UploadDialog>
-              <Button data-testid="button-upload" className="bg-primary text-white shadow-lg shadow-primary/30 rounded-full gap-2 relative overflow-visible">
+              <Button data-testid="button-upload" className="bg-primary text-white shadow-lg shadow-primary/30 gap-2 relative overflow-visible">
                 <Plus className="w-4 h-4" />
                 Upload
               </Button>

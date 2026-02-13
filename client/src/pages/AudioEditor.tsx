@@ -27,6 +27,7 @@ import {
   Rewind,
   Clock,
   Waves,
+  ChevronDown,
 } from "lucide-react";
 
 type AudioTool = "trim" | "fade" | "volume" | "effects";
@@ -118,6 +119,14 @@ export default function AudioEditor() {
   const [playbackRate, setPlaybackRate] = useState(1);
 
   const [activeTool, setActiveTool] = useState<AudioTool>("trim");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    if (["fade", "effects"].includes(activeTool)) {
+      setShowAdvanced(true);
+    }
+  }, [activeTool]);
+
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(0);
   const [isDraggingTrim, setIsDraggingTrim] = useState<"start" | "end" | null>(null);
@@ -777,12 +786,17 @@ export default function AudioEditor() {
 
   const speedOptions = [0.5, 1, 1.5, 2];
 
-  const tools: { id: AudioTool; icon: typeof Scissors; label: string }[] = [
+  const essentialTools: { id: AudioTool; icon: typeof Scissors; label: string }[] = [
     { id: "trim", icon: Scissors, label: "Trim" },
-    { id: "fade", icon: Clock, label: "Fade" },
     { id: "volume", icon: Volume2, label: "Volume" },
+  ];
+
+  const advancedTools: { id: AudioTool; icon: typeof Scissors; label: string }[] = [
+    { id: "fade", icon: Clock, label: "Fade" },
     { id: "effects", icon: Waves, label: "Effects" },
   ];
+
+  const advancedToolIds = advancedTools.map(t => t.id);
 
   if (authLoading || mediaLoading) {
     return (
@@ -978,7 +992,34 @@ export default function AudioEditor() {
 
               <div className="w-full max-w-4xl glass-morphism rounded-md p-3 sm:p-4 mt-2" data-testid="editor-panel">
                 <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid="tool-tabs">
-                  {tools.map((tool) => {
+                  {essentialTools.map((tool) => {
+                    const Icon = tool.icon;
+                    const isActive = activeTool === tool.id;
+                    return (
+                      <Button
+                        key={tool.id}
+                        variant={isActive ? "default" : "ghost"}
+                        onClick={() => setActiveTool(tool.id)}
+                        data-testid={`button-tool-${tool.id}`}
+                      >
+                        <Icon className="w-4 h-4 mr-1.5" />
+                        {tool.label}
+                      </Button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-md text-xs transition-colors min-w-[68px] sm:min-w-0 ${
+                      showAdvanced || advancedToolIds.includes(activeTool)
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover-elevate"
+                    }`}
+                    data-testid="button-toggle-advanced-tools"
+                  >
+                    <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`} />
+                    <span className="leading-none text-[11px]">More</span>
+                  </button>
+                  {showAdvanced && advancedTools.map((tool) => {
                     const Icon = tool.icon;
                     const isActive = activeTool === tool.id;
                     return (

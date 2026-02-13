@@ -35,6 +35,7 @@ import {
   Sparkles,
   Trash2,
   Bold,
+  ChevronDown,
 } from "lucide-react";
 
 type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers";
@@ -346,6 +347,14 @@ export default function ImageEditor() {
   const drawingLayerRef = useRef<HTMLCanvasElement | null>(null);
 
   const [activeTool, setActiveTool] = useState<EditorTool | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    if (activeTool && ["resize", "text", "draw", "stickers"].includes(activeTool)) {
+      setShowAdvanced(true);
+    }
+  }, [activeTool]);
+
   const [imageLoaded, setImageLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isAiEnhancing, setIsAiEnhancing] = useState(false);
@@ -1143,12 +1152,15 @@ export default function ImageEditor() {
     return "default";
   };
 
-  const tools: { id: EditorTool; icon: typeof Crop; label: string }[] = [
+  const essentialTools: { id: EditorTool; icon: typeof Crop; label: string }[] = [
     { id: "crop", icon: Crop, label: "Crop" },
     { id: "rotate", icon: RotateCw, label: "Rotate" },
-    { id: "resize", icon: Maximize, label: "Resize" },
     { id: "filters", icon: Palette, label: "Filters" },
-    { id: "adjustments", icon: SlidersHorizontal, label: "Adjustments" },
+    { id: "adjustments", icon: SlidersHorizontal, label: "Adjust" },
+  ];
+
+  const advancedTools: { id: EditorTool; icon: typeof Crop; label: string }[] = [
+    { id: "resize", icon: Maximize, label: "Resize" },
     { id: "text", icon: Type, label: "Text" },
     { id: "draw", icon: Pencil, label: "Draw" },
     { id: "stickers", icon: Sparkles, label: "Stickers" },
@@ -1226,7 +1238,7 @@ export default function ImageEditor() {
 
       <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
         <div className="flex sm:flex-col gap-1 p-2 border-b sm:border-b-0 sm:border-r glass-morphism z-40 overflow-x-auto sm:overflow-x-visible sm:w-[88px]" data-testid="editor-toolbar">
-          {tools.map((tool) => {
+          {essentialTools.map((tool) => {
             const Icon = tool.icon;
             const isActive = activeTool === tool.id;
             return (
@@ -1241,6 +1253,41 @@ export default function ImageEditor() {
                     setIsCropping(false);
                     setCropRect(null);
                   }
+                }}
+                className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-md text-xs transition-colors min-w-[68px] sm:min-w-0 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover-elevate"
+                }`}
+                data-testid={`button-tool-${tool.id}`}
+              >
+                <Icon className="w-5 h-5 sm:w-5 sm:h-5" />
+                <span className="leading-none text-[11px]">{tool.label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-md text-xs transition-colors min-w-[68px] sm:min-w-0 ${
+              showAdvanced || advancedTools.some(t => t.id === activeTool)
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover-elevate"
+            }`}
+            data-testid="button-toggle-advanced-tools"
+          >
+            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`} />
+            <span className="leading-none text-[11px]">More</span>
+          </button>
+          {showAdvanced && advancedTools.map((tool) => {
+            const Icon = tool.icon;
+            const isActive = activeTool === tool.id;
+            return (
+              <button
+                key={tool.id}
+                onClick={() => {
+                  setActiveTool(isActive ? null : tool.id);
+                  setIsCropping(false);
+                  setCropRect(null);
                 }}
                 className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-md text-xs transition-colors min-w-[68px] sm:min-w-0 ${
                   isActive

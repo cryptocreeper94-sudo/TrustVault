@@ -32,6 +32,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  ChevronDown,
 } from "lucide-react";
 
 type VideoTool = "trim" | "adjustments" | "capture";
@@ -84,7 +85,25 @@ export default function VideoEditor() {
   const [temperature, setTemperature] = useState(0);
   const [vignette, setVignette] = useState(0);
 
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
+
+  const essentialTools: { id: VideoTool; icon: typeof Scissors; label: string }[] = [
+    { id: "trim", icon: Scissors, label: "Trim" },
+  ];
+
+  const advancedTools: { id: VideoTool; icon: typeof Scissors; label: string }[] = [
+    { id: "adjustments", icon: SlidersHorizontal, label: "Color" },
+    { id: "capture", icon: Camera, label: "Screenshot" },
+  ];
+
+  const advancedToolIds = advancedTools.map(t => t.id);
+
+  useEffect(() => {
+    if (advancedToolIds.includes(activeTool)) {
+      setShowAdvanced(true);
+    }
+  }, [activeTool]);
 
   const { data: mediaItem, isLoading: mediaLoading } = useQuery<MediaResponse>({
     queryKey: ["/api/media", id],
@@ -830,11 +849,34 @@ export default function VideoEditor() {
 
             <div className="border-t border-white/10 glass-morphism max-h-[45vh] sm:max-h-none overflow-y-auto" data-testid="tools-panel">
               <div className="flex border-b border-white/10">
-                {([
-                  { id: "trim" as VideoTool, icon: Scissors, label: "Trim", desc: "Cut your clip" },
-                  { id: "adjustments" as VideoTool, icon: SlidersHorizontal, label: "Color", desc: "Adjust look" },
-                  { id: "capture" as VideoTool, icon: Camera, label: "Screenshot", desc: "Save a frame" },
-                ]).map((tool) => {
+                {essentialTools.map((tool) => {
+                  const Icon = tool.icon;
+                  return (
+                    <Button
+                      key={tool.id}
+                      variant={activeTool === tool.id ? "default" : "ghost"}
+                      onClick={() => setActiveTool(tool.id)}
+                      className="rounded-none flex-1"
+                      data-testid={`button-tool-${tool.id}`}
+                    >
+                      <Icon className="w-4 h-4 mr-2" />
+                      {tool.label}
+                    </Button>
+                  );
+                })}
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-md text-xs transition-colors min-w-[68px] sm:min-w-0 ${
+                    showAdvanced || advancedToolIds.includes(activeTool)
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover-elevate"
+                  }`}
+                  data-testid="button-toggle-advanced-tools"
+                >
+                  <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`} />
+                  <span className="leading-none text-[11px]">More</span>
+                </button>
+                {showAdvanced && advancedTools.map((tool) => {
                   const Icon = tool.icon;
                   return (
                     <Button

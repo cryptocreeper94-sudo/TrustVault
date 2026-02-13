@@ -3,6 +3,10 @@ import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
 import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic, Sparkles, Loader2, Upload, Edit3, Tag, Users, Zap, Lock } from "lucide-react";
+import featureUploadImg from "@assets/images/feature-upload.jpg";
+import featureEditImg from "@assets/images/feature-edit.jpg";
+import featureOrganizeImg from "@assets/images/feature-organize.jpg";
+import featureShareImg from "@assets/images/feature-share.jpg";
 import { UploadDialog } from "@/components/UploadDialog";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -99,31 +103,37 @@ export function MediaGrid({ items, onPlay, onEdit, onShare, onAddToPlaylist, ben
             className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5"
           >
             {[
-              { icon: Upload, title: "Upload & Store", description: "Securely upload videos, photos, audio, and documents in one place" },
-              { icon: Edit3, title: "Edit & Create", description: "Trim videos, enhance images, and customize your content effortlessly" },
-              { icon: Tag, title: "Organize & Tag", description: "Add tags, labels, and descriptions to keep everything organized" },
-              { icon: Users, title: "Share & Collaborate", description: "Share your vault with others and collaborate on projects" },
+              { icon: Upload, title: "Upload & Store", description: "Securely upload videos, photos, audio, and documents in one place", image: featureUploadImg },
+              { icon: Edit3, title: "Edit & Create", description: "Trim videos, enhance images, and customize your content effortlessly", image: featureEditImg },
+              { icon: Tag, title: "Organize & Tag", description: "Add tags, labels, and descriptions to keep everything organized", image: featureOrganizeImg },
+              { icon: Users, title: "Share & Collaborate", description: "Share your vault with others and collaborate on projects", image: featureShareImg },
             ].map((feature, idx) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.3 + idx * 0.08 }}
-                className="glass-card rounded-md p-5 sm:p-6 hover-elevate"
+                className="glass-card rounded-md hover-elevate"
                 data-testid={`card-feature-${idx + 1}`}
               >
-                <div className="flex flex-col items-start gap-3">
-                  <div className="p-3 rounded-md bg-primary/10">
-                    <feature.icon className="w-6 h-6 text-primary" />
+                <div className="relative h-28 sm:h-32 overflow-hidden rounded-t-md">
+                  <img src={feature.image} alt={feature.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                  <div className="absolute bottom-3 left-4 right-4 z-10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="p-1.5 rounded-md bg-primary/20 backdrop-blur-sm">
+                        <feature.icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <h3 className="font-display font-semibold text-white text-sm" data-testid={`text-feature-title-${idx + 1}`}>
+                        {feature.title}
+                      </h3>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <h3 className="font-display font-semibold text-foreground mb-1.5" data-testid={`text-feature-title-${idx + 1}`}>
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-feature-description-${idx + 1}`}>
-                      {feature.description}
-                    </p>
-                  </div>
+                </div>
+                <div className="p-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-feature-description-${idx + 1}`}>
+                    {feature.description}
+                  </p>
                 </div>
               </motion.div>
             ))}
