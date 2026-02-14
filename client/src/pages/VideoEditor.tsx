@@ -118,7 +118,7 @@ export default function VideoEditor() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate("/");
+      navigate("/dashboard");
     }
   }, [authLoading, isAuthenticated, navigate]);
 
@@ -465,7 +465,7 @@ export default function VideoEditor() {
           if (pollRef.current) clearInterval(pollRef.current);
           queryClient.invalidateQueries({ queryKey: ["/api/media"] });
           toast({ title: "Video trimmed successfully!" });
-          setTimeout(() => navigate("/"), 1500);
+          setTimeout(() => navigate("/dashboard"), 1500);
         } else if (job.status === "failed") {
           if (pollRef.current) clearInterval(pollRef.current);
           setProcessingError(job.errorMessage || "Processing failed");
@@ -539,7 +539,7 @@ export default function VideoEditor() {
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/dashboard")}
                 data-testid="button-back"
               >
                 <ArrowLeft />

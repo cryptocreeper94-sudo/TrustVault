@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
 import {
-  Loader2, Plus, LogOut, Shield, Search, Lock, KeyRound, Eye, EyeOff,
+  Loader2, Plus, LogOut, Shield, Search, Lock, KeyRound, Eye, EyeOff, ArrowLeft,
   Film, Music, ImageIcon, FileText, File, LayoutGrid, Heart, Star,
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
@@ -37,7 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -986,6 +986,7 @@ function BulkActionBar({
 
 export default function Home() {
   const { user, isLoading: authLoading, isLoadingStatus, accountExists, logout } = useAuth();
+  const [currentPath, navigateHome] = useLocation();
   const isAuthenticated = !!user;
   const { data: mediaItems, isLoading: mediaLoading } = useMediaItems(undefined, isAuthenticated);
   const { data: collectionsData } = useCollections(isAuthenticated);
@@ -1155,6 +1156,11 @@ export default function Home() {
     return <>{seoHelmet}<PasswordLogin /></>;
   }
 
+  if (currentPath === "/" && user && !user.mustReset) {
+    navigateHome("/dashboard");
+    return null;
+  }
+
   if (user.mustReset) {
     return <>{seoHelmet}<PasswordReset /></>;
   }
@@ -1248,18 +1254,25 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="fixed top-0 left-0 right-0 z-40 glass-morphism safe-area-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
-          <a
-            href="https://darkwavestudios.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2.5 group shrink-0"
-            data-testid="link-home"
-          >
-            <img src={trustlayerEmblem} alt="TrustLayer" className="w-8 h-8 rounded-lg object-cover transition-transform duration-200 group-hover:scale-105" />
-            <h1 className="font-display font-bold text-lg tracking-tight hidden sm:block group-hover:text-primary transition-colors" data-testid="text-app-title">
-              Media Vault
-            </h1>
-          </a>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" className="text-muted-foreground" data-testid="button-back-dashboard">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <a
+              href="https://darkwavestudios.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 group"
+              data-testid="link-home"
+            >
+              <img src={trustlayerEmblem} alt="TrustLayer" className="w-8 h-8 rounded-lg object-cover transition-transform duration-200 group-hover:scale-105" />
+              <h1 className="font-display font-bold text-lg tracking-tight hidden sm:block group-hover:text-primary transition-colors" data-testid="text-app-title">
+                Media Vault
+              </h1>
+            </a>
+          </div>
 
           <div className="flex items-center gap-3 flex-1 justify-end">
             <TrustLayerBadge />
@@ -2004,6 +2017,7 @@ export default function Home() {
 
 function PasswordLogin() {
   const { login, isLoggingIn, loginError, accountCount, claimAccount, isClaimingAccount } = useAuth();
+  const [, navigateAfterLogin] = useLocation();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -2050,6 +2064,7 @@ function PasswordLogin() {
       setErrorMsg("");
       try {
         await claimAccount({ name: name.trim(), password, email: claimEmail.trim() });
+        navigateAfterLogin("/dashboard");
       } catch (err: any) {
         setShake(true);
         setTimeout(() => setShake(false), 600);
@@ -2064,6 +2079,7 @@ function PasswordLogin() {
       setErrorMsg("");
       try {
         await login({ name: "Jason", password: devPin, rememberMe: true });
+        navigateAfterLogin("/dashboard");
       } catch (err: any) {
         setShake(true);
         setTimeout(() => setShake(false), 600);
@@ -2081,6 +2097,7 @@ function PasswordLogin() {
 
     try {
       await login({ name: multiUser ? name.trim() : undefined, password, rememberMe });
+      navigateAfterLogin("/dashboard");
     } catch (err: any) {
       setShake(true);
       setTimeout(() => setShake(false), 600);

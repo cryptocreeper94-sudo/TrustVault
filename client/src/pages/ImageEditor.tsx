@@ -411,7 +411,7 @@ export default function ImageEditor() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate("/");
+      navigate("/dashboard");
     }
   }, [authLoading, isAuthenticated, navigate]);
 
@@ -1127,7 +1127,7 @@ export default function ImageEditor() {
       });
 
       toast({ title: "Image saved successfully" });
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       toast({
         title: "Failed to save image",
@@ -1185,7 +1185,7 @@ export default function ImageEditor() {
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/dashboard")}
                 data-testid="button-back"
               >
                 <ArrowLeft />

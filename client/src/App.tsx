@@ -20,6 +20,7 @@ import Invite from "@/pages/Invite";
 import Join from "@/pages/Join";
 import Admin from "@/pages/Admin";
 import CommandCenter from "@/pages/CommandCenter";
+import UserDashboard from "@/pages/UserDashboard";
 import Roadmap from "@/pages/Roadmap";
 import InviteMessage from "@/pages/InviteMessage";
 import { SignalChatPanel } from "@/components/SignalChatPanel";
@@ -141,6 +142,8 @@ function Router() {
       >
         <Switch>
           <Route path="/" component={Home} />
+          <Route path="/dashboard" component={UserDashboard} />
+          <Route path="/vault" component={Home} />
           <Route path="/editor/image/:id" component={ImageEditor} />
           <Route path="/editor/audio/:id" component={AudioEditor} />
           <Route path="/editor/video/:id" component={VideoEditor} />

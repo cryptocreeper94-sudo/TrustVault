@@ -65,7 +65,7 @@ const categories: Category[] = [
       {
         label: "Open Vault",
         description: "Browse your complete media library",
-        href: "/",
+        href: "/vault",
         icon: <Vault className="size-5" />,
         image: ccVaultOps,
         glowColor: "shadow-violet-500/30",
@@ -75,7 +75,7 @@ const categories: Category[] = [
       {
         label: "Upload Center",
         description: "Upload files to your vault",
-        href: "/?action=upload",
+        href: "/vault?action=upload",
         icon: <Upload className="size-5" />,
         image: ccVaultOps,
         glowColor: "shadow-blue-500/20",
@@ -83,7 +83,7 @@ const categories: Category[] = [
       {
         label: "Collections",
         description: "Organize files into smart collections",
-        href: "/?view=collections",
+        href: "/vault?view=collections",
         icon: <FolderOpen className="size-5" />,
         image: ccVaultOps,
         glowColor: "shadow-cyan-500/20",
@@ -91,7 +91,7 @@ const categories: Category[] = [
       {
         label: "Storage Usage",
         description: "Monitor your vault capacity",
-        href: "/?view=storage",
+        href: "/vault?view=storage",
         icon: <HardDrive className="size-5" />,
         image: ccVaultOps,
         glowColor: "shadow-emerald-500/20",
@@ -149,7 +149,7 @@ const categories: Category[] = [
       {
         label: "AI Auto-Tag",
         description: "Automatically tag and describe uploads",
-        href: "/?ai=autotag",
+        href: "/vault?ai=autotag",
         icon: <Sparkles className="size-5" />,
         image: ccAiTools,
         glowColor: "shadow-cyan-500/30",
@@ -159,7 +159,7 @@ const categories: Category[] = [
       {
         label: "AI Smart Search",
         description: "Find files with natural language queries",
-        href: "/?ai=search",
+        href: "/vault?ai=search",
         icon: <Search className="size-5" />,
         image: ccAiTools,
         glowColor: "shadow-blue-500/20",
@@ -167,7 +167,7 @@ const categories: Category[] = [
       {
         label: "AI Auto-Enhance",
         description: "One-click intelligent image optimization",
-        href: "/?ai=enhance",
+        href: "/vault?ai=enhance",
         icon: <Wand2 className="size-5" />,
         image: ccAiTools,
         glowColor: "shadow-indigo-500/20",
@@ -175,7 +175,7 @@ const categories: Category[] = [
       {
         label: "AI Captions",
         description: "Generate descriptive captions for media",
-        href: "/?ai=captions",
+        href: "/vault?ai=captions",
         icon: <MessageSquareText className="size-5" />,
         image: ccAiTools,
         glowColor: "shadow-purple-500/20",
@@ -543,10 +543,10 @@ function PinGate({ onSuccess }: { onSuccess: () => void }) {
           </Button>
         </form>
 
-        <Link href="/" className="block text-center mt-6">
+        <Link href="/dashboard" className="block text-center mt-6">
           <Button variant="ghost" className="text-white/40 text-sm">
             <ArrowLeft className="size-4 mr-2" />
-            Back to Vault
+            Back to Dashboard
           </Button>
         </Link>
       </motion.div>
@@ -609,10 +609,10 @@ export default function CommandCenter() {
             <Shield className="size-12 text-white/20 mx-auto" />
             <h1 className="text-xl font-bold text-white">Access Restricted</h1>
             <p className="text-white/50 text-sm">Command Center is available to administrators only.</p>
-            <Link href="/">
+            <Link href="/dashboard">
               <Button variant="ghost" className="text-white/40">
                 <ArrowLeft className="size-4 mr-2" />
-                Back to Vault
+                Back to Dashboard
               </Button>
             </Link>
           </div>
@@ -643,8 +643,8 @@ export default function CommandCenter() {
         <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5" style={{ background: "rgba(7, 11, 22, 0.8)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
           <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/">
-                <Button variant="ghost" size="icon" className="text-white/60 shrink-0" data-testid="button-back-vault">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="text-white/60 shrink-0" data-testid="button-back-dashboard">
                   <ArrowLeft className="size-5" />
                 </Button>
               </Link>
