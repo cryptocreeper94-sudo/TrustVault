@@ -26,15 +26,15 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
-import ccVaultOps from "@assets/images/cc-vault-ops.png";
-import ccMediaStudio from "@assets/images/cc-media-studio.png";
-import ccAiTools from "@assets/images/cc-ai-tools.png";
-import ccPublishing from "@assets/images/cc-publishing.png";
-import ccEcosystem from "@assets/images/cc-ecosystem.png";
-import ccAccess from "@assets/images/cc-access.png";
-import ccFinance from "@assets/images/cc-finance.png";
-import ccRoadmap from "@assets/images/cc-roadmap.png";
-import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
+import ccVaultOps from "../assets/images/cc-vault-ops.png";
+import ccMediaStudio from "../assets/images/cc-media-studio.png";
+import ccAiTools from "../assets/images/cc-ai-tools.png";
+import ccPublishing from "../assets/images/cc-publishing.png";
+import ccEcosystem from "../assets/images/cc-ecosystem.png";
+import ccAccess from "../assets/images/cc-access.png";
+import ccFinance from "../assets/images/cc-finance.png";
+import ccRoadmap from "../assets/images/cc-roadmap.png";
+import trustlayerEmblem from "../assets/images/trustvault-emblem.png";
 
 interface LaunchCard {
   label: string;
