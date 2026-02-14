@@ -28,22 +28,31 @@ import { RefreshCw } from "lucide-react";
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; errorMessage: string }
 > {
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: "" };
   }
 
-  static getDerivedStateFromError(_: Error) {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorMessage: error?.message || "Unknown error" };
   }
 
-  componentDidError(_: Error, __: ErrorInfo) {}
-
-  componentDidCatch(_: Error, __: ErrorInfo) {
+  componentDidCatch(error: Error, info: ErrorInfo) {
     const dismiss = (window as any).__dismissSplash;
     if (dismiss) dismiss();
+    try {
+      fetch("/api/client-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: error?.message,
+          stack: error?.stack?.slice(0, 2000),
+          componentStack: info?.componentStack?.slice(0, 2000),
+        }),
+      }).catch(() => {});
+    } catch {}
   }
 
   handleReload = () => {
@@ -65,27 +74,51 @@ class ErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-6 p-6 text-center">
-          <div className="text-6xl text-violet-400" data-testid="icon-error-boundary">
-            <RefreshCw className="w-16 h-16 mx-auto" />
+        <div style={{
+          minHeight: "100vh",
+          background: "#0a0a0f",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "24px",
+          padding: "24px",
+          textAlign: "center",
+          fontFamily: "Outfit, system-ui, sans-serif",
+        }}>
+          <div style={{ color: "#a78bfa", fontSize: "48px" }} data-testid="icon-error-boundary">
+            &#x21bb;
           </div>
           <h1
-            className="text-2xl font-bold text-white font-[Outfit]"
+            style={{ fontSize: "24px", fontWeight: "bold", color: "#ffffff", margin: 0 }}
             data-testid="text-error-title"
           >
             Something went wrong
           </h1>
-          <p className="text-zinc-400 max-w-md" data-testid="text-error-message">
+          <p style={{ color: "#a1a1aa", maxWidth: "400px", margin: 0, fontSize: "14px" }} data-testid="text-error-message">
             The app ran into an issue. This can happen after an update. Tap below to clear the cache and reload.
           </p>
-          <Button
+          <button
             onClick={this.handleReload}
-            className="bg-violet-600 text-white px-6"
+            style={{
+              background: "#7c3aed",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              padding: "12px 24px",
+              fontSize: "16px",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "Outfit, system-ui, sans-serif",
+            }}
             data-testid="button-error-reload"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
             Clear Cache and Reload
-          </Button>
+          </button>
+          <details style={{ color: "#52525b", fontSize: "11px", maxWidth: "350px", wordBreak: "break-all" }}>
+            <summary style={{ cursor: "pointer" }}>Technical details</summary>
+            <p style={{ marginTop: "8px" }}>{this.state.errorMessage}</p>
+          </details>
         </div>
       );
     }

@@ -171,6 +171,14 @@ export async function registerRoutes(
     console.error("[Bootstrap] Failed to seed invite codes:", err);
   });
 
+  app.post("/api/client-error", (req, res) => {
+    const { message, stack, componentStack } = req.body || {};
+    console.error("[CLIENT ERROR]", message);
+    if (stack) console.error("[CLIENT STACK]", stack);
+    if (componentStack) console.error("[CLIENT COMPONENT]", componentStack);
+    res.json({ ok: true });
+  });
+
   // --- Auth Routes ---
 
   app.get("/api/auth/status", async (_req, res) => {
