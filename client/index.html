@@ -107,6 +107,50 @@
       </div>
     </div>
     <div id="root"></div>
+    <script>
+      (function() {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (!window.__swReloading) {
+              window.__swReloading = true;
+              window.location.reload();
+            }
+          });
+        }
+        setTimeout(function() {
+          var root = document.getElementById('root');
+          if (root && root.children.length === 0) {
+            var splash = document.getElementById('splash-screen');
+            if (splash) {
+              splash.innerHTML = '<div style="text-align:center;padding:20px">' +
+                '<img src="/icon-512.png" style="width:64px;height:64px;border-radius:16px;margin:0 auto 16px" />' +
+                '<div style="font-family:Outfit,sans-serif;font-size:20px;font-weight:600;color:#fafafa;margin-bottom:8px">Updating app...</div>' +
+                '<div style="font-family:Plus Jakarta Sans,sans-serif;font-size:14px;color:#a1a1aa;margin-bottom:24px">Clearing old cache and reloading</div>' +
+                '<div id="splash-bar-wrapper" style="width:160px;height:3px;background:rgba(124,58,237,0.15);border-radius:3px;overflow:hidden;margin:0 auto">' +
+                '<div style="height:100%;width:30%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px;animation:splash-progress 1.5s ease-in-out infinite"></div>' +
+                '</div></div>';
+            }
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                return Promise.all(names.map(function(n) { return caches.delete(n); }));
+              }).then(function() {
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(regs) {
+                    Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
+                      window.location.reload();
+                    });
+                  });
+                } else {
+                  window.location.reload();
+                }
+              });
+            } else {
+              window.location.reload();
+            }
+          }
+        }, 8000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

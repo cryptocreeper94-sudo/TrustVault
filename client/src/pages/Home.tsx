@@ -1021,7 +1021,7 @@ export default function Home() {
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
 
-  const { data: sharedCollectionsData } = useSharedCollections();
+  const { data: sharedCollectionsData } = useSharedCollections(isAuthenticated);
 
   const { data: sharedWithMeItems } = useQuery({
     queryKey: ["/api/media/shared-with-me"],

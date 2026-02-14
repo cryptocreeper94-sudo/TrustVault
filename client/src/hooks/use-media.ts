@@ -207,7 +207,7 @@ export function useShareCollection() {
   });
 }
 
-export function useSharedCollections() {
+export function useSharedCollections(enabled: boolean = true) {
   return useQuery({
     queryKey: ["/api/collections/shared"],
     queryFn: async () => {
@@ -216,6 +216,7 @@ export function useSharedCollections() {
       if (!res.ok) return [];
       return res.json() as Promise<CollectionWithCount[]>;
     },
+    enabled,
   });
 }
 
