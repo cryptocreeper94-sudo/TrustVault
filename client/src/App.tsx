@@ -19,6 +19,7 @@ import Pricing from "@/pages/Pricing";
 import Invite from "@/pages/Invite";
 import Join from "@/pages/Join";
 import Admin from "@/pages/Admin";
+import CommandCenter from "@/pages/CommandCenter";
 import Roadmap from "@/pages/Roadmap";
 import InviteMessage from "@/pages/InviteMessage";
 import { SignalChatPanel } from "@/components/SignalChatPanel";
@@ -152,6 +153,7 @@ function Router() {
           <Route path="/invite-message" component={InviteMessage} />
           <Route path="/join" component={Join} />
           <Route path="/admin" component={Admin} />
+          <Route path="/command-center" component={CommandCenter} />
           <Route path="/roadmap" component={Roadmap} />
           <Route component={NotFound} />
         </Switch>

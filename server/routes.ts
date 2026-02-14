@@ -179,6 +179,28 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  app.post("/api/auth/verify-pin", async (req, res) => {
+    try {
+      if (!req.session?.authenticated || !req.session.pinAuthId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const { pin } = req.body;
+      if (!pin) return res.status(400).json({ message: "PIN required" });
+      const auth = await storage.getPinAuthById(req.session.pinAuthId);
+      if (!auth || !auth.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const match = await bcrypt.compare(pin, auth.pin);
+      if (!match) {
+        return res.status(401).json({ message: "Invalid PIN" });
+      }
+      return res.json({ verified: true });
+    } catch (err) {
+      console.error("PIN verify error:", err);
+      return res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
   // --- Auth Routes ---
 
   app.get("/api/auth/status", async (_req, res) => {

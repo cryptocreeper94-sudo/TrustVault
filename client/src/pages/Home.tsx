@@ -1379,6 +1379,17 @@ export default function Home() {
                           asChild
                           variant="ghost"
                           className="w-full justify-start gap-3"
+                          data-testid="nav-link-command-center"
+                        >
+                          <Link href="/command-center">
+                            <LayoutGrid className="w-4 h-4" />
+                            Command Center
+                          </Link>
+                        </Button>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          className="w-full justify-start gap-3"
                           data-testid="nav-link-admin"
                         >
                           <Link href="/admin">
