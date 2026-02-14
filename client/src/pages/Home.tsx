@@ -986,8 +986,9 @@ function BulkActionBar({
 
 export default function Home() {
   const { user, isLoading: authLoading, isLoadingStatus, accountExists, logout } = useAuth();
-  const { data: mediaItems, isLoading: mediaLoading } = useMediaItems();
-  const { data: collectionsData } = useCollections();
+  const isAuthenticated = !!user;
+  const { data: mediaItems, isLoading: mediaLoading } = useMediaItems(undefined, isAuthenticated);
+  const { data: collectionsData } = useCollections(isAuthenticated);
   const [viewingItem, setViewingItem] = useState<MediaResponse | null>(null);
   const [editingItem, setEditingItem] = useState<MediaResponse | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1047,6 +1048,13 @@ export default function Home() {
       <meta property="og:type" content="website" />
     </Helmet>
   );
+
+  useEffect(() => {
+    if (!authLoading && !isLoadingStatus) {
+      const dismiss = (window as any).__dismissSplash;
+      if (dismiss) dismiss();
+    }
+  }, [authLoading, isLoadingStatus]);
 
   if (authLoading || isLoadingStatus) {
     return (

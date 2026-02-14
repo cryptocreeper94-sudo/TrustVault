@@ -3,16 +3,17 @@ import { api, buildUrl, type MediaInput, type MediaResponse } from "@shared/rout
 import { apiRequest } from "@/lib/queryClient";
 import type { MediaCategory, UpdateMediaRequest, CollectionWithCount } from "@shared/schema";
 
-export function useMediaItems(category?: MediaCategory) {
+export function useMediaItems(category?: MediaCategory, enabled: boolean = true) {
   const path = category ? `${api.media.list.path}?category=${category}` : api.media.list.path;
   return useQuery({
     queryKey: [api.media.list.path, category || "all"],
     queryFn: async () => {
       const res = await fetch(path, { credentials: "include" });
-      if (res.status === 401) throw new Error("Unauthorized");
+      if (res.status === 401) return [] as MediaResponse[];
       if (!res.ok) throw new Error("Failed to fetch media");
       return res.json() as Promise<MediaResponse[]>;
     },
+    enabled,
   });
 }
 
@@ -96,15 +97,16 @@ export function useBatchDeleteMedia() {
   });
 }
 
-export function useCollections() {
+export function useCollections(enabled: boolean = true) {
   return useQuery({
     queryKey: [api.collections.list.path],
     queryFn: async () => {
       const res = await fetch(api.collections.list.path, { credentials: "include" });
-      if (res.status === 401) throw new Error("Unauthorized");
+      if (res.status === 401) return [] as CollectionWithCount[];
       if (!res.ok) throw new Error("Failed to fetch collections");
       return res.json() as Promise<CollectionWithCount[]>;
     },
+    enabled,
   });
 }
 

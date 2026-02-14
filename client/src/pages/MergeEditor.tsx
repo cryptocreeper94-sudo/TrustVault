@@ -101,7 +101,7 @@ function formatDuration(seconds: number): string {
 export default function MergeEditor() {
   const [, navigate] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { data: allMedia, isLoading: mediaLoading } = useMediaItems();
+  const { data: allMedia, isLoading: mediaLoading } = useMediaItems(undefined, isAuthenticated);
   const { uploadFile, isUploading, progress } = useUpload();
   const createMedia = useCreateMedia();
   const { toast } = useToast();

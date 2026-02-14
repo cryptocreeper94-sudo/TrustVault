@@ -10,18 +10,28 @@ function dismissSplash() {
   }
 }
 
+(window as any).__dismissSplash = dismissSplash;
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/sw.js")
+      .then((registration) => {
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "activated") {
+                window.location.reload();
+              }
+            });
+          }
+        });
+      })
       .catch(() => {});
   });
 }
 
-setTimeout(dismissSplash, 4000);
+setTimeout(dismissSplash, 6000);
 
 createRoot(document.getElementById("root")!).render(<App />);
-
-window.addEventListener("load", () => {
-  setTimeout(dismissSplash, 1200);
-});
