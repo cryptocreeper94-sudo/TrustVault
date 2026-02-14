@@ -1049,38 +1049,6 @@ export default function Home() {
     </Helmet>
   );
 
-  useEffect(() => {
-    if (!authLoading && !isLoadingStatus) {
-      const dismiss = (window as any).__dismissSplash;
-      if (dismiss) dismiss();
-    }
-  }, [authLoading, isLoadingStatus]);
-
-  if (authLoading || isLoadingStatus) {
-    return (
-      <>
-        {seoHelmet}
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        </div>
-      </>
-    );
-  }
-
-  if (!user && !accountExists) {
-    return <>{seoHelmet}<AccountSetup /></>;
-  }
-
-  if (!user) {
-    return <>{seoHelmet}<PasswordLogin /></>;
-  }
-
-  if (user.mustReset) {
-    return <>{seoHelmet}<PasswordReset /></>;
-  }
-
-  const audioPlaylist = (mediaItems || []).filter(m => m.category === "audio");
-
   const handleAiSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setAiSearchResults(null);
@@ -1133,14 +1101,6 @@ export default function Home() {
     });
   }, []);
 
-  const handlePlay = (item: MediaResponse) => {
-    if (item.category === "audio") {
-      setNowPlayingItem(item);
-    } else {
-      setViewingItem(item);
-    }
-  };
-
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (window.scrollY === 0) {
       pullStartY.current = e.touches[0].clientY;
@@ -1168,6 +1128,46 @@ export default function Home() {
     }
     isPullActive.current = false;
   }, [pullProgress]);
+
+  useEffect(() => {
+    if (!authLoading && !isLoadingStatus) {
+      const dismiss = (window as any).__dismissSplash;
+      if (dismiss) dismiss();
+    }
+  }, [authLoading, isLoadingStatus]);
+
+  if (authLoading || isLoadingStatus) {
+    return (
+      <>
+        {seoHelmet}
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      </>
+    );
+  }
+
+  if (!user && !accountExists) {
+    return <>{seoHelmet}<AccountSetup /></>;
+  }
+
+  if (!user) {
+    return <>{seoHelmet}<PasswordLogin /></>;
+  }
+
+  if (user.mustReset) {
+    return <>{seoHelmet}<PasswordReset /></>;
+  }
+
+  const audioPlaylist = (mediaItems || []).filter(m => m.category === "audio");
+
+  const handlePlay = (item: MediaResponse) => {
+    if (item.category === "audio") {
+      setNowPlayingItem(item);
+    } else {
+      setViewingItem(item);
+    }
+  };
 
   const baseItems = activeCollectionId ? (collectionItems || []) : (activeFilter === "shared" ? (sharedWithMeItems || []) : (mediaItems || []));
 
