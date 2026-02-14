@@ -544,7 +544,7 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs">Delete file</TooltipContent>
                 </Tooltip>
-                <AlertDialogContent className="glass-morphism">
+                <AlertDialogContent className="bg-background border-white/10">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete this file?</AlertDialogTitle>
                     <AlertDialogDescription>This will permanently remove "{item.title}" from your vault.</AlertDialogDescription>

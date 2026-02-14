@@ -88,7 +88,7 @@ export function EditMediaDialog({ item, open, onOpenChange }: EditMediaDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto glass-morphism text-foreground">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-background border-white/10 text-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl font-display font-bold">Edit Details</DialogTitle>
         </DialogHeader>

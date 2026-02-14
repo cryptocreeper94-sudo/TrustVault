@@ -400,7 +400,7 @@ function NewCollectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md glass-morphism text-foreground">
+      <DialogContent className="sm:max-w-md bg-background border-white/10 text-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl font-display font-bold">New Collection</DialogTitle>
         </DialogHeader>
@@ -510,7 +510,7 @@ function ShareCollectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md glass-morphism text-foreground">
+      <DialogContent className="sm:max-w-md bg-background border-white/10 text-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
             <Share2 className="w-5 h-5 text-primary" />
@@ -627,7 +627,7 @@ function ShareMediaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md glass-morphism text-foreground">
+      <DialogContent className="sm:max-w-md bg-background border-white/10 text-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
             <Share2 className="w-5 h-5 text-primary" />
@@ -861,7 +861,7 @@ function BulkActionBar({
                   Set Label
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 glass-morphism" align="end">
+              <PopoverContent className="w-64 bg-background border-white/10" align="end">
                 <div className="space-y-3">
                   <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Label</Label>
                   <Input
@@ -886,7 +886,7 @@ function BulkActionBar({
                   Collection
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 glass-morphism" align="end">
+              <PopoverContent className="w-64 bg-background border-white/10" align="end">
                 <div className="space-y-3">
                   <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Add to Collection</Label>
                   <div className="max-h-40 overflow-y-auto space-y-1">
@@ -961,7 +961,7 @@ function BulkActionBar({
       </motion.div>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent className="glass-morphism text-foreground">
+        <AlertDialogContent className="bg-background border-white/10 text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {count} items?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -2964,7 +2964,7 @@ function ChangePasswordDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md glass-morphism text-foreground">
+      <DialogContent className="sm:max-w-md bg-background border-white/10 text-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl font-display font-bold" data-testid="text-change-password-title">Change Password</DialogTitle>
         </DialogHeader>
