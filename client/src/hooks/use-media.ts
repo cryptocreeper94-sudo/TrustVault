@@ -231,3 +231,15 @@ export function useReorderCollections() {
     },
   });
 }
+
+export function useReorderCollectionItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ collectionId, orderedMediaIds }: { collectionId: number; orderedMediaIds: number[] }) => {
+      await apiRequest("PATCH", `/api/collections/${collectionId}/reorder-items`, { orderedMediaIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.collections.list.path] });
+    },
+  });
+}

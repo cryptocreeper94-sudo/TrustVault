@@ -14,6 +14,7 @@ import {
   useRemoveFromCollection,
   useShareCollection,
   useSharedCollections,
+  useReorderCollections,
 } from "@/hooks/use-media";
 import { UploadDialog } from "@/components/UploadDialog";
 import { MediaGrid } from "@/components/MediaGrid";
@@ -312,14 +313,33 @@ function CollectionCard({
   isActive,
   onClick,
   onShare,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
+  isDragOver,
 }: {
   collection: CollectionWithCount;
   isActive: boolean;
   onClick: () => void;
   onShare?: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  isDragOver?: boolean;
 }) {
   return (
-    <div className="relative group shrink-0">
+    <div
+      className={`relative group shrink-0 transition-transform duration-200 ${isDragOver ? "scale-105 opacity-70" : ""}`}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      onDrop={onDrop}
+    >
       <button
         onClick={onClick}
         className={`
@@ -1021,6 +1041,9 @@ export default function Home() {
   const { toast } = useToast();
 
   const { data: collectionItems } = useCollectionItems(activeCollectionId);
+  const reorderCollections = useReorderCollections();
+  const [dragOverCollectionId, setDragOverCollectionId] = useState<number | null>(null);
+  const dragCollectionId = useRef<number | null>(null);
 
   const { data: sharedCollectionsData } = useSharedCollections(isAuthenticated);
 
@@ -1743,6 +1766,36 @@ export default function Home() {
                     isActive={activeCollectionId === col.id}
                     onClick={() => setActiveCollectionId(activeCollectionId === col.id ? null : col.id)}
                     onShare={() => setSharingCollection(col)}
+                    draggable
+                    isDragOver={dragOverCollectionId === col.id}
+                    onDragStart={(e) => {
+                      dragCollectionId.current = col.id;
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragCollectionId.current !== col.id) {
+                        setDragOverCollectionId(col.id);
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverCollectionId(null);
+                      const fromId = dragCollectionId.current;
+                      if (fromId === null || fromId === col.id) return;
+                      const ids = displayCollections.map(c => c.id);
+                      const fromIdx = ids.indexOf(fromId);
+                      const toIdx = ids.indexOf(col.id);
+                      if (fromIdx === -1 || toIdx === -1) return;
+                      ids.splice(fromIdx, 1);
+                      ids.splice(toIdx, 0, fromId);
+                      reorderCollections.mutate(ids);
+                    }}
+                    onDragEnd={() => {
+                      dragCollectionId.current = null;
+                      setDragOverCollectionId(null);
+                    }}
                   />
                 ))}
                 {displayCollections.length === 0 && !activeCollectionId && collections.length === 0 && null}
