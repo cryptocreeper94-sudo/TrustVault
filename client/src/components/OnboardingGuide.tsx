@@ -508,7 +508,10 @@ export function useOnboarding(userId?: string | number) {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    // No longer auto-popup — guide is accessible from the hamburger menu
+    if (!hasSeenOnboarding) {
+      const timer = setTimeout(() => setShowOnboarding(true), 800);
+      return () => clearTimeout(timer);
+    }
   }, [hasSeenOnboarding]);
 
   const markSeen = useCallback(() => {

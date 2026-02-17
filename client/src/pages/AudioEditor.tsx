@@ -1,10 +1,13 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import { useCreateMedia } from "@/hooks/use-media";
 import { useToast } from "@/hooks/use-toast";
+import { useEditorShortcuts, type ShortcutAction } from "@/hooks/use-editor-shortcuts";
+import { useSoundFeedback } from "@/hooks/use-sound-feedback";
+import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { buildUrl, api } from "@shared/routes";
 import type { MediaResponse } from "@shared/routes";
 import { detectCategory } from "@shared/schema";
@@ -32,6 +35,7 @@ import {
   Waves,
   ChevronDown,
   Wand2,
+  Keyboard,
 } from "lucide-react";
 
 type AudioTool = "trim" | "fade" | "volume" | "effects" | "presets";
@@ -299,7 +303,8 @@ export default function AudioEditor() {
       const container = canvasContainerRef.current;
       const dpr = window.devicePixelRatio || 1;
       const displayWidth = container ? container.clientWidth : canvas.clientWidth;
-      const displayHeight = 250;
+      const isMobile = displayWidth < 640;
+      const displayHeight = isMobile ? 150 : 250;
 
       canvas.width = displayWidth * dpr;
       canvas.height = displayHeight * dpr;
@@ -912,6 +917,7 @@ export default function AudioEditor() {
         label: mediaItem.label || undefined,
       });
 
+      soundFeedback("success");
       toast({ title: "Audio saved successfully" });
       navigate("/dashboard");
     } catch (err) {
@@ -940,6 +946,19 @@ export default function AudioEditor() {
 
   const advancedToolIds = advancedTools.map(t => t.id);
 
+  const soundFeedback = useSoundFeedback();
+
+  const editorShortcuts: ShortcutAction[] = useMemo(() => [
+    { key: "z", ctrl: true, label: "Undo", category: "History", action: handleUndo },
+    { key: "y", ctrl: true, label: "Redo", category: "History", action: handleRedo },
+    { key: "z", ctrl: true, shift: true, label: "Redo", category: "History", action: handleRedo },
+    { key: "s", ctrl: true, label: "Save as New", category: "File", action: () => { soundFeedback("save"); handleSave(); } },
+    { key: " ", label: "Play / Pause", category: "Playback", action: () => { isPlaying ? handlePause() : handlePlay(); } },
+    { key: "r", ctrl: true, label: "Reset All", category: "Edit", action: handleReset },
+  ], [handleUndo, handleRedo, handleSave, handleReset, soundFeedback, isPlaying, handlePause, handlePlay]);
+
+  const { showHelp, setShowHelp } = useEditorShortcuts(editorShortcuts);
+
   if (authLoading || mediaLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background" data-testid="editor-loading">
@@ -952,8 +971,9 @@ export default function AudioEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden" data-testid="audio-editor">
-      <div className="flex items-center justify-between gap-3 px-4 py-2 border-b glass-morphism z-50" data-testid="editor-topbar">
-        <div className="flex items-center gap-3 flex-wrap">
+      <ShortcutHelp open={showHelp} onClose={() => setShowHelp(false)} shortcuts={editorShortcuts} title="Audio Editor Shortcuts" />
+      <div className="flex items-center justify-between gap-2 sm:gap-3 px-2 sm:px-4 py-2 border-b glass-morphism z-50" data-testid="editor-topbar">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -967,7 +987,7 @@ export default function AudioEditor() {
             </TooltipTrigger>
             <TooltipContent>Back</TooltipContent>
           </Tooltip>
-          <span className="text-sm font-medium truncate max-w-[200px]" data-testid="text-audio-name">
+          <span className="text-sm font-medium truncate max-w-[120px] sm:max-w-[200px]" data-testid="text-audio-name">
             {mediaItem?.title || "Audio Editor"}
           </span>
         </div>
@@ -1013,17 +1033,25 @@ export default function AudioEditor() {
             </TooltipTrigger>
             <TooltipContent>Reset to Original</TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="icon" variant="ghost" onClick={() => setShowHelp(true)} className="hidden sm:inline-flex" data-testid="button-shortcuts">
+                <Keyboard className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Shortcuts (?)</TooltipContent>
+          </Tooltip>
           <Button
             onClick={handleSave}
             disabled={saving || isUploading || !audioLoaded}
             data-testid="button-save"
           >
             {saving || isUploading ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <Loader2 className="w-4 h-4 animate-spin sm:mr-2" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 sm:mr-2" />
             )}
-            Save as New
+            <span className="hidden sm:inline">Save as New</span>
           </Button>
         </div>
       </div>
@@ -1057,7 +1085,7 @@ export default function AudioEditor() {
                 <canvas
                   ref={canvasRef}
                   className="block w-full rounded-md cursor-pointer"
-                  style={{ height: "250px" }}
+                  style={{ height: "auto" }}
                   onClick={handleCanvasClick}
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}

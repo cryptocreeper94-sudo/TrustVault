@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,6 +9,9 @@ import { buildUrl, api } from "@shared/routes";
 import type { MediaResponse } from "@shared/routes";
 import { detectCategory } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useEditorShortcuts, type ShortcutAction } from "@/hooks/use-editor-shortcuts";
+import { useSoundFeedback } from "@/hooks/use-sound-feedback";
+import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -36,6 +39,7 @@ import {
   CheckCircle2,
   XCircle,
   ChevronDown,
+  Keyboard,
 } from "lucide-react";
 
 interface VideoPreset {
@@ -548,6 +552,7 @@ export default function VideoEditor() {
         label: mediaItem.label || undefined,
       });
 
+      soundFeedback("success");
       toast({ title: "Frame saved as new image" });
     } catch (err) {
       toast({
@@ -579,6 +584,7 @@ export default function VideoEditor() {
         if (job.status === "complete") {
           if (pollRef.current) clearInterval(pollRef.current);
           queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+          soundFeedback("success");
           toast({ title: "Video trimmed successfully!" });
           setTimeout(() => navigate("/dashboard"), 1500);
         } else if (job.status === "failed") {
@@ -640,6 +646,20 @@ export default function VideoEditor() {
     }
   }
 
+  const soundFeedback = useSoundFeedback();
+
+  const editorShortcuts: ShortcutAction[] = useMemo(() => [
+    { key: "z", ctrl: true, label: "Undo", category: "History", action: handleUndo },
+    { key: "y", ctrl: true, label: "Redo", category: "History", action: handleRedo },
+    { key: "z", ctrl: true, shift: true, label: "Redo", category: "History", action: handleRedo },
+    { key: "s", ctrl: true, label: "Save Trimmed Video", category: "File", action: () => { soundFeedback("save"); handleSaveTrimmedVideo(); } },
+    { key: " ", label: "Play / Pause", category: "Playback", action: () => { isPlaying ? handlePause() : handlePlay(); } },
+    { key: "r", ctrl: true, label: "Reset All", category: "Edit", action: handleReset },
+    { key: "f", label: "Capture Frame", category: "Edit", action: handleSaveFrame },
+  ], [handleUndo, handleRedo, handleSaveTrimmedVideo, handleReset, soundFeedback, isPlaying, handlePause, handlePlay, handleSaveFrame]);
+
+  const { showHelp, setShowHelp } = useEditorShortcuts(editorShortcuts);
+
   if (authLoading || mediaLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background" data-testid="editor-loading">
@@ -652,10 +672,11 @@ export default function VideoEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-black overflow-hidden" data-testid="video-editor">
+      <ShortcutHelp open={showHelp} onClose={() => setShowHelp(false)} shortcuts={editorShortcuts} title="Video Editor Shortcuts" />
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-white/10 glass-morphism z-50" data-testid="editor-topbar">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-2 sm:gap-3 px-2 sm:px-4 py-2 border-b border-white/10 glass-morphism z-50" data-testid="editor-topbar">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -669,7 +690,7 @@ export default function VideoEditor() {
             </TooltipTrigger>
             <TooltipContent>Back</TooltipContent>
           </Tooltip>
-          <span className="text-sm font-medium truncate max-w-[200px] text-white" data-testid="text-video-name">
+          <span className="text-sm font-medium truncate max-w-[120px] sm:max-w-[200px] text-white" data-testid="text-video-name">
             {mediaItem?.title || "Video Editor"}
           </span>
         </div>
@@ -732,6 +753,14 @@ export default function VideoEditor() {
             </TooltipTrigger>
             <TooltipContent>Reset</TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="icon" variant="ghost" onClick={() => setShowHelp(true)} className="hidden sm:inline-flex" data-testid="button-shortcuts">
+                <Keyboard className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Shortcuts (?)</TooltipContent>
+          </Tooltip>
           <Button
             variant="outline"
             onClick={handleSaveTrimmedVideo}
@@ -739,11 +768,11 @@ export default function VideoEditor() {
             data-testid="button-save-clip"
           >
             {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <Loader2 className="w-4 h-4 animate-spin sm:mr-2" />
             ) : (
-              <Scissors className="w-4 h-4 mr-2" />
+              <Scissors className="w-4 h-4 sm:mr-2" />
             )}
-            Save Trimmed Video
+            <span className="hidden sm:inline">Save Trimmed Video</span>
           </Button>
         </div>
       </div>
@@ -802,7 +831,7 @@ export default function VideoEditor() {
           <div className="relative inline-block" style={{ display: videoLoaded ? "block" : "none" }}>
             <video
               ref={videoRef}
-              className="max-w-full max-h-[50vh] rounded-md"
+              className="max-w-full max-h-[35vh] sm:max-h-[50vh] rounded-md"
               style={{ filter: videoFilterStyle }}
               playsInline
               data-testid="video-player"
@@ -1015,7 +1044,7 @@ export default function VideoEditor() {
             </div>
 
             <div className="border-t border-white/10 glass-morphism max-h-[45vh] sm:max-h-none overflow-y-auto" data-testid="tools-panel">
-              <div className="flex border-b border-white/10">
+              <div className="flex border-b border-white/10 overflow-x-auto">
                 {essentialTools.map((tool) => {
                   const Icon = tool.icon;
                   return (

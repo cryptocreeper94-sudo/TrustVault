@@ -14,6 +14,7 @@ import {
   MapPin, Mic2, Route, Sparkles
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSoundFeedback } from "@/hooks/use-sound-feedback";
 import { motion, AnimatePresence } from "framer-motion";
 
 const CATEGORY_CONFIG: Record<MediaCategory, { icon: any; color: string; label: string }> = {
@@ -167,6 +168,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const [description, setDescription] = useState("");
   const [label, setLabel] = useState("");
   const [tagInput, setTagInput] = useState("");
+  const soundFeedback = useSoundFeedback();
   const [tags, setTags] = useState<string[]>([]);
   const [fileDate, setFileDate] = useState<string>("");
   const [artist, setArtist] = useState("");
@@ -390,6 +392,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     setUploadComplete(true);
 
     if (errors === 0) {
+      soundFeedback("success");
       toast({
         title: "Upload Complete",
         description: `${completed} file${completed !== 1 ? "s" : ""} uploaded successfully.`,
@@ -549,22 +552,35 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
                             <span className="text-[10px] text-muted-foreground">
                               {formatFileSize(item.file.size)}
                             </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {statusLabel(item.status)}
+                            <span className={`text-[10px] font-medium ${
+                              item.status === "complete" ? "text-green-400" :
+                              item.status === "error" ? "text-destructive" :
+                              item.status === "uploading" || item.status === "extracting" ? "text-primary" :
+                              "text-muted-foreground"
+                            }`}>
+                              {item.status === "uploading" || item.status === "extracting"
+                                ? `${statusLabel(item.status)} ${item.progress}%`
+                                : statusLabel(item.status)}
                             </span>
                           </div>
                           {(item.status === "uploading" || item.status === "extracting") && (
-                            <div className="h-1 bg-white/10 rounded-full overflow-hidden mt-1">
+                            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-1">
                               <motion.div
-                                className="h-full bg-primary rounded-full"
+                                className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${item.progress}%` }}
+                                transition={{ duration: 0.4, ease: "easeOut" }}
                               />
                             </div>
                           )}
                           {item.status === "complete" && (
-                            <div className="h-1 bg-green-500/30 rounded-full overflow-hidden mt-1">
-                              <div className="h-full bg-green-500 rounded-full w-full" />
+                            <div className="h-1.5 bg-green-500/20 rounded-full overflow-hidden mt-1">
+                              <motion.div
+                                className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: "100%" }}
+                                transition={{ duration: 0.5, ease: "easeOut" }}
+                              />
                             </div>
                           )}
                         </div>
@@ -825,19 +841,52 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
           )}
 
           <AnimatePresence>
-            {uploadComplete && (
+            {isProcessing && queue.length > 1 && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="p-3 rounded-lg bg-primary/10 text-sm"
+                className="space-y-2"
+                data-testid="upload-overall-progress"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground font-medium">Overall Progress</span>
+                  <span className="text-primary font-semibold">
+                    {completedCount} / {queue.length} files
+                  </span>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-primary via-primary/90 to-primary/70 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${queue.length > 0 ? (completedCount / queue.length) * 100 : 0}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {uploadComplete && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm"
                 data-testid="upload-summary"
               >
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                  <span>
-                    {completedCount} file{completedCount !== 1 ? "s" : ""} uploaded
-                    {errorCount > 0 && `, ${errorCount} failed`}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  >
+                    <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+                  </motion.div>
+                  <span className="font-medium">
+                    {completedCount} file{completedCount !== 1 ? "s" : ""} uploaded successfully
+                    {errorCount > 0 && <span className="text-destructive"> ({errorCount} failed)</span>}
                   </span>
                 </div>
               </motion.div>

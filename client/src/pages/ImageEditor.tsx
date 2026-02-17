@@ -5,6 +5,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import { useCreateMedia } from "@/hooks/use-media";
 import { useToast } from "@/hooks/use-toast";
+import { useEditorShortcuts, type ShortcutAction } from "@/hooks/use-editor-shortcuts";
+import { useSoundFeedback } from "@/hooks/use-sound-feedback";
+import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { buildUrl, api } from "@shared/routes";
 import type { MediaResponse } from "@shared/routes";
 import { Button } from "@/components/ui/button";
@@ -39,6 +42,7 @@ import {
   ChevronDown,
   Eye,
   Wand2,
+  Keyboard,
 } from "lucide-react";
 
 type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers";
@@ -1307,6 +1311,7 @@ export default function ImageEditor() {
         label: mediaItem.label || undefined,
       });
 
+      soundFeedback("success");
       toast({ title: "Image saved successfully" });
       navigate("/dashboard");
     } catch (err) {
@@ -1347,6 +1352,19 @@ export default function ImageEditor() {
     { id: "stickers", icon: Sparkles, label: "Stickers" },
   ];
 
+  const soundFeedback = useSoundFeedback();
+
+  const editorShortcuts: ShortcutAction[] = useMemo(() => [
+    { key: "z", ctrl: true, label: "Undo", category: "History", action: handleUndo },
+    { key: "y", ctrl: true, label: "Redo", category: "History", action: handleRedo },
+    { key: "z", ctrl: true, shift: true, label: "Redo", category: "History", action: handleRedo },
+    { key: "s", ctrl: true, label: "Save as New", category: "File", action: () => { soundFeedback("save"); handleSave(); } },
+    { key: "r", ctrl: true, label: "Reset All", category: "Edit", action: handleReset },
+    { key: "b", label: "Before / After", category: "View", action: () => setShowOriginal(prev => !prev) },
+  ], [handleUndo, handleRedo, handleSave, handleReset, soundFeedback]);
+
+  const { showHelp, setShowHelp } = useEditorShortcuts(editorShortcuts);
+
   if (authLoading || mediaLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background" data-testid="editor-loading">
@@ -1359,8 +1377,9 @@ export default function ImageEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden" data-testid="image-editor">
-      <div className="flex items-center justify-between gap-3 px-4 py-2 border-b glass-morphism z-50" data-testid="editor-topbar">
-        <div className="flex items-center gap-3 flex-wrap">
+      <ShortcutHelp open={showHelp} onClose={() => setShowHelp(false)} shortcuts={editorShortcuts} title="Image Editor Shortcuts" />
+      <div className="flex items-center justify-between gap-2 sm:gap-3 px-2 sm:px-4 py-2 border-b glass-morphism z-50" data-testid="editor-topbar">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1374,7 +1393,7 @@ export default function ImageEditor() {
             </TooltipTrigger>
             <TooltipContent>Back</TooltipContent>
           </Tooltip>
-          <span className="text-sm font-medium truncate max-w-[200px]" data-testid="text-image-name">
+          <span className="text-sm font-medium truncate max-w-[120px] sm:max-w-[200px]" data-testid="text-image-name">
             {mediaItem?.title || "Image Editor"}
           </span>
         </div>
@@ -1437,17 +1456,25 @@ export default function ImageEditor() {
             </TooltipTrigger>
             <TooltipContent>Hold to see original</TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="icon" variant="ghost" onClick={() => setShowHelp(true)} className="hidden sm:inline-flex" data-testid="button-shortcuts">
+                <Keyboard className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Shortcuts (?)</TooltipContent>
+          </Tooltip>
           <Button
             onClick={handleSave}
             disabled={saving || isUploading || !imageLoaded}
             data-testid="button-save"
           >
             {saving || isUploading ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <Loader2 className="w-4 h-4 animate-spin sm:mr-2" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 sm:mr-2" />
             )}
-            Save as New
+            <span className="hidden sm:inline">Save as New</span>
           </Button>
         </div>
       </div>
