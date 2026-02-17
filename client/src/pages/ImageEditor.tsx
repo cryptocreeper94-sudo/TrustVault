@@ -26,7 +26,8 @@ import {
   Lock,
   Unlock,
   Loader2,
-  Undo,
+  Undo2,
+  Redo2,
   Check,
   X,
   Type,
@@ -36,6 +37,8 @@ import {
   Trash2,
   Bold,
   ChevronDown,
+  Eye,
+  Wand2,
 } from "lucide-react";
 
 type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers";
@@ -85,6 +88,23 @@ interface StickerLayer {
   color: string;
 }
 
+interface StylePreset {
+  name: string;
+  id: string;
+  adjustments: Adjustments;
+  filter: string;
+}
+
+interface EditorState {
+  adjustments: Adjustments;
+  activeFilter: string;
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+  textLayers: TextLayer[];
+  stickerLayers: StickerLayer[];
+}
+
 const FILTER_PRESETS: FilterPreset[] = [
   { name: "None", id: "none", filter: "none" },
   { name: "Grayscale", id: "grayscale", filter: "grayscale(100%)" },
@@ -93,6 +113,15 @@ const FILTER_PRESETS: FilterPreset[] = [
   { name: "Cool", id: "cool", filter: "saturate(80%) hue-rotate(180deg) brightness(105%)" },
   { name: "Vivid", id: "vivid", filter: "saturate(180%) contrast(120%)" },
   { name: "Fade", id: "fade", filter: "contrast(75%) brightness(115%) saturate(80%)" },
+  { name: "Golden Hour", id: "golden-hour", filter: "sepia(20%) brightness(115%) saturate(130%) contrast(95%)" },
+  { name: "Midnight", id: "midnight", filter: "brightness(85%) contrast(130%) saturate(60%) hue-rotate(210deg)" },
+  { name: "Film Noir", id: "film-noir", filter: "grayscale(80%) contrast(140%) brightness(95%)" },
+  { name: "Dreamy", id: "dreamy", filter: "brightness(110%) contrast(85%) saturate(120%) blur(0.5px)" },
+  { name: "Retro Pop", id: "retro-pop", filter: "saturate(160%) contrast(110%) hue-rotate(330deg) brightness(105%)" },
+  { name: "Arctic", id: "arctic", filter: "brightness(110%) saturate(70%) hue-rotate(190deg) contrast(105%)" },
+  { name: "Sunset Glow", id: "sunset-glow", filter: "sepia(30%) saturate(140%) brightness(108%) contrast(105%)" },
+  { name: "Noir & Gold", id: "noir-gold", filter: "sepia(50%) contrast(130%) brightness(90%) saturate(110%)" },
+  { name: "Pastel", id: "pastel", filter: "brightness(115%) saturate(80%) contrast(85%)" },
 ];
 
 const DEFAULT_ADJUSTMENTS: Adjustments = {
@@ -105,6 +134,34 @@ const DEFAULT_ADJUSTMENTS: Adjustments = {
   vignette: 0,
   sharpen: 0,
 };
+
+const STYLE_PRESETS: StylePreset[] = [
+  {
+    name: "Portrait", id: "portrait",
+    adjustments: { brightness: 105, contrast: 95, saturation: 90, blur: 0, hue: 0, temperature: 15, vignette: 20, sharpen: 15 },
+    filter: "none",
+  },
+  {
+    name: "Landscape", id: "landscape",
+    adjustments: { brightness: 100, contrast: 115, saturation: 130, blur: 0, hue: 0, temperature: 5, vignette: 10, sharpen: 20 },
+    filter: "none",
+  },
+  {
+    name: "Food", id: "food",
+    adjustments: { brightness: 108, contrast: 105, saturation: 140, blur: 0, hue: 0, temperature: 20, vignette: 15, sharpen: 10 },
+    filter: "none",
+  },
+  {
+    name: "Night Mode", id: "night-mode",
+    adjustments: { brightness: 115, contrast: 120, saturation: 80, blur: 0, hue: 0, temperature: -15, vignette: 30, sharpen: 25 },
+    filter: "none",
+  },
+  {
+    name: "Cinematic", id: "cinematic",
+    adjustments: { brightness: 95, contrast: 125, saturation: 85, blur: 0, hue: 0, temperature: 10, vignette: 35, sharpen: 5 },
+    filter: "none",
+  },
+];
 
 const FONT_FAMILIES = ["Arial", "Helvetica", "Georgia", "Times New Roman", "Courier New", "Verdana"];
 
@@ -398,6 +455,11 @@ export default function ImageEditor() {
   const [stickerColor, setStickerColor] = useState("#ffffff");
   const [stickerSize, setStickerSize] = useState(60);
 
+  const [history, setHistory] = useState<EditorState[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyIndexRef = useRef(-1);
+  const [showOriginal, setShowOriginal] = useState(false);
+
   const { data: mediaItem, isLoading: mediaLoading } = useQuery<MediaResponse>({
     queryKey: ["/api/media", id],
     queryFn: async () => {
@@ -545,6 +607,18 @@ export default function ImageEditor() {
       setResizeHeight(img.naturalHeight);
       setOriginalAspect(img.naturalWidth / img.naturalHeight);
       setImageLoaded(true);
+      const initialState: EditorState = {
+        adjustments: { brightness: 100, contrast: 100, saturation: 100, blur: 0, hue: 0, temperature: 0, vignette: 0, sharpen: 0 },
+        activeFilter: "none",
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        textLayers: [],
+        stickerLayers: [],
+      };
+      setHistory([initialState]);
+      setHistoryIndex(0);
+      historyIndexRef.current = 0;
     };
     img.onerror = () => {
       toast({ title: "Failed to load image", variant: "destructive" });
@@ -614,12 +688,90 @@ export default function ImageEditor() {
     }
   };
 
-  const handleRotateCW = () => setRotation((r) => (r + 90) % 360);
-  const handleRotateCCW = () => setRotation((r) => (r + 270) % 360);
-  const handleFlipH = () => setFlipH((f) => !f);
-  const handleFlipV = () => setFlipV((f) => !f);
+  const pushHistory = useCallback(() => {
+    const state: EditorState = {
+      adjustments: { ...adjustments },
+      activeFilter,
+      rotation,
+      flipH,
+      flipV,
+      textLayers: textLayers.map((tl) => ({ ...tl })),
+      stickerLayers: stickerLayers.map((sl) => ({ ...sl })),
+    };
+    const idx = historyIndexRef.current;
+    setHistory((prev) => {
+      const truncated = prev.slice(0, idx + 1);
+      return [...truncated, state];
+    });
+    historyIndexRef.current = idx + 1;
+    setHistoryIndex(idx + 1);
+  }, [adjustments, activeFilter, rotation, flipH, flipV, textLayers, stickerLayers]);
+
+  const restoreImageState = useCallback((s: EditorState) => {
+    setAdjustments({ ...s.adjustments });
+    setActiveFilter(s.activeFilter);
+    setRotation(s.rotation);
+    setFlipH(s.flipH);
+    setFlipV(s.flipV);
+    setTextLayers(s.textLayers.map((tl) => ({ ...tl })));
+    setStickerLayers(s.stickerLayers.map((sl) => ({ ...sl })));
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    const newIdx = historyIndexRef.current - 1;
+    const prevState = history[newIdx];
+    if (!prevState) return;
+    restoreImageState(prevState);
+    historyIndexRef.current = newIdx;
+    setHistoryIndex(newIdx);
+  }, [history, restoreImageState]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current >= history.length - 1) return;
+    const newIdx = historyIndexRef.current + 1;
+    const nextState = history[newIdx];
+    if (!nextState) return;
+    restoreImageState(nextState);
+    historyIndexRef.current = newIdx;
+    setHistoryIndex(newIdx);
+  }, [history, restoreImageState]);
+
+  const applyStylePreset = useCallback((preset: StylePreset) => {
+    pushHistory();
+    const startAdj = { ...adjustments };
+    const target = preset.adjustments;
+    setActiveFilter(preset.filter);
+    const duration = 500;
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      setAdjustments({
+        brightness: Math.round(startAdj.brightness + (target.brightness - startAdj.brightness) * ease),
+        contrast: Math.round(startAdj.contrast + (target.contrast - startAdj.contrast) * ease),
+        saturation: Math.round(startAdj.saturation + (target.saturation - startAdj.saturation) * ease),
+        blur: +(startAdj.blur + (target.blur - startAdj.blur) * ease).toFixed(1),
+        hue: Math.round(startAdj.hue + (target.hue - startAdj.hue) * ease),
+        temperature: Math.round(startAdj.temperature + (target.temperature - startAdj.temperature) * ease),
+        vignette: Math.round(startAdj.vignette + (target.vignette - startAdj.vignette) * ease),
+        sharpen: Math.round(startAdj.sharpen + (target.sharpen - startAdj.sharpen) * ease),
+      });
+      if (t < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+    setActiveTool("adjustments");
+    toast({ title: `${preset.name} preset applied` });
+  }, [adjustments, pushHistory, toast]);
+
+  const handleRotateCW = () => { pushHistory(); setRotation((r) => (r + 90) % 360); };
+  const handleRotateCCW = () => { pushHistory(); setRotation((r) => (r + 270) % 360); };
+  const handleFlipH = () => { pushHistory(); setFlipH((f) => !f); };
+  const handleFlipV = () => { pushHistory(); setFlipV((f) => !f); };
 
   const handleReset = () => {
+    pushHistory();
     setRotation(0);
     setFlipH(false);
     setFlipV(false);
@@ -643,8 +795,33 @@ export default function ImageEditor() {
     }
   };
 
+  const drawOriginal = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img = originalImageRef.current;
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const imgW = img.naturalWidth || img.width;
+    const imgH = img.naturalHeight || img.height;
+    canvas.width = imgW;
+    canvas.height = imgH;
+    ctx.clearRect(0, 0, imgW, imgH);
+    ctx.filter = "none";
+    ctx.drawImage(img, 0, 0, imgW, imgH);
+  }, []);
+
+  useEffect(() => {
+    if (!imageLoaded) return;
+    if (showOriginal) {
+      drawOriginal();
+    } else {
+      drawCanvas();
+    }
+  }, [showOriginal, imageLoaded, drawOriginal, drawCanvas]);
+
   const handleAiEnhance = async () => {
     if (!mediaItem) return;
+    pushHistory();
     setIsAiEnhancing(true);
     setAiExplanation(null);
     try {
@@ -989,6 +1166,7 @@ export default function ImageEditor() {
 
   const addTextLayer = () => {
     if (!newTextInput.trim()) return;
+    pushHistory();
     const canvas = canvasRef.current;
     const centerX = canvas ? canvas.width / 2 - 50 : 100;
     const centerY = canvas ? canvas.height / 2 : 100;
@@ -1008,11 +1186,13 @@ export default function ImageEditor() {
   };
 
   const removeTextLayer = (id: string) => {
+    pushHistory();
     setTextLayers((prev) => prev.filter((tl) => tl.id !== id));
     if (activeTextId === id) setActiveTextId(null);
   };
 
   const addSticker = (type: string) => {
+    pushHistory();
     const canvas = canvasRef.current;
     const centerX = canvas ? canvas.width / 2 : 100;
     const centerY = canvas ? canvas.height / 2 : 100;
@@ -1030,6 +1210,7 @@ export default function ImageEditor() {
   };
 
   const removeSticker = (index: number) => {
+    pushHistory();
     setStickerLayers((prev) => prev.filter((_, i) => i !== index));
     if (activeStickerIndex === index) setActiveStickerIndex(null);
     else if (activeStickerIndex !== null && activeStickerIndex > index) {
@@ -1203,13 +1384,58 @@ export default function ImageEditor() {
               <Button
                 size="icon"
                 variant="ghost"
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                data-testid="button-undo"
+              >
+                <Undo2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Undo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleRedo}
+                disabled={historyIndex >= history.length - 1}
+                data-testid="button-redo"
+              >
+                <Redo2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Redo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={handleReset}
                 data-testid="button-reset"
               >
-                <Undo />
+                <RotateCcw />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Reset to Original</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onMouseDown={() => setShowOriginal(true)}
+                onMouseUp={() => setShowOriginal(false)}
+                onMouseLeave={() => setShowOriginal(false)}
+                onTouchStart={() => setShowOriginal(true)}
+                onTouchEnd={() => setShowOriginal(false)}
+                data-testid="button-before-after"
+              >
+                <Eye />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Hold to see original</TooltipContent>
           </Tooltip>
           <Button
             onClick={handleSave}
@@ -1467,7 +1693,7 @@ export default function ImageEditor() {
                   {FILTER_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
-                      onClick={() => setActiveFilter(preset.id)}
+                      onClick={() => { pushHistory(); setActiveFilter(preset.id); }}
                       className={`flex flex-col items-center gap-1.5 p-2 rounded-md transition-colors ${
                         activeFilter === preset.id
                           ? "bg-primary/20 ring-2 ring-primary"
@@ -1494,6 +1720,25 @@ export default function ImageEditor() {
               <div className="flex flex-col gap-5">
                 <h3 className="text-sm font-semibold" data-testid="text-panel-title">Adjustments</h3>
                 <p className="text-xs text-muted-foreground">Fine-tune how your photo looks. Drag any slider to see changes instantly.</p>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                    <Wand2 className="w-3 h-3" />
+                    Style Presets
+                  </label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {STYLE_PRESETS.map((preset) => (
+                      <Button
+                        key={preset.id}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => applyStylePreset(preset)}
+                        data-testid={`button-style-preset-${preset.id}`}
+                      >
+                        {preset.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
                 <Button
                   variant="outline"
                   onClick={handleAiEnhance}
@@ -1522,6 +1767,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.brightness]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, brightness: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-brightness"
                   />
                 </div>
@@ -1536,6 +1782,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.contrast]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, contrast: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-contrast"
                   />
                 </div>
@@ -1550,6 +1797,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.saturation]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, saturation: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-saturation"
                   />
                 </div>
@@ -1564,6 +1812,7 @@ export default function ImageEditor() {
                     step={0.1}
                     value={[adjustments.blur]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, blur: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-blur"
                   />
                 </div>
@@ -1578,6 +1827,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.hue]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, hue: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-hue"
                   />
                 </div>
@@ -1594,6 +1844,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.temperature]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, temperature: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-temperature"
                   />
                 </div>
@@ -1608,6 +1859,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.vignette]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, vignette: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-vignette"
                   />
                 </div>
@@ -1622,6 +1874,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.sharpen]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, sharpen: v }))}
+                    onValueCommit={() => pushHistory()}
                     data-testid="slider-sharpen"
                   />
                 </div>

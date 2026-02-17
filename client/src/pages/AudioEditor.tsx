@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card } from "@/components/ui/card";
 import {
   Play,
   Pause,
@@ -22,15 +23,55 @@ import {
   ArrowLeft,
   Save,
   Loader2,
-  Undo,
+  Undo2,
+  Redo2,
+  RotateCcw,
   FastForward,
   Rewind,
   Clock,
   Waves,
   ChevronDown,
+  Wand2,
 } from "lucide-react";
 
-type AudioTool = "trim" | "fade" | "volume" | "effects";
+type AudioTool = "trim" | "fade" | "volume" | "effects" | "presets";
+
+interface AudioPreset {
+  name: string;
+  id: string;
+  description: string;
+  volume: number;
+  eqBass: number;
+  eqMid: number;
+  eqTreble: number;
+  reverbMix: number;
+  noiseGate: number;
+}
+
+const AUDIO_PRESETS: AudioPreset[] = [
+  { id: "podcast-voice", name: "Podcast Voice", description: "Clear vocals with reduced background noise", volume: 100, eqBass: -3, eqMid: 4, eqTreble: 2, reverbMix: 5, noiseGate: 40 },
+  { id: "music-boost", name: "Music Boost", description: "Enhanced bass and treble for music", volume: 100, eqBass: 4, eqMid: 0, eqTreble: 3, reverbMix: 15, noiseGate: 0 },
+  { id: "voice-memo", name: "Voice Memo", description: "Maximum vocal clarity with noise removal", volume: 120, eqBass: -6, eqMid: 6, eqTreble: 4, reverbMix: 0, noiseGate: 60 },
+  { id: "bass-heavy", name: "Bass Heavy", description: "Deep bass-forward sound", volume: 100, eqBass: 10, eqMid: -2, eqTreble: -4, reverbMix: 10, noiseGate: 0 },
+  { id: "lo-fi", name: "Lo-Fi", description: "Warm, vintage lo-fi aesthetic", volume: 90, eqBass: 3, eqMid: -3, eqTreble: -6, reverbMix: 30, noiseGate: 0 },
+  { id: "concert-hall", name: "Concert Hall", description: "Spacious reverb like a live venue", volume: 95, eqBass: 2, eqMid: 0, eqTreble: 1, reverbMix: 50, noiseGate: 0 },
+  { id: "telephone", name: "Telephone", description: "Retro telephone speaker effect", volume: 100, eqBass: -12, eqMid: 8, eqTreble: -8, reverbMix: 0, noiseGate: 30 },
+  { id: "bright-airy", name: "Bright & Airy", description: "Light and sparkly high-end boost", volume: 100, eqBass: -2, eqMid: 2, eqTreble: 6, reverbMix: 20, noiseGate: 10 },
+];
+
+interface AudioEditorState {
+  trimStart: number;
+  trimEnd: number;
+  fadeIn: number;
+  fadeOut: number;
+  volume: number;
+  eqBass: number;
+  eqMid: number;
+  eqTreble: number;
+  reverbMix: number;
+  noiseGate: number;
+  playbackRate: number;
+}
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -122,7 +163,7 @@ export default function AudioEditor() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
-    if (["fade", "effects"].includes(activeTool)) {
+    if (["fade", "effects", "presets"].includes(activeTool)) {
       setShowAdvanced(true);
     }
   }, [activeTool]);
@@ -140,6 +181,64 @@ export default function AudioEditor() {
   const [eqTreble, setEqTreble] = useState(0);
   const [reverbMix, setReverbMix] = useState(0);
   const [noiseGate, setNoiseGate] = useState(0);
+
+  const [history, setHistory] = useState<AudioEditorState[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyIndexRef = useRef(-1);
+  const prevToolRef = useRef<AudioTool | null>(null);
+
+  const captureState = useCallback((): AudioEditorState => ({
+    trimStart, trimEnd, fadeIn, fadeOut, volume,
+    eqBass, eqMid, eqTreble, reverbMix, noiseGate, playbackRate,
+  }), [trimStart, trimEnd, fadeIn, fadeOut, volume, eqBass, eqMid, eqTreble, reverbMix, noiseGate, playbackRate]);
+
+  const pushHistory = useCallback((state: AudioEditorState) => {
+    const idx = historyIndexRef.current;
+    setHistory(prev => {
+      const newHistory = prev.slice(0, idx + 1);
+      newHistory.push(state);
+      return newHistory;
+    });
+    historyIndexRef.current = idx + 1;
+    setHistoryIndex(idx + 1);
+  }, []);
+
+  const restoreState = useCallback((state: AudioEditorState) => {
+    setTrimStart(state.trimStart);
+    setTrimEnd(state.trimEnd);
+    setFadeIn(state.fadeIn);
+    setFadeOut(state.fadeOut);
+    setVolume(state.volume);
+    setEqBass(state.eqBass);
+    setEqMid(state.eqMid);
+    setEqTreble(state.eqTreble);
+    setReverbMix(state.reverbMix);
+    setNoiseGate(state.noiseGate);
+    setPlaybackRate(state.playbackRate);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    const newIndex = historyIndexRef.current - 1;
+    historyIndexRef.current = newIndex;
+    setHistoryIndex(newIndex);
+    restoreState(history[newIndex]);
+  }, [history, restoreState]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current >= history.length - 1) return;
+    const newIndex = historyIndexRef.current + 1;
+    historyIndexRef.current = newIndex;
+    setHistoryIndex(newIndex);
+    restoreState(history[newIndex]);
+  }, [history, restoreState]);
+
+  useEffect(() => {
+    if (prevToolRef.current !== null && prevToolRef.current !== activeTool) {
+      pushHistory(captureState());
+    }
+    prevToolRef.current = activeTool;
+  }, [activeTool, captureState, pushHistory]);
 
   const { data: mediaItem, isLoading: mediaLoading } = useQuery<MediaResponse>({
     queryKey: ["/api/media", id],
@@ -171,6 +270,13 @@ export default function AudioEditor() {
         setDuration(decoded.duration);
         setTrimEnd(decoded.duration);
         setAudioLoaded(true);
+        const initialState: AudioEditorState = {
+          trimStart: 0, trimEnd: decoded.duration, fadeIn: 0, fadeOut: 0,
+          volume: 100, eqBass: 0, eqMid: 0, eqTreble: 0, reverbMix: 0, noiseGate: 0, playbackRate: 1,
+        };
+        setHistory([initialState]);
+        setHistoryIndex(0);
+        historyIndexRef.current = 0;
       })
       .catch(() => {
         toast({ title: "Failed to load audio", variant: "destructive" });
@@ -193,7 +299,7 @@ export default function AudioEditor() {
       const container = canvasContainerRef.current;
       const dpr = window.devicePixelRatio || 1;
       const displayWidth = container ? container.clientWidth : canvas.clientWidth;
-      const displayHeight = 200;
+      const displayHeight = 250;
 
       canvas.width = displayWidth * dpr;
       canvas.height = displayHeight * dpr;
@@ -597,8 +703,9 @@ export default function AudioEditor() {
     setTrimEnd(newBuffer.duration);
     setCurrentTime(0);
     pauseOffsetRef.current = 0;
+    pushHistory(captureState());
     toast({ title: "Trim applied" });
-  }, [audioBuffer, trimStart, trimEnd, stopPlayback, toast]);
+  }, [audioBuffer, trimStart, trimEnd, stopPlayback, toast, pushHistory, captureState]);
 
   useEffect(() => {
     if (gainNodeRef.current) {
@@ -639,6 +746,40 @@ export default function AudioEditor() {
         toast({ title: "Failed to reload audio", variant: "destructive" });
       });
   }, [mediaItem?.url, stopPlayback, toast]);
+
+  const applyPreset = useCallback((preset: AudioPreset) => {
+    pushHistory(captureState());
+    const startState = captureState();
+    const targetState = {
+      volume: preset.volume,
+      eqBass: preset.eqBass,
+      eqMid: preset.eqMid,
+      eqTreble: preset.eqTreble,
+      reverbMix: preset.reverbMix,
+      noiseGate: preset.noiseGate,
+    };
+    const duration = 400;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      setVolume(Math.round(startState.volume + (targetState.volume - startState.volume) * ease));
+      setEqBass(Math.round(startState.eqBass + (targetState.eqBass - startState.eqBass) * ease));
+      setEqMid(Math.round(startState.eqMid + (targetState.eqMid - startState.eqMid) * ease));
+      setEqTreble(Math.round(startState.eqTreble + (targetState.eqTreble - startState.eqTreble) * ease));
+      setReverbMix(Math.round(startState.reverbMix + (targetState.reverbMix - startState.reverbMix) * ease));
+      setNoiseGate(Math.round(startState.noiseGate + (targetState.noiseGate - startState.noiseGate) * ease));
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    requestAnimationFrame(animate);
+    toast({ title: `Applied "${preset.name}" preset` });
+  }, [captureState, pushHistory, toast]);
 
   const handleSave = async () => {
     if (!audioBuffer || !mediaItem) return;
@@ -789,6 +930,7 @@ export default function AudioEditor() {
   const essentialTools: { id: AudioTool; icon: typeof Scissors; label: string }[] = [
     { id: "trim", icon: Scissors, label: "Trim" },
     { id: "volume", icon: Volume2, label: "Volume" },
+    { id: "presets", icon: Wand2, label: "Presets" },
   ];
 
   const advancedTools: { id: AudioTool; icon: typeof Scissors; label: string }[] = [
@@ -835,10 +977,38 @@ export default function AudioEditor() {
               <Button
                 size="icon"
                 variant="ghost"
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                data-testid="button-undo"
+              >
+                <Undo2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Undo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleRedo}
+                disabled={historyIndex >= history.length - 1}
+                data-testid="button-redo"
+              >
+                <Redo2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Redo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={handleReset}
                 data-testid="button-reset"
               >
-                <Undo />
+                <RotateCcw />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Reset to Original</TooltipContent>
@@ -887,7 +1057,7 @@ export default function AudioEditor() {
                 <canvas
                   ref={canvasRef}
                   className="block w-full rounded-md cursor-pointer"
-                  style={{ height: "200px" }}
+                  style={{ height: "250px" }}
                   onClick={handleCanvasClick}
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}
@@ -1240,6 +1410,30 @@ export default function AudioEditor() {
                         onValueChange={([val]) => setNoiseGate(val)}
                         data-testid="slider-noise-gate"
                       />
+                    </div>
+                  </div>
+                )}
+
+                {activeTool === "presets" && (
+                  <div className="flex flex-col gap-4" data-testid="presets-controls">
+                    <p className="text-xs text-muted-foreground">Apply a sound profile instantly. Click a preset to smoothly adjust all audio settings.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {AUDIO_PRESETS.map((preset) => (
+                        <Card
+                          key={preset.id}
+                          className="p-3 cursor-pointer hover-elevate active-elevate-2 transition-all"
+                          onClick={() => applyPreset(preset)}
+                          data-testid={`card-preset-${preset.id}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <Wand2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                            <div className="flex flex-col gap-1 min-w-0">
+                              <span className="text-sm font-medium" data-testid={`text-preset-name-${preset.id}`}>{preset.name}</span>
+                              <span className="text-xs text-muted-foreground" data-testid={`text-preset-desc-${preset.id}`}>{preset.description}</span>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   </div>
                 )}

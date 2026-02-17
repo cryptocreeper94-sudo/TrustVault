@@ -28,12 +28,50 @@ import {
   ArrowLeft,
   Save,
   Loader2,
-  Undo,
+  Undo2,
+  Redo2,
+  RotateCcw,
+  Eye,
   Clock,
   CheckCircle2,
   XCircle,
   ChevronDown,
 } from "lucide-react";
+
+interface VideoPreset {
+  name: string;
+  id: string;
+  description: string;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hue: number;
+  temperature: number;
+  vignette: number;
+}
+
+interface VideoEditorState {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hue: number;
+  temperature: number;
+  vignette: number;
+  trimStart: number;
+  trimEnd: number;
+  playbackRate: number;
+}
+
+const VIDEO_PRESETS: VideoPreset[] = [
+  { id: "cinematic", name: "Cinematic", description: "Hollywood film look", brightness: 95, contrast: 125, saturation: 85, hue: 0, temperature: 10, vignette: 35 },
+  { id: "bright-airy", name: "Bright & Airy", description: "Light and clean aesthetic", brightness: 115, contrast: 90, saturation: 110, hue: 0, temperature: 5, vignette: 0 },
+  { id: "moody", name: "Moody", description: "Dark and dramatic", brightness: 85, contrast: 130, saturation: 70, hue: 0, temperature: -10, vignette: 40 },
+  { id: "vintage-film", name: "Vintage Film", description: "Classic retro film grain look", brightness: 105, contrast: 95, saturation: 75, hue: 15, temperature: 20, vignette: 25 },
+  { id: "cool-tones", name: "Cool Tones", description: "Blue-shifted cool palette", brightness: 100, contrast: 110, saturation: 90, hue: -10, temperature: -25, vignette: 15 },
+  { id: "warm-sunset", name: "Warm Sunset", description: "Golden warm tones", brightness: 105, contrast: 105, saturation: 120, hue: 10, temperature: 30, vignette: 20 },
+  { id: "noir", name: "Noir", description: "Black and white drama", brightness: 90, contrast: 140, saturation: 20, hue: 0, temperature: 0, vignette: 45 },
+  { id: "pastel-dream", name: "Pastel Dream", description: "Soft muted colors", brightness: 112, contrast: 85, saturation: 80, hue: 5, temperature: 8, vignette: 10 },
+];
 
 type VideoTool = "trim" | "adjustments" | "capture";
 
@@ -88,6 +126,11 @@ export default function VideoEditor() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
 
+  const [history, setHistory] = useState<VideoEditorState[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyIndexRef = useRef(-1);
+  const [showingBefore, setShowingBefore] = useState(false);
+
   const essentialTools: { id: VideoTool; icon: typeof Scissors; label: string }[] = [
     { id: "trim", icon: Scissors, label: "Trim" },
   ];
@@ -133,6 +176,13 @@ export default function VideoEditor() {
       setDuration(video.duration);
       setTrimEnd(video.duration);
       setVideoLoaded(true);
+      const initialState: VideoEditorState = {
+        brightness: 100, contrast: 100, saturation: 100, hue: 0,
+        temperature: 0, vignette: 0, trimStart: 0, trimEnd: video.duration, playbackRate: 1,
+      };
+      setHistory([initialState]);
+      setHistoryIndex(0);
+      historyIndexRef.current = 0;
     };
 
     const onEnded = () => {
@@ -340,7 +390,19 @@ export default function VideoEditor() {
     };
   }, [isDraggingTrim, duration, trimStart, trimEnd]);
 
+  const pushHistory = useCallback(() => {
+    const state: VideoEditorState = { brightness, contrast, saturation, hue, temperature, vignette, trimStart, trimEnd, playbackRate };
+    const idx = historyIndexRef.current;
+    setHistory((prev) => {
+      const newHistory = [...prev.slice(0, idx + 1), state];
+      return newHistory;
+    });
+    historyIndexRef.current = idx + 1;
+    setHistoryIndex(idx + 1);
+  }, [brightness, contrast, saturation, hue, temperature, vignette, trimStart, trimEnd, playbackRate]);
+
   const handleApplyTrim = useCallback(() => {
+    pushHistory();
     setTrimApplied(true);
     const video = videoRef.current;
     if (video && (video.currentTime < trimStart || video.currentTime > trimEnd)) {
@@ -348,7 +410,7 @@ export default function VideoEditor() {
       setCurrentTime(trimStart);
     }
     toast({ title: "Trim applied" });
-  }, [trimStart, trimEnd, toast]);
+  }, [trimStart, trimEnd, toast, pushHistory]);
 
   const handleReset = useCallback(() => {
     const video = videoRef.current;
@@ -370,6 +432,59 @@ export default function VideoEditor() {
     setPlaybackRate(1);
     video.playbackRate = 1;
   }, [duration]);
+
+  const restoreState = useCallback((state: VideoEditorState) => {
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setSaturation(state.saturation);
+    setHue(state.hue);
+    setTemperature(state.temperature);
+    setVignette(state.vignette);
+    setTrimStart(state.trimStart);
+    setTrimEnd(state.trimEnd);
+    setPlaybackRate(state.playbackRate);
+    const video = videoRef.current;
+    if (video) video.playbackRate = state.playbackRate;
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current < 0) return;
+    const state = history[historyIndexRef.current];
+    if (state) restoreState(state);
+    historyIndexRef.current -= 1;
+    setHistoryIndex(historyIndexRef.current);
+  }, [history, restoreState]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current >= history.length - 1) return;
+    historyIndexRef.current += 1;
+    const nextState = history[historyIndexRef.current];
+    if (nextState) restoreState(nextState);
+    setHistoryIndex(historyIndexRef.current);
+  }, [history, restoreState]);
+
+  const handleApplyPreset = useCallback((preset: VideoPreset) => {
+    pushHistory();
+    const startVals = { brightness, contrast, saturation, hue, temperature, vignette };
+    const target = { brightness: preset.brightness, contrast: preset.contrast, saturation: preset.saturation, hue: preset.hue, temperature: preset.temperature, vignette: preset.vignette };
+    const duration = 400;
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      setBrightness(Math.round(startVals.brightness + (target.brightness - startVals.brightness) * ease));
+      setContrast(Math.round(startVals.contrast + (target.contrast - startVals.contrast) * ease));
+      setSaturation(Math.round(startVals.saturation + (target.saturation - startVals.saturation) * ease));
+      setHue(Math.round(startVals.hue + (target.hue - startVals.hue) * ease));
+      setTemperature(Math.round(startVals.temperature + (target.temperature - startVals.temperature) * ease));
+      setVignette(Math.round(startVals.vignette + (target.vignette - startVals.vignette) * ease));
+      if (t < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+    setActiveTool("adjustments");
+    toast({ title: `${preset.name} preset applied` });
+  }, [brightness, contrast, saturation, hue, temperature, vignette, pushHistory, toast]);
 
   const handleCaptureFrame = useCallback(() => {
     const video = videoRef.current;
@@ -506,7 +621,14 @@ export default function VideoEditor() {
     }
   };
 
-  const videoFilterStyle = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)${hue !== 0 ? ` hue-rotate(${hue}deg)` : ""}`;
+  const displayBrightness = showingBefore ? 100 : brightness;
+  const displayContrast = showingBefore ? 100 : contrast;
+  const displaySaturation = showingBefore ? 100 : saturation;
+  const displayHue = showingBefore ? 0 : hue;
+  const displayTemperature = showingBefore ? 0 : temperature;
+  const displayVignette = showingBefore ? 0 : vignette;
+
+  const videoFilterStyle = `brightness(${displayBrightness}%) contrast(${displayContrast}%) saturate(${displaySaturation}%)${displayHue !== 0 ? ` hue-rotate(${displayHue}deg)` : ""}`;
 
   const speedOptions = [0.5, 1, 1.5, 2];
 
@@ -557,10 +679,55 @@ export default function VideoEditor() {
               <Button
                 size="icon"
                 variant="ghost"
+                onMouseDown={() => setShowingBefore(true)}
+                onMouseUp={() => setShowingBefore(false)}
+                onMouseLeave={() => setShowingBefore(false)}
+                onTouchStart={() => setShowingBefore(true)}
+                onTouchEnd={() => setShowingBefore(false)}
+                data-testid="button-before-after"
+              >
+                <Eye />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Hold to see original</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                data-testid="button-undo"
+              >
+                <Undo2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Undo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleRedo}
+                disabled={historyIndex >= history.length - 1}
+                data-testid="button-redo"
+              >
+                <Redo2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Redo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={handleReset}
                 data-testid="button-reset"
               >
-                <Undo />
+                <RotateCcw />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Reset</TooltipContent>
@@ -640,22 +807,22 @@ export default function VideoEditor() {
               playsInline
               data-testid="video-player"
             />
-            {temperature !== 0 && (
+            {displayTemperature !== 0 && (
               <div
                 className="absolute inset-0 rounded-md pointer-events-none"
                 style={{
-                  backgroundColor: temperature > 0
-                    ? `rgba(255,140,0,${temperature / 500})`
-                    : `rgba(0,100,255,${Math.abs(temperature) / 500})`,
+                  backgroundColor: displayTemperature > 0
+                    ? `rgba(255,140,0,${displayTemperature / 500})`
+                    : `rgba(0,100,255,${Math.abs(displayTemperature) / 500})`,
                   mixBlendMode: "overlay",
                 }}
               />
             )}
-            {vignette > 0 && (
+            {displayVignette > 0 && (
               <div
                 className="absolute inset-0 rounded-md pointer-events-none"
                 style={{
-                  background: `radial-gradient(circle, transparent 30%, rgba(0,0,0,${vignette / 100}) 100%)`,
+                  background: `radial-gradient(circle, transparent 30%, rgba(0,0,0,${displayVignette / 100}) 100%)`,
                 }}
               />
             )}
@@ -944,6 +1111,19 @@ export default function VideoEditor() {
                 {activeTool === "adjustments" && (
                   <div className="flex flex-col gap-4" data-testid="panel-adjustments">
                     <p className="text-xs text-white/50">Fine-tune how your video looks. Changes apply to the preview and saved output.</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2" data-testid="preset-list">
+                      {VIDEO_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() => handleApplyPreset(preset)}
+                          className="flex-shrink-0 flex flex-col gap-0.5 px-3 py-2 rounded-md border border-white/10 bg-white/5 hover-elevate active-elevate-2 text-left min-w-[100px]"
+                          data-testid={`button-preset-${preset.id}`}
+                        >
+                          <span className="text-xs font-medium text-white">{preset.name}</span>
+                          <span className="text-[10px] text-white/40 leading-tight">{preset.description}</span>
+                        </button>
+                      ))}
+                    </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                         <label className="text-xs text-white/60">Brightness</label>
