@@ -9,6 +9,7 @@ import {
   validateChatPassword,
   randomAvatarColor,
 } from "../trustlayer-sso";
+import { blockchainClient } from "../services/blockchainClient";
 
 export function registerChatAuthRoutes(app: Express): void {
   app.post("/api/chat/auth/register", async (req: Request, res: Response) => {
@@ -49,6 +50,18 @@ export function registerChatAuthRoutes(app: Express): void {
       });
 
       const token = generateJWT(user.id, trustLayerId);
+
+      if (blockchainClient.isConfigured) {
+        try {
+          const anchor = await blockchainClient.anchorIdentity(trustLayerId, displayName.trim(), email.trim().toLowerCase());
+          if (anchor.success && anchor.chainAddress) {
+            await storage.updateChatUserChain(user.id, anchor.chainAddress);
+            console.log(`[Blockchain] Anchored identity ${trustLayerId} → ${anchor.chainAddress}`);
+          }
+        } catch (err) {
+          console.error("[Blockchain] Identity anchor failed (non-blocking):", err);
+        }
+      }
 
       return res.status(201).json({
         success: true,

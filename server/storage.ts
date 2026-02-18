@@ -177,6 +177,8 @@ export interface IStorage {
   getChatUserByPinAuthId(pinAuthId: number): Promise<ChatUser | undefined>;
   createChatUser(data: InsertChatUser): Promise<ChatUser>;
   updateChatUserOnline(id: string, isOnline: boolean): Promise<void>;
+  updateChatUserChain(id: string, chainAddress: string): Promise<void>;
+  updateMediaProvenance(id: number, data: { fileHash?: string; provenanceId?: string; provenanceTxHash?: string; provenanceBlockNumber?: number; provenanceTimestamp?: Date }): Promise<void>;
   getOnlineChatUsers(): Promise<ChatUser[]>;
   getChatChannels(): Promise<ChatChannel[]>;
   getChatChannel(id: string): Promise<ChatChannel | undefined>;
@@ -646,6 +648,14 @@ export class DatabaseStorage implements IStorage {
 
   async updateChatUserOnline(id: string, isOnline: boolean): Promise<void> {
     await db.update(chatUsers).set({ isOnline, lastSeen: new Date() }).where(eq(chatUsers.id, id));
+  }
+
+  async updateChatUserChain(id: string, chainAddress: string): Promise<void> {
+    await db.update(chatUsers).set({ chainAddress, chainVerified: true, chainVerifiedAt: new Date() }).where(eq(chatUsers.id, id));
+  }
+
+  async updateMediaProvenance(id: number, data: { fileHash?: string; provenanceId?: string; provenanceTxHash?: string; provenanceBlockNumber?: number; provenanceTimestamp?: Date }): Promise<void> {
+    await db.update(mediaItems).set(data).where(eq(mediaItems.id, id));
   }
 
   async getOnlineChatUsers(): Promise<ChatUser[]> {

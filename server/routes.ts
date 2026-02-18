@@ -1,11 +1,13 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { type Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
+import { blockchainClient } from "./services/blockchainClient";
 import { detectCategory, type MediaCategory, MEDIA_CATEGORIES, TIER_LIMITS, type SubscriptionTier } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { processTrimJob, processMergeJob } from "./videoProcessor";
@@ -18,6 +20,7 @@ import { setupChatWebSocket } from "./chat/ws-server";
 import { registerOrbitRoutes } from "./orbit/routes";
 import { registerStudioRoutes } from "./studio/routes";
 import { registerAIRoutes } from "./ai/routes";
+import { registerBlockchainRoutes } from "./blockchain/routes";
 import { generateTrustLayerId, generateJWT, hashPassword } from "./trustlayer-sso";
 
 declare module "express-session" {
@@ -155,6 +158,7 @@ export async function registerRoutes(
   registerOrbitRoutes(app);
   registerStudioRoutes(app);
   registerAIRoutes(app);
+  registerBlockchainRoutes(app);
   setupChatWebSocket(httpServer);
 
   storage.seedDefaultChannels().then(() => {
@@ -1160,6 +1164,43 @@ export async function registerRoutes(
           entityTitle: item.title,
         });
       } catch {}
+
+      if (blockchainClient.isConfigured) {
+        (async () => {
+          try {
+            const pinAuthId = req.session.pinAuthId;
+            let trustLayerId: string | undefined;
+            if (pinAuthId) {
+              const chatUser = await storage.getChatUserByPinAuthId(pinAuthId);
+              trustLayerId = chatUser?.trustLayerId || undefined;
+            }
+            if (trustLayerId) {
+              const fileHash = crypto.createHash("sha256").update(`${item.filename}-${item.size}-${item.createdAt}`).digest("hex");
+              const result = await blockchainClient.registerProvenance({
+                trustLayerId,
+                fileHash,
+                filename: item.filename,
+                contentType: item.contentType,
+                size: item.size || 0,
+                uploadTimestamp: new Date().toISOString(),
+              });
+              if (result.success) {
+                await storage.updateMediaProvenance(item.id, {
+                  fileHash,
+                  provenanceId: result.provenanceId,
+                  provenanceTxHash: result.txHash,
+                  provenanceBlockNumber: result.blockNumber,
+                  provenanceTimestamp: new Date(result.timestamp),
+                });
+                console.log(`[Blockchain] Provenance registered for "${item.title}" → ${result.provenanceId}`);
+              }
+            }
+          } catch (err) {
+            console.error("[Blockchain] Provenance registration failed (non-blocking):", err);
+          }
+        })();
+      }
+
       res.status(201).json(item);
     } catch (err) {
       if (err instanceof z.ZodError) {

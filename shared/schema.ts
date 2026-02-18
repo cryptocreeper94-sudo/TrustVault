@@ -82,6 +82,11 @@ export const mediaItems = pgTable("media_items", {
   venue: text("venue"),
   tour: text("tour"),
   eventDate: timestamp("event_date"),
+  fileHash: text("file_hash"),
+  provenanceId: text("provenance_id"),
+  provenanceTxHash: text("provenance_tx_hash"),
+  provenanceBlockNumber: integer("provenance_block_number"),
+  provenanceTimestamp: timestamp("provenance_timestamp"),
 });
 
 export const insertMediaSchema = createInsertSchema(mediaItems).omit({
@@ -425,6 +430,9 @@ export const chatUsers = pgTable("chat_users", {
   avatarColor: text("avatar_color").notNull().default("#06b6d4"),
   role: text("role").notNull().default("member"),
   trustLayerId: text("trust_layer_id").unique(),
+  chainAddress: text("chain_address").unique(),
+  chainVerified: boolean("chain_verified").default(false),
+  chainVerifiedAt: timestamp("chain_verified_at"),
   isOnline: boolean("is_online").default(false),
   lastSeen: timestamp("last_seen").defaultNow(),
   pinAuthId: integer("pin_auth_id"),
