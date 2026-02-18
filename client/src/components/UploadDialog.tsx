@@ -464,9 +464,9 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
       }}
     >
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto bg-background border-white/10 text-foreground">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-background border-white/10 text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-display font-bold">
+          <DialogTitle className="text-xl sm:text-2xl font-display font-bold">
             Upload to Vault
           </DialogTitle>
         </DialogHeader>
@@ -474,7 +474,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
         <form onSubmit={handleSubmit} className="space-y-5 mt-2">
           <div
             className={`
-              relative group border-2 border-dashed rounded-xl p-6
+              relative group border-2 border-dashed rounded-xl p-4 sm:p-6
               transition-all duration-300 ease-out cursor-pointer
               ${hasFiles
                 ? "border-primary/50 bg-primary/5"

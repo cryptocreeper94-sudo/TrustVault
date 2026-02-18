@@ -23,7 +23,7 @@ export function VideoPlayerModal({ video, open, onOpenChange }: VideoPlayerModal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-full p-0 bg-black border-none overflow-hidden aspect-video sm:rounded-2xl ring-0 focus:outline-none">
+      <DialogContent className="max-w-6xl !w-[calc(100vw-1rem)] sm:!w-[calc(100vw-2rem)] p-0 bg-black border-none overflow-hidden aspect-video rounded-xl sm:rounded-2xl ring-0 focus:outline-none">
         <button 
           onClick={() => onOpenChange(false)}
           className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-black/80 rounded-full text-white/70 hover:text-white transition-all backdrop-blur-sm"
