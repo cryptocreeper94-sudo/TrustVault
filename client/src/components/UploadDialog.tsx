@@ -181,9 +181,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const [errorCount, setErrorCount] = useState(0);
   const [isAutoTagging, setIsAutoTagging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cancelledRef = useRef(false);
 
   const createMedia = useCreateMedia();
-  const { uploadFile } = useUpload();
+  const { uploadFile, cancelUpload } = useUpload();
   const { toast } = useToast();
 
   const isSingleFile = queue.length === 1;
@@ -312,10 +313,13 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     if (queue.length === 0) return;
 
     setIsProcessing(true);
+    cancelledRef.current = false;
     let completed = 0;
     let errors = 0;
 
     for (const item of queue) {
+      if (cancelledRef.current) break;
+
       if (item.status === "complete") {
         completed++;
         continue;
@@ -328,32 +332,40 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
 
       try {
         if (item.category === "video") {
-          updateQueueItem(item.id, { progress: 10 });
+          updateQueueItem(item.id, { progress: 8 });
           const meta = await extractVideoMetadata(item.file);
           durationSeconds = meta.duration || undefined;
 
           if (meta.thumbnail) {
-            updateQueueItem(item.id, { progress: 20 });
+            updateQueueItem(item.id, { progress: 15 });
             const thumbFilename = `thumb_${item.file.name.replace(/\.[^/.]+$/, "")}.jpg`;
             const thumbPath = await uploadBlobAsFile(meta.thumbnail, thumbFilename);
             if (thumbPath) thumbnailUrl = thumbPath;
           }
         } else if (item.category === "image") {
-          updateQueueItem(item.id, { progress: 10 });
+          updateQueueItem(item.id, { progress: 8 });
           const thumbBlob = await extractImageThumbnail(item.file);
           if (thumbBlob) {
-            updateQueueItem(item.id, { progress: 20 });
+            updateQueueItem(item.id, { progress: 15 });
             const thumbFilename = `thumb_${item.file.name.replace(/\.[^/.]+$/, "")}.jpg`;
             const thumbPath = await uploadBlobAsFile(thumbBlob, thumbFilename);
             if (thumbPath) thumbnailUrl = thumbPath;
           }
         }
 
-        updateQueueItem(item.id, { status: "uploading", progress: 30 });
-        const uploadResult = await uploadFile(item.file);
+        if (cancelledRef.current) break;
+
+        updateQueueItem(item.id, { status: "uploading", progress: 20 });
+        const uploadResult = await uploadFile(item.file, (rawPct) => {
+          if (cancelledRef.current) return;
+          const mapped = 20 + Math.round(rawPct * 0.7);
+          updateQueueItem(item.id, { progress: Math.min(mapped, 90) });
+        });
         if (!uploadResult) throw new Error("Upload failed");
 
-        updateQueueItem(item.id, { progress: 70 });
+        if (cancelledRef.current) break;
+
+        updateQueueItem(item.id, { progress: 93 });
 
         const titleToUse = isSingleFile
           ? (queue[0].title || item.file.name.replace(/\.[^/.]+$/, ""))
@@ -379,6 +391,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
         updateQueueItem(item.id, { status: "complete", progress: 100 });
         completed++;
       } catch (err) {
+        if (cancelledRef.current) break;
         const msg = err instanceof Error ? err.message : "Upload failed";
         updateQueueItem(item.id, { status: "error", error: msg, progress: 0 });
         errors++;
@@ -387,6 +400,8 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
       setCompletedCount(completed);
       setErrorCount(errors);
     }
+
+    if (cancelledRef.current) return;
 
     setIsProcessing(false);
     setUploadComplete(true);
@@ -457,10 +472,13 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     <Dialog
       open={open}
       onOpenChange={(val) => {
-        if (!isPending) {
-          setOpen(val);
-          if (!val) resetForm();
+        if (!val && isProcessing) {
+          cancelledRef.current = true;
+          cancelUpload();
+          setIsProcessing(false);
         }
+        setOpen(val);
+        if (!val) resetForm();
       }}
     >
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -894,15 +912,32 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
           </AnimatePresence>
 
           <div className="flex gap-3 justify-end pt-1">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-              data-testid="button-cancel"
-            >
-              Cancel
-            </Button>
+            {isProcessing ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  cancelledRef.current = true;
+                  cancelUpload();
+                  setIsProcessing(false);
+                  setOpen(false);
+                  resetForm();
+                }}
+                data-testid="button-cancel-upload"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Cancel Upload
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setOpen(false)}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+            )}
             <Button
               type="submit"
               data-testid="button-upload-submit"
