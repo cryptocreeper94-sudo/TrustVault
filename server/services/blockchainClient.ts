@@ -127,7 +127,9 @@ export class BlockchainClient {
       headers,
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = { error: text.slice(0, 200) }; }
     if (!res.ok) {
       throw new Error(`Blockchain POST ${path} failed (${res.status}): ${JSON.stringify(data)}`);
     }
@@ -138,7 +140,9 @@ export class BlockchainClient {
     const res = await fetch(`${this.baseUrl}${path}`, {
       headers: { "Content-Type": "application/json" },
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = { error: text.slice(0, 200) }; }
     if (!res.ok) {
       throw new Error(`Blockchain GET ${path} failed (${res.status}): ${JSON.stringify(data)}`);
     }
