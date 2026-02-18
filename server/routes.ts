@@ -622,6 +622,42 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/chain-users", isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { chatUsers } = await import("@shared/schema");
+      const users = await db.select({
+        id: chatUsers.id,
+        username: chatUsers.username,
+        display_name: chatUsers.displayName,
+        trust_layer_id: chatUsers.trustLayerId,
+        chain_address: chatUsers.chainAddress,
+        chain_verified: chatUsers.chainVerified,
+      }).from(chatUsers);
+      res.json(users);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch chain users" });
+    }
+  });
+
+  app.get("/api/admin/chain-media", isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { mediaItems } = await import("@shared/schema");
+      const { sql } = await import("drizzle-orm");
+      const items = await db.select({
+        id: mediaItems.id,
+        filename: mediaItems.filename,
+        provenance_id: mediaItems.provenanceId,
+        tx_hash: mediaItems.provenanceTxHash,
+        file_hash: mediaItems.fileHash,
+      }).from(mediaItems).where(sql`${mediaItems.provenanceId} IS NOT NULL OR ${mediaItems.provenanceTxHash} IS NOT NULL`);
+      res.json(items);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch chain media" });
+    }
+  });
+
   app.post("/api/join", async (req, res) => {
     try {
       const { inviteCode, name, password, email } = req.body;

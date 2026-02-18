@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   ArrowLeft, UserPlus, Trash2, Copy, Check, Users, Shield, Mail, Loader2,
-  ExternalLink, ClipboardCopy, KeyRound,
+  ExternalLink, ClipboardCopy, KeyRound, Link2, Fingerprint, FileCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -35,6 +35,124 @@ type AdminUser = {
   mustReset: boolean;
   createdAt: string;
 };
+
+type BlockchainStatus = {
+  connected: boolean;
+  baseUrl?: string;
+  appId?: string;
+  reason?: string;
+};
+
+type ChainUser = {
+  id: string;
+  username: string;
+  display_name: string;
+  trust_layer_id: string;
+  chain_address: string | null;
+  chain_verified: boolean;
+};
+
+type ChainMedia = {
+  id: number;
+  filename: string;
+  provenance_id: string | null;
+  tx_hash: string | null;
+  file_hash: string | null;
+};
+
+function BlockchainStatusSection() {
+  const { data: status, isLoading } = useQuery<BlockchainStatus>({
+    queryKey: ["/api/blockchain/status"],
+    staleTime: 30000,
+  });
+
+  const { data: chainUsers } = useQuery<ChainUser[]>({
+    queryKey: ["/api/admin/chain-users"],
+  });
+
+  const { data: chainMedia } = useQuery<ChainMedia[]>({
+    queryKey: ["/api/admin/chain-media"],
+  });
+
+  const isConnected = status?.connected === true;
+  const anchoredUsers = (chainUsers || []).filter(u => u.chain_address);
+  const provenanceMedia = (chainMedia || []).filter(m => m.provenance_id);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3, duration: 0.3 }}
+    >
+      <div className="flex items-center gap-2 mb-4">
+        <Link2 className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-display font-bold theme-gradient-text" data-testid="text-blockchain-section">Blockchain</h2>
+      </div>
+
+      <div className="space-y-3">
+        <Card className="p-5">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isConnected ? "bg-emerald-500/10" : "bg-amber-500/10"}`}>
+                <Link2 className={`w-4 h-4 ${isConnected ? "text-emerald-500" : "text-amber-500"}`} />
+              </div>
+              <div>
+                <p className="text-sm font-medium" data-testid="text-chain-connection">
+                  {isLoading ? "Checking..." : isConnected ? "Connected" : "Not Connected"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isConnected ? "dwtl.io — TrustLayer L1" : status?.reason || "Credentials not configured"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+              <Badge variant={isConnected ? "default" : "secondary"} className="text-xs" data-testid="badge-chain-status">
+                {isConnected ? "Live" : "Offline"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-muted/50 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Fingerprint className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-[11px] text-muted-foreground font-medium">Anchored Identities</p>
+              </div>
+              <p className="text-xl font-bold font-display" data-testid="text-anchored-count">
+                {anchoredUsers.length}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60">
+                of {(chainUsers || []).length} total users
+              </p>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <FileCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-[11px] text-muted-foreground font-medium">Media Provenance</p>
+              </div>
+              <p className="text-xl font-bold font-display" data-testid="text-provenance-count">
+                {provenanceMedia.length}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60">
+                files on-chain
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {isConnected && (
+          <Card className="p-4">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Identity anchoring happens automatically during SSO registration. Media provenance is recorded on-chain when files are uploaded.
+              Visit <a href="https://dwtl.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" data-testid="link-chain-explorer">dwtl.io</a> for the full TrustLayer explorer.
+            </p>
+          </Card>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 export default function Admin() {
   const { user } = useAuth();
@@ -344,6 +462,8 @@ export default function Admin() {
               </Card>
             )}
           </motion.div>
+
+          <BlockchainStatusSection />
 
           <div className="pt-4 border-t border-border/50 text-center">
             <p className="text-[11px] text-muted-foreground/50">

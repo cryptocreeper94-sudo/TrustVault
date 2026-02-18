@@ -1,4 +1,5 @@
-import { ExternalLink, Award, Users, CreditCard } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ExternalLink, Award, Users, CreditCard, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -7,7 +8,22 @@ import {
 } from "@/components/ui/popover";
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 
+type BlockchainStatus = {
+  connected: boolean;
+  baseUrl?: string;
+  appId?: string;
+  reason?: string;
+};
+
 export function TrustLayerBadge() {
+  const { data: chainStatus } = useQuery<BlockchainStatus>({
+    queryKey: ["/api/blockchain/status"],
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+
+  const isConnected = chainStatus?.connected === true;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -25,7 +41,11 @@ export function TrustLayerBadge() {
           <span className="text-[11px] font-semibold tracking-wide hidden sm:inline">
             TRUSTLAYER
           </span>
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <div
+            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+              isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+            }`}
+          />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -54,6 +74,23 @@ export function TrustLayerBadge() {
         </div>
 
         <div className="p-3 space-y-2.5">
+          <div className="flex items-start gap-2.5">
+            <Link2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-foreground">Blockchain Status</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    isConnected ? "bg-emerald-500" : "bg-amber-500"
+                  }`}
+                />
+                <p className="text-[11px] text-muted-foreground" data-testid="text-chain-status">
+                  {isConnected ? "Connected to dwtl.io" : "Not connected"}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-start gap-2.5">
             <Award className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>

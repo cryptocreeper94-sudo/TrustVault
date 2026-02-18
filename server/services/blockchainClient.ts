@@ -137,8 +137,9 @@ export class BlockchainClient {
   }
 
   private async get<T>(path: string): Promise<T> {
+    const headers = this.signRequest("GET", path);
     const res = await fetch(`${this.baseUrl}${path}`, {
-      headers: { "Content-Type": "application/json" },
+      headers,
     });
     const text = await res.text();
     let data: any;
