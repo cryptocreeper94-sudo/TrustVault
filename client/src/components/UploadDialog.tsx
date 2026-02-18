@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useSoundFeedback } from "@/hooks/use-sound-feedback";
 import { motion, AnimatePresence } from "framer-motion";
 
+const MAX_BATCH_SIZE = 10;
+
 const CATEGORY_CONFIG: Record<MediaCategory, { icon: any; color: string; label: string }> = {
   video: { icon: Film, color: "text-blue-400", label: "Video" },
   audio: { icon: Music, color: "text-green-400", label: "Audio" },
@@ -194,7 +196,27 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     if (!e.target.files || e.target.files.length === 0) return;
     const files = Array.from(e.target.files);
 
-    const newItems: QueuedFile[] = files.map((file) => ({
+    const spotsLeft = MAX_BATCH_SIZE - queue.length;
+    if (spotsLeft <= 0) {
+      toast({
+        title: "Batch Limit Reached",
+        description: `You can upload up to ${MAX_BATCH_SIZE} files at a time. Please upload your current batch first, then add more.`,
+        variant: "destructive",
+      });
+      if (e.target) e.target.value = "";
+      return;
+    }
+
+    let filesToAdd = files;
+    if (files.length > spotsLeft) {
+      filesToAdd = files.slice(0, spotsLeft);
+      toast({
+        title: "Some Files Skipped",
+        description: `Only ${spotsLeft} more file${spotsLeft !== 1 ? "s" : ""} can be added (max ${MAX_BATCH_SIZE} per batch). ${files.length - spotsLeft} file${files.length - spotsLeft !== 1 ? "s" : ""} were not added.`,
+      });
+    }
+
+    const newItems: QueuedFile[] = filesToAdd.map((file) => ({
       id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
       file,
       category: detectCategory(file.type),
@@ -206,13 +228,13 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     setQueue((prev) => [...prev, ...newItems]);
     setUploadComplete(false);
 
-    if (!fileDate && files[0]?.lastModified) {
-      const d = new Date(files[0].lastModified);
+    if (!fileDate && filesToAdd[0]?.lastModified) {
+      const d = new Date(filesToAdd[0].lastModified);
       setFileDate(d.toISOString().split("T")[0]);
     }
 
     if (e.target) e.target.value = "";
-  }, [fileDate]);
+  }, [fileDate, queue.length, toast]);
 
   const removeFromQueue = useCallback((id: string) => {
     setQueue((prev) => prev.filter((f) => f.id !== id));
@@ -527,13 +549,15 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
               <div className="space-y-1">
                 <p className="font-medium text-sm">
                   {hasFiles
-                    ? `${queue.length} file${queue.length !== 1 ? "s" : ""} selected`
+                    ? `${queue.length} / ${MAX_BATCH_SIZE} files selected`
                     : "Tap to select files"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {hasFiles
-                    ? "Tap again to add more files"
-                    : "Video, audio, images, PDFs, documents"}
+                    ? queue.length >= MAX_BATCH_SIZE
+                      ? "Batch full — upload these first, then add more"
+                      : "Tap again to add more files"
+                    : `Up to ${MAX_BATCH_SIZE} files per batch`}
                 </p>
               </div>
             </div>
