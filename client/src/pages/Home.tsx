@@ -1966,7 +1966,7 @@ export default function Home() {
       </main>
 
       {!bulkMode && (
-        <div className="fixed bottom-4 right-4 sm:hidden z-30">
+        <div className="fixed bottom-4 right-4 md:hidden z-30">
           <UploadDialog>
             <Button size="icon" data-testid="button-upload-fab" className="rounded-full bg-primary text-white shadow-2xl shadow-primary/40 w-14 h-14">
               <Plus className="w-6 h-6" />
@@ -2053,16 +2053,6 @@ export default function Home() {
         onOpenChange={setShowOnboarding}
       />
 
-      <UploadDialog>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          className="fixed bottom-6 right-6 md:hidden w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/30 flex items-center justify-center z-30 fab-pulse"
-          data-testid="button-fab-upload"
-          aria-label="Upload media"
-        >
-          <Plus className="w-6 h-6 text-primary-foreground" />
-        </motion.button>
-      </UploadDialog>
     </div>
   );
 }
