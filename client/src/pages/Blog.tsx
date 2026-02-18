@@ -48,7 +48,7 @@ export default function Blog() {
             </Link>
           </div>
           <div className="text-center flex-1">
-            <h1 className="text-2xl font-bold tracking-tight font-[var(--font-display)]" data-testid="text-blog-title">
+            <h1 className="text-2xl font-bold tracking-tight font-[var(--font-display)] theme-gradient-text" data-testid="text-blog-title">
               DW Media Studio Blog
             </h1>
             <p className="text-sm text-muted-foreground mt-1">

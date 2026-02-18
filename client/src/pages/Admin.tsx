@@ -133,7 +133,7 @@ export default function Admin() {
               </Button>
               <div className="flex items-center gap-2">
                 <img src={trustlayerEmblem} alt="TrustLayer" className="w-7 h-7 rounded-lg object-cover" />
-                <h1 className="font-display font-bold text-base" data-testid="text-admin-title">Developer Portal</h1>
+                <h1 className="font-display font-bold text-base theme-gradient-text" data-testid="text-admin-title">Developer Portal</h1>
               </div>
             </div>
             <Badge variant="outline" className="text-xs" data-testid="badge-admin">Admin</Badge>
@@ -148,7 +148,7 @@ export default function Admin() {
           >
             <div className="flex items-center gap-2 mb-4">
               <UserPlus className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-display font-bold" data-testid="text-invite-section">Invite New Users</h2>
+              <h2 className="text-lg font-display font-bold theme-gradient-text" data-testid="text-invite-section">Invite New Users</h2>
             </div>
             <Card className="p-5">
               <form onSubmit={handleCreate} className="space-y-3">
@@ -203,14 +203,25 @@ export default function Admin() {
           >
             <div className="flex items-center gap-2 mb-4">
               <ClipboardCopy className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-display font-bold" data-testid="text-pending-section">Pending Invites</h2>
+              <h2 className="text-lg font-display font-bold theme-gradient-text" data-testid="text-pending-section">Pending Invites</h2>
               {entries && <Badge variant="secondary" className="text-xs">{entries.filter(e => !e.used).length}</Badge>}
             </div>
 
             {loadingEntries ? (
-              <Card className="p-8 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              </Card>
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 shimmer rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 shimmer rounded w-1/3" />
+                        <div className="h-3 shimmer rounded w-1/4" />
+                      </div>
+                      <div className="h-8 w-20 shimmer rounded-md" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
             ) : entries && entries.length > 0 ? (
               <div className="space-y-2">
                 {entries.map((entry) => (
@@ -280,14 +291,24 @@ export default function Admin() {
           >
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-display font-bold" data-testid="text-users-section">All Users</h2>
+              <h2 className="text-lg font-display font-bold theme-gradient-text" data-testid="text-users-section">All Users</h2>
               {users && <Badge variant="secondary" className="text-xs">{users.length}</Badge>}
             </div>
 
             {loadingUsers ? (
-              <Card className="p-8 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              </Card>
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 shimmer rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 shimmer rounded w-1/3" />
+                        <div className="h-3 shimmer rounded w-1/4" />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             ) : users && users.length > 0 ? (
               <div className="space-y-2">
                 {users.map((u) => (

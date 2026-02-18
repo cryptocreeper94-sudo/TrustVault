@@ -117,7 +117,7 @@ export default function Roadmap() {
               </Link>
             </Button>
             <div className="flex-1">
-              <h1 className="text-lg font-semibold">Community Voice</h1>
+              <h1 className="text-lg font-semibold theme-gradient-text">Community Voice</h1>
               <p className="text-xs text-muted-foreground">Help shape the future of TrustVault</p>
             </div>
             <Button
@@ -266,10 +266,18 @@ export default function Roadmap() {
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
-                  <Card key={i} className="p-5 animate-pulse">
-                    <div className="h-5 bg-muted rounded w-2/3 mb-3" />
-                    <div className="h-4 bg-muted rounded w-full mb-2" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
+                  <Card key={i} className="p-5">
+                    <div className="flex gap-3">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-9 h-9 shimmer rounded-md" />
+                        <div className="w-4 h-4 shimmer rounded" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 shimmer rounded w-2/3" />
+                        <div className="h-3 shimmer rounded w-full" />
+                        <div className="h-3 shimmer rounded w-1/3" />
+                      </div>
+                    </div>
                   </Card>
                 ))}
               </div>

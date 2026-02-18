@@ -138,7 +138,7 @@ export default function Pricing() {
         )}
 
         <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold font-display mb-3" data-testid="text-pricing-title">
+          <h1 className="text-3xl md:text-4xl font-bold font-display mb-3 theme-gradient-text" data-testid="text-pricing-title">
             Choose Your Plan
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
@@ -167,7 +167,22 @@ export default function Pricing() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {TIER_ORDER.map((tier, index) => {
+          {subLoading ? TIER_ORDER.map((_, i) => (
+            <Card key={i} className="flex flex-col p-5 h-full">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 shimmer rounded-md" />
+                <div className="h-4 shimmer rounded w-20" />
+              </div>
+              <div className="h-3 shimmer rounded w-full mb-4" />
+              <div className="h-8 shimmer rounded w-1/2 mb-4" />
+              <div className="flex-1 space-y-2 mb-5">
+                {[1, 2, 3, 4].map(j => (
+                  <div key={j} className="h-3 shimmer rounded w-3/4" />
+                ))}
+              </div>
+              <div className="h-9 shimmer rounded-md w-full" />
+            </Card>
+          )) : TIER_ORDER.map((tier, index) => {
             const pricing = TIER_PRICING[tier];
             const limits = TIER_LIMITS[tier];
             const Icon = TIER_ICONS[tier];
@@ -291,7 +306,7 @@ export default function Pricing() {
         </div>
 
         <div className="mt-16 text-center">
-          <h2 className="text-xl font-semibold font-display mb-3">Compare Plans</h2>
+          <h2 className="text-xl font-semibold font-display mb-3 theme-gradient-text">Compare Plans</h2>
           <div className="max-w-3xl mx-auto overflow-x-auto">
             <table className="w-full text-sm" data-testid="table-comparison">
               <thead>
