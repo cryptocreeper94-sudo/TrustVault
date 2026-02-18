@@ -1514,6 +1514,20 @@ export default function Home() {
                         </a>
                       </Button>
                     </div>
+                    <div className="space-y-1 pt-2 border-t border-border/50">
+                      <Button asChild variant="ghost" size="sm" data-testid="link-privacy-menu">
+                        <Link href="/privacy" className="gap-2 justify-start text-muted-foreground">
+                          <Shield className="w-3.5 h-3.5" />
+                          Privacy Policy
+                        </Link>
+                      </Button>
+                      <Button asChild variant="ghost" size="sm" data-testid="link-terms-menu">
+                        <Link href="/terms" className="gap-2 justify-start text-muted-foreground">
+                          <FileText className="w-3.5 h-3.5" />
+                          Terms of Service
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                   </div>
                 </SheetContent>

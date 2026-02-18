@@ -23,6 +23,9 @@ import CommandCenter from "@/pages/CommandCenter";
 import UserDashboard from "@/pages/UserDashboard";
 import Roadmap from "@/pages/Roadmap";
 import InviteMessage from "@/pages/InviteMessage";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
+import SmsOptIn from "@/pages/SmsOptIn";
 import { SignalChatPanel } from "@/components/SignalChatPanel";
 import NotFound from "@/pages/not-found";
 import { Button } from "@/components/ui/button";
@@ -158,6 +161,9 @@ function Router() {
           <Route path="/admin" component={Admin} />
           <Route path="/command-center" component={CommandCenter} />
           <Route path="/roadmap" component={Roadmap} />
+          <Route path="/privacy" component={Privacy} />
+          <Route path="/terms" component={Terms} />
+          <Route path="/sms-optin" component={SmsOptIn} />
           <Route component={NotFound} />
         </Switch>
       </motion.div>

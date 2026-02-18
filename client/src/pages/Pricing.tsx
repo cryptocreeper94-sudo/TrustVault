@@ -427,12 +427,17 @@ export default function Pricing() {
         <div className="mt-8 text-center text-xs text-muted-foreground/60 max-w-xl mx-auto space-y-1">
           <p>All plans include secure cloud storage, PWA access, and our premium interface.</p>
           <p>Prices shown in USD. Cancel anytime from the Manage Subscription portal.</p>
-          <p className="pt-2">
-            Powered by{" "}
-            <a href="https://darkwavestudios.io" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary transition-colors">
+          <div className="flex items-center justify-center gap-3 pt-3">
+            <Link href="/privacy" className="text-primary/60 hover:text-primary transition-colors" data-testid="link-footer-privacy">Privacy Policy</Link>
+            <span className="text-muted-foreground/30">|</span>
+            <Link href="/terms" className="text-primary/60 hover:text-primary transition-colors" data-testid="link-footer-terms">Terms of Service</Link>
+            <span className="text-muted-foreground/30">|</span>
+            <Link href="/sms-optin" className="text-primary/60 hover:text-primary transition-colors" data-testid="link-footer-sms">SMS Opt-In</Link>
+            <span className="text-muted-foreground/30">|</span>
+            <a href="https://darkwavestudios.io" target="_blank" rel="noopener noreferrer" className="text-primary/60 hover:text-primary transition-colors" data-testid="link-footer-dws">
               Dark Wave Studios
             </a>
-          </p>
+          </div>
         </div>
       </main>
     </div>
