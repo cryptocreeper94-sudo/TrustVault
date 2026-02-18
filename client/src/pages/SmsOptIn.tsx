@@ -51,6 +51,13 @@ export default function SmsOptIn() {
         <meta property="og:title" content="SMS Notifications | DW Media Studio" />
         <meta property="og:description" content="Opt in to receive SMS notifications from DW Media Studio." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/sms-opt-in" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="SMS Notifications | DW Media Studio" />
+        <meta name="twitter:description" content="Opt in to receive SMS notifications from DW Media Studio." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
       <header className="sticky top-0 z-50 border-b glass-morphism">

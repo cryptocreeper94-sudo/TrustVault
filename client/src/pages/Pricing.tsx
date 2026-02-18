@@ -87,6 +87,13 @@ export default function Pricing() {
         <meta property="og:title" content="DW Media Studio Pricing" />
         <meta property="og:description" content="Affordable plans for every creator. Start free, upgrade anytime." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/pricing" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="DW Media Studio Pricing" />
+        <meta name="twitter:description" content="Affordable plans for every creator. Start free, upgrade anytime." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
       <header className="border-b border-border/50">

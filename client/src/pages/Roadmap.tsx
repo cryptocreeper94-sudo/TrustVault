@@ -106,6 +106,13 @@ export default function Roadmap() {
         <meta property="og:title" content="Community Voice | TrustVault" />
         <meta property="og:description" content="Vote on features and help shape the future of TrustVault." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/roadmap" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Community Voice | TrustVault" />
+        <meta name="twitter:description" content="Vote on features and help shape the future of TrustVault." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

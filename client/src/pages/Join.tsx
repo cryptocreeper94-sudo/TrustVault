@@ -108,6 +108,16 @@ export default function Join() {
       <Helmet>
         <title>Join the Family Vault | DW Media Studio</title>
         <meta name="description" content="Set up your private media vault — a personal space for your photos, videos, and memories." />
+        <meta property="og:title" content="Join the Family Vault | DW Media Studio" />
+        <meta property="og:description" content="Set up your private media vault — a personal space for your photos, videos, and memories." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/join" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Join the Family Vault | DW Media Studio" />
+        <meta name="twitter:description" content="Set up your private media vault — a personal space for your photos, videos, and memories." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background relative overflow-hidden">

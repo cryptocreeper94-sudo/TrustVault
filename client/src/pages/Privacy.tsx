@@ -15,6 +15,13 @@ export default function Privacy() {
         <meta property="og:title" content="Privacy Policy | DW Media Studio" />
         <meta property="og:description" content="Learn how DW Media Studio collects, uses, and protects your personal information." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/privacy" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Privacy Policy | DW Media Studio" />
+        <meta name="twitter:description" content="Learn how DW Media Studio collects, uses, and protects your personal information." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
       <header className="sticky top-0 z-50 border-b glass-morphism">

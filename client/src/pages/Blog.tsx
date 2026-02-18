@@ -36,6 +36,13 @@ export default function Blog() {
         <meta property="og:title" content="DW Media Studio Blog" />
         <meta property="og:description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/blog" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="DW Media Studio Blog" />
+        <meta name="twitter:description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
       <header className="border-b border-border/50">
         <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between gap-4 flex-wrap">

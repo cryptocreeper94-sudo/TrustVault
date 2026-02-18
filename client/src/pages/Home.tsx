@@ -1070,6 +1070,13 @@ export default function Home() {
       <meta property="og:title" content="DW Media Studio — Universal Media Vault" />
       <meta property="og:description" content="Your private, secure space for all digital media. Upload, organize, and access your files from anywhere." />
       <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://dw-media-studio.replit.app/" />
+      <meta property="og:image" content="/icon-512.png" />
+      <meta property="og:site_name" content="DW Media Studio" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="DW Media Studio — Universal Media Vault" />
+      <meta name="twitter:description" content="Your private, secure space for all digital media. Upload, organize, and access your files from anywhere." />
+      <meta name="twitter:image" content="/icon-512.png" />
     </Helmet>
   );
 

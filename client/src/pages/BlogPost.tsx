@@ -29,9 +29,26 @@ export default function BlogPostPage() {
     enabled: !!params.slug,
   });
 
+  const blogSeoFallback = (
+    <Helmet>
+      <title>DW Media Studio Blog</title>
+      <meta name="description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
+      <meta property="og:title" content="DW Media Studio Blog" />
+      <meta property="og:description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
+      <meta property="og:type" content="article" />
+      <meta property="og:image" content="/icon-512.png" />
+      <meta property="og:site_name" content="DW Media Studio" />
+      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:title" content="DW Media Studio Blog" />
+      <meta name="twitter:description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
+      <meta name="twitter:image" content="/icon-512.png" />
+    </Helmet>
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
+        {blogSeoFallback}
         <div className="max-w-3xl mx-auto px-4 py-12">
           <div className="h-6 w-1/3 shimmer rounded mb-4" />
           <div className="h-10 w-2/3 shimmer rounded mb-6" />
@@ -48,6 +65,7 @@ export default function BlogPostPage() {
   if (error || !post) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
+        {blogSeoFallback}
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Post Not Found</h1>
           <p className="text-muted-foreground mb-4">This blog post doesn't exist or has been removed.</p>
@@ -73,9 +91,13 @@ export default function BlogPostPage() {
         <meta property="og:title" content={post.title} />
         <meta property="og:description" content={post.metaDescription || post.excerpt || ""} />
         <meta property="og:type" content="article" />
-        {post.coverImageUrl && (
-          <meta property="og:image" content={post.coverImageUrl} />
-        )}
+        <meta property="og:url" content={`https://dw-media-studio.replit.app/blog/${post.slug}`} />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:image" content={post.coverImageUrl || "/icon-512.png"} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={post.metaDescription || post.excerpt || ""} />
+        <meta name="twitter:image" content={post.coverImageUrl || "/icon-512.png"} />
       </Helmet>
 
       <header className="border-b border-border/50">

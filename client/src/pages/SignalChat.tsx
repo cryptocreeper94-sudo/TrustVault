@@ -497,6 +497,17 @@ export default function SignalChat() {
       <>
         <Helmet>
           <title>Signal Chat | TrustLayer</title>
+          <meta name="description" content="Real-time encrypted messaging across the TrustLayer ecosystem. Channel-based conversations for teams and communities." />
+          <meta property="og:title" content="Signal Chat | TrustLayer" />
+          <meta property="og:description" content="Secure, real-time messaging for the TrustLayer ecosystem." />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content="https://dw-media-studio.replit.app/chat" />
+          <meta property="og:image" content="/icon-512.png" />
+          <meta property="og:site_name" content="DW Media Studio" />
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content="Signal Chat | TrustLayer" />
+          <meta name="twitter:description" content="Secure, real-time messaging for the TrustLayer ecosystem." />
+          <meta name="twitter:image" content="/icon-512.png" />
         </Helmet>
         <AuthForm onAuth={handleAuth} />
       </>
@@ -514,6 +525,13 @@ export default function SignalChat() {
         <meta property="og:title" content="Signal Chat | TrustLayer" />
         <meta property="og:description" content="Secure, real-time messaging for the TrustLayer ecosystem." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/chat" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Signal Chat | TrustLayer" />
+        <meta name="twitter:description" content="Secure, real-time messaging for the TrustLayer ecosystem." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
       <div className="h-screen flex flex-col bg-background" data-testid="signal-chat-container">
         <header className="flex items-center justify-between gap-2 px-2 sm:px-3 py-2 border-b shrink-0">

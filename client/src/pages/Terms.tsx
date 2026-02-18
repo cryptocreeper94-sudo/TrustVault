@@ -15,6 +15,13 @@ export default function Terms() {
         <meta property="og:title" content="Terms of Service | DW Media Studio" />
         <meta property="og:description" content="Read the terms and conditions for using DW Media Studio." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dw-media-studio.replit.app/terms" />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:site_name" content="DW Media Studio" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Terms of Service | DW Media Studio" />
+        <meta name="twitter:description" content="Read the terms and conditions for using DW Media Studio." />
+        <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
       <header className="sticky top-0 z-50 border-b glass-morphism">
