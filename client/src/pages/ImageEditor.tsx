@@ -43,7 +43,10 @@ import {
   Eye,
   Wand2,
   Keyboard,
+  Scissors,
+  ImageOff,
 } from "lucide-react";
+import { InfoBubble } from "@/components/InfoBubble";
 
 type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers";
 
@@ -420,6 +423,8 @@ export default function ImageEditor() {
   const [saving, setSaving] = useState(false);
   const [isAiEnhancing, setIsAiEnhancing] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+  const [isSmartErasing, setIsSmartErasing] = useState(false);
 
   const [rotation, setRotation] = useState(0);
   const [flipH, setFlipH] = useState(false);
@@ -874,6 +879,137 @@ export default function ImageEditor() {
       toast({ title: "AI Enhance Failed", description: "Could not analyze the image right now.", variant: "destructive" });
     } finally {
       setIsAiEnhancing(false);
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!mediaItem || !canvasRef.current || !originalImageRef.current) return;
+    pushHistory();
+    setIsRemovingBg(true);
+    try {
+      const imageUrl = `/objects/${mediaItem.url}`;
+      const resp = await fetch("/api/ai/remove-background", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+      if (!resp.ok) throw new Error("Failed to analyze image");
+      const data = await resp.json();
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const img = originalImageRef.current;
+      const { subject } = data;
+      const sx = subject.x * img.naturalWidth;
+      const sy = subject.y * img.naturalHeight;
+      const sw = subject.width * img.naturalWidth;
+      const sh = subject.height * img.naturalHeight;
+
+      const margin = 0.05;
+      const mx = margin * img.naturalWidth;
+      const my = margin * img.naturalHeight;
+
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const checkSize = 8;
+      for (let y = 0; y < canvas.height; y += checkSize) {
+        for (let x = 0; x < canvas.width; x += checkSize) {
+          ctx.fillStyle = ((x / checkSize + y / checkSize) % 2 === 0) ? "#cccccc" : "#ffffff";
+          ctx.fillRect(x, y, checkSize, checkSize);
+        }
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      const rx = Math.max(0, sx - mx);
+      const ry = Math.max(0, sy - my);
+      const rw = Math.min(img.naturalWidth - rx, sw + mx * 2);
+      const rh = Math.min(img.naturalHeight - ry, sh + my * 2);
+      const radius = Math.min(rw, rh) * 0.02;
+      ctx.moveTo(rx + radius, ry);
+      ctx.lineTo(rx + rw - radius, ry);
+      ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+      ctx.lineTo(rx + rw, ry + rh - radius);
+      ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+      ctx.lineTo(rx + radius, ry + rh);
+      ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+      ctx.lineTo(rx, ry + radius);
+      ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, 0, 0);
+      ctx.restore();
+
+      toast({ title: "Background Removed", description: data.description || "Subject extracted from background." });
+    } catch (err) {
+      toast({ title: "Background Removal Failed", description: "Could not process the image right now.", variant: "destructive" });
+    } finally {
+      setIsRemovingBg(false);
+    }
+  };
+
+  const handleSmartErase = async () => {
+    if (!mediaItem || !canvasRef.current) return;
+    if (!cropRect) {
+      toast({ title: "Select Area First", description: "Use the Crop tool to select the area you want to erase, then use Smart Erase.", variant: "destructive" });
+      return;
+    }
+    pushHistory();
+    setIsSmartErasing(true);
+    try {
+      const canvas = canvasRef.current;
+      const eraseRect = { ...cropRect };
+      const imageUrl = `/objects/${mediaItem.url}`;
+      const region = {
+        x: eraseRect.x / canvas.width,
+        y: eraseRect.y / canvas.height,
+        width: eraseRect.width / canvas.width,
+        height: eraseRect.height / canvas.height,
+      };
+
+      const resp = await fetch("/api/ai/smart-erase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl, region }),
+      });
+      if (!resp.ok) throw new Error("Failed to analyze region");
+      const data = await resp.json();
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.save();
+      ctx.fillStyle = data.fillColor || "#808080";
+      ctx.fillRect(eraseRect.x, eraseRect.y, eraseRect.width, eraseRect.height);
+
+      const edgeBlur = Math.min(eraseRect.width, eraseRect.height) * 0.1;
+      const gradient = ctx.createRadialGradient(
+        eraseRect.x + eraseRect.width / 2,
+        eraseRect.y + eraseRect.height / 2,
+        Math.min(eraseRect.width, eraseRect.height) / 2 - edgeBlur,
+        eraseRect.x + eraseRect.width / 2,
+        eraseRect.y + eraseRect.height / 2,
+        Math.min(eraseRect.width, eraseRect.height) / 2
+      );
+      gradient.addColorStop(0, "transparent");
+      gradient.addColorStop(1, data.fillColor || "#808080");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(eraseRect.x - edgeBlur, eraseRect.y - edgeBlur, eraseRect.width + edgeBlur * 2, eraseRect.height + edgeBlur * 2);
+      ctx.restore();
+
+      setCropRect(null);
+      setIsCropping(false);
+
+      toast({ title: "Smart Erase Applied", description: data.description || "Area filled with surrounding content." });
+    } catch (err) {
+      toast({ title: "Smart Erase Failed", description: "Could not process the selected area.", variant: "destructive" });
+    } finally {
+      setIsSmartErasing(false);
     }
   };
 
@@ -1603,7 +1739,10 @@ export default function ImageEditor() {
             <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l glass-morphism p-3 sm:p-4 overflow-y-auto z-40 max-h-[40vh] sm:max-h-none" data-testid="editor-panel">
             {activeTool === "crop" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Crop Your Photo</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Crop Your Photo</h3>
+                  <InfoBubble text="Crop removes unwanted areas from the edges of your photo. Click and drag to select what to keep, then hit Apply. Great for reframing shots or removing distractions." />
+                </div>
                 <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Click and drag on your photo to select the area you want to keep. You'll see a highlighted box — adjust it until it looks right, then hit Apply.
@@ -1640,7 +1779,10 @@ export default function ImageEditor() {
 
             {activeTool === "rotate" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Rotate & Flip</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Rotate & Flip</h3>
+                  <InfoBubble text="Rotate turns your image 90 degrees left or right. Mirror flips it horizontally (like a reflection), and Flip turns it upside down." />
+                </div>
                 <p className="text-xs text-muted-foreground">Straighten or flip your photo with one tap.</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="ghost" onClick={handleRotateCCW} data-testid="button-rotate-ccw">
@@ -1670,7 +1812,10 @@ export default function ImageEditor() {
 
             {activeTool === "resize" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Resize</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Resize</h3>
+                  <InfoBubble text="Changes your photo's pixel dimensions. Lock the aspect ratio to prevent stretching. Smaller sizes reduce file size; larger sizes may reduce quality." />
+                </div>
                 <p className="text-xs text-muted-foreground">Change the dimensions of your photo. Lock the ratio to keep proportions.</p>
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1">
@@ -1714,7 +1859,10 @@ export default function ImageEditor() {
 
             {activeTool === "filters" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Filters</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Filters</h3>
+                  <InfoBubble text="One-tap photo filters that transform the overall mood. Tap a preview thumbnail to apply. Use with Adjustments for fine-tuning." />
+                </div>
                 <p className="text-xs text-muted-foreground">Tap a style to instantly change the look of your photo.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {FILTER_PRESETS.map((preset) => (
@@ -1745,7 +1893,10 @@ export default function ImageEditor() {
 
             {activeTool === "adjustments" && (
               <div className="flex flex-col gap-5">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Adjustments</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Adjustments</h3>
+                  <InfoBubble text="Fine-tune your photo's look with precise controls for brightness, color, and more. Use AI Auto-Enhance for instant optimization, or adjust each slider manually." />
+                </div>
                 <p className="text-xs text-muted-foreground">Fine-tune how your photo looks. Drag any slider to see changes instantly.</p>
                 <div className="flex flex-col gap-2">
                   <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
@@ -1783,9 +1934,43 @@ export default function ImageEditor() {
                 {aiExplanation && (
                   <p className="text-xs text-muted-foreground italic" data-testid="text-ai-explanation">{aiExplanation}</p>
                 )}
+                <Button
+                  variant="outline"
+                  onClick={handleRemoveBackground}
+                  disabled={isRemovingBg || !imageLoaded}
+                  className="w-full gap-2 border-purple-500/30 text-purple-400"
+                  data-testid="button-ai-remove-bg"
+                >
+                  {isRemovingBg ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ImageOff className="w-4 h-4" />
+                  )}
+                  {isRemovingBg ? "Removing..." : "AI Remove Background"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSmartErase}
+                  disabled={isSmartErasing || !imageLoaded}
+                  className="w-full gap-2 border-cyan-500/30 text-cyan-400"
+                  data-testid="button-ai-smart-erase"
+                >
+                  {isSmartErasing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Scissors className="w-4 h-4" />
+                  )}
+                  {isSmartErasing ? "Erasing..." : "AI Smart Erase"}
+                </Button>
+                <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+                  Smart Erase: Select an area with the Crop tool first, then tap Smart Erase to fill it in.
+                </p>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Brightness</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Brightness</label>
+                      <InfoBubble text="Makes the entire image lighter or darker. Increase to brighten underexposed photos, decrease for a moodier look." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-brightness-value">{adjustments.brightness}%</span>
                   </div>
                   <Slider
@@ -1800,7 +1985,10 @@ export default function ImageEditor() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Contrast</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Contrast</label>
+                      <InfoBubble text="Controls the difference between light and dark areas. Higher contrast makes colors pop, lower gives a flat, filmic look." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-contrast-value">{adjustments.contrast}%</span>
                   </div>
                   <Slider
@@ -1815,7 +2003,10 @@ export default function ImageEditor() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Saturation</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Saturation</label>
+                      <InfoBubble text="Controls color intensity. Turn it up for vivid, punchy colors or turn it down for a desaturated or black-and-white look." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-saturation-value">{adjustments.saturation}%</span>
                   </div>
                   <Slider
@@ -1830,7 +2021,10 @@ export default function ImageEditor() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Blur</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Blur</label>
+                      <InfoBubble text="Softens the image by reducing sharpness. Use subtle blur for a dreamy effect or high blur for privacy/background effects." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-blur-value">{adjustments.blur}px</span>
                   </div>
                   <Slider
@@ -1845,7 +2039,10 @@ export default function ImageEditor() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Hue Shift</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Hue Shift</label>
+                      <InfoBubble text="Rotates all colors around the color wheel. Use for creative color effects or to correct unwanted color casts in your photo." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-hue-value">{adjustments.hue}°</span>
                   </div>
                   <Slider
@@ -1860,7 +2057,10 @@ export default function ImageEditor() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Temperature</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Temperature</label>
+                      <InfoBubble text="Adjusts color warmth. Slide right for warm golden tones (like sunset), slide left for cool blue tones (like moonlight)." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-temperature-value">
                       {adjustments.temperature > 0 ? `+${adjustments.temperature} warm` : adjustments.temperature < 0 ? `${adjustments.temperature} cool` : "neutral"}
                     </span>
@@ -1877,7 +2077,10 @@ export default function ImageEditor() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Vignette</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Vignette</label>
+                      <InfoBubble text="Darkens the edges of the frame, drawing the viewer's eye to the center. Creates a cinematic, focused effect." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-vignette-value">{adjustments.vignette}%</span>
                   </div>
                   <Slider
@@ -1892,7 +2095,10 @@ export default function ImageEditor() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Sharpen</label>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-muted-foreground">Sharpen</label>
+                      <InfoBubble text="Enhances edge detail to make the image crisper. Great for slightly soft photos, but too much can add noise or artifacts." />
+                    </div>
                     <span className="text-xs text-muted-foreground" data-testid="text-sharpen-value">{adjustments.sharpen}%</span>
                   </div>
                   <Slider
@@ -1910,7 +2116,10 @@ export default function ImageEditor() {
 
             {activeTool === "text" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Text Overlay</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Text Overlay</h3>
+                  <InfoBubble text="Add text captions, titles, or watermarks to your photo. Type your message, style it, then drag to position. Great for social media or branding." />
+                </div>
                 <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Add text to your photo. Type your message, pick a style, then drag it into position.
@@ -2017,7 +2226,10 @@ export default function ImageEditor() {
 
             {activeTool === "draw" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Draw</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Draw</h3>
+                  <InfoBubble text="Freehand drawing and annotation. Pick a brush color and thickness, then draw directly on your photo. Switch to eraser mode to fix mistakes." />
+                </div>
                 <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Draw freely on your photo. Pick a color and brush size, then draw with your mouse.
@@ -2089,7 +2301,10 @@ export default function ImageEditor() {
 
             {activeTool === "stickers" && (
               <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold" data-testid="text-panel-title">Stickers</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Stickers</h3>
+                  <InfoBubble text="Add shapes and design elements to your photo. Click a shape to add it, then drag to position and resize. Great for annotations and callouts." />
+                </div>
                 <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Add fun shapes to your photo. Pick a shape, then drag it where you want it.

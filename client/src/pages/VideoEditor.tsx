@@ -12,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useEditorShortcuts, type ShortcutAction } from "@/hooks/use-editor-shortcuts";
 import { useSoundFeedback } from "@/hooks/use-sound-feedback";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
+import { InfoBubble } from "@/components/InfoBubble";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -1004,19 +1005,22 @@ export default function VideoEditor() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setIsMuted((m) => !m)}
-                        data-testid="button-mute"
-                      >
-                        {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
-                  </Tooltip>
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setIsMuted((m) => !m)}
+                          data-testid="button-mute"
+                        >
+                          {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
+                    </Tooltip>
+                    <InfoBubble text="Controls playback volume. Click the speaker icon to mute/unmute." />
+                  </div>
                   <div className="w-20">
                     <Slider
                       min={0}
@@ -1095,7 +1099,10 @@ export default function VideoEditor() {
                     <p className="text-xs text-white/50">Set where you want the video to start and end. You can also drag the handles on the timeline above.</p>
                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <label className="text-xs text-white/60">Start</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">Start</label>
+                          <InfoBubble text="Set the start and end points to keep only the clip you want. Drag the handles or type exact times." />
+                        </div>
                         <Input
                           type="number"
                           step="0.1"
@@ -1108,7 +1115,10 @@ export default function VideoEditor() {
                         />
                       </div>
                       <div className="flex items-center gap-2">
-                        <label className="text-xs text-white/60">End</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">End</label>
+                          <InfoBubble text="Set the start and end points to keep only the clip you want. Drag the handles or type exact times." />
+                        </div>
                         <Input
                           type="number"
                           step="0.1"
@@ -1155,7 +1165,10 @@ export default function VideoEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-white/60">Brightness</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">Brightness</label>
+                          <InfoBubble text="Makes the entire video lighter or darker. Increase to brighten dark footage, decrease for a moodier look." />
+                        </div>
                         <Badge variant="secondary" className="text-xs">{brightness}%</Badge>
                       </div>
                       <Slider
@@ -1169,7 +1182,10 @@ export default function VideoEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-white/60">Contrast</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">Contrast</label>
+                          <InfoBubble text="Controls the difference between light and dark areas. Higher contrast makes colors pop, lower gives a flat, filmic look." />
+                        </div>
                         <Badge variant="secondary" className="text-xs">{contrast}%</Badge>
                       </div>
                       <Slider
@@ -1183,7 +1199,10 @@ export default function VideoEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-white/60">Saturation</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">Saturation</label>
+                          <InfoBubble text="Controls color intensity. Turn it up for vivid colors, turn it down for a desaturated or black-and-white look." />
+                        </div>
                         <Badge variant="secondary" className="text-xs">{saturation}%</Badge>
                       </div>
                       <Slider
@@ -1197,7 +1216,10 @@ export default function VideoEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-white/60">Hue Shift</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">Hue Shift</label>
+                          <InfoBubble text="Shifts all colors around the color wheel. Use for creative color effects or to correct color casts." />
+                        </div>
                         <Badge variant="secondary" className="text-xs">{hue}°</Badge>
                       </div>
                       <Slider
@@ -1211,7 +1233,10 @@ export default function VideoEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-white/60">Temperature</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">Temperature</label>
+                          <InfoBubble text="Adjusts warmth of the video. Positive values add warm orange tones, negative values add cool blue tones." />
+                        </div>
                         <Badge variant="secondary" className="text-xs">
                           {temperature > 0 ? `+${temperature} warm` : temperature < 0 ? `${temperature} cool` : "neutral"}
                         </Badge>
@@ -1227,7 +1252,10 @@ export default function VideoEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-white/60">Vignette</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-white/60">Vignette</label>
+                          <InfoBubble text="Darkens the edges of the frame, drawing attention to the center. Creates a cinematic, focused effect." />
+                        </div>
                         <Badge variant="secondary" className="text-xs">{vignette}%</Badge>
                       </div>
                       <Slider
@@ -1246,10 +1274,13 @@ export default function VideoEditor() {
                   <div className="flex flex-col gap-3" data-testid="panel-capture">
                     <p className="text-xs text-white/50">Grab a still photo from any moment in your video. Pause at the perfect frame, then capture it.</p>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Button onClick={handleCaptureFrame} data-testid="button-capture-frame">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Capture This Frame
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button onClick={handleCaptureFrame} data-testid="button-capture-frame">
+                          <Camera className="w-4 h-4 mr-2" />
+                          Capture This Frame
+                        </Button>
+                        <InfoBubble text="Captures the current video frame as a still image and saves it to your vault." />
+                      </div>
                       {capturedFrame && (
                         <Button
                           variant="outline"

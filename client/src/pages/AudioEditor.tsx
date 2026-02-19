@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEditorShortcuts, type ShortcutAction } from "@/hooks/use-editor-shortcuts";
 import { useSoundFeedback } from "@/hooks/use-sound-feedback";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
+import { InfoBubble } from "@/components/InfoBubble";
 import { buildUrl, api } from "@shared/routes";
 import type { MediaResponse } from "@shared/routes";
 import { detectCategory } from "@shared/schema";
@@ -1236,7 +1237,10 @@ export default function AudioEditor() {
 
                 {activeTool === "trim" && (
                   <div className="flex flex-col gap-4" data-testid="trim-controls">
-                    <p className="text-xs text-muted-foreground">Cut out the part you want to keep. Set the start and end points, then apply.</p>
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground">Cut out the part you want to keep. Set the start and end points, then apply.</p>
+                      <InfoBubble text="Set the start and end points to keep only the part of the audio you want. Drag the handles or type exact times." />
+                    </div>
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex flex-col gap-1">
                         <label className="text-xs text-muted-foreground">Start</label>
@@ -1287,7 +1291,10 @@ export default function AudioEditor() {
                     <p className="text-xs text-muted-foreground">Add a smooth fade at the beginning or end of your audio. Great for intros and outros.</p>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm">Fade In</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-sm">Fade In</label>
+                          <InfoBubble text="Gradually increases volume from silence at the start. Higher values mean a longer, smoother fade in." />
+                        </div>
                         <Badge variant="secondary" className="text-xs" data-testid="badge-fade-in">
                           {fadeIn.toFixed(1)}s
                         </Badge>
@@ -1303,7 +1310,10 @@ export default function AudioEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm">Fade Out</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-sm">Fade Out</label>
+                          <InfoBubble text="Gradually decreases volume to silence at the end. Higher values mean a longer, smoother fade out." />
+                        </div>
                         <Badge variant="secondary" className="text-xs" data-testid="badge-fade-out">
                           {fadeOut.toFixed(1)}s
                         </Badge>
@@ -1324,10 +1334,13 @@ export default function AudioEditor() {
                   <div className="flex flex-col gap-4" data-testid="volume-controls">
                     <p className="text-xs text-muted-foreground">Adjust how loud or quiet your audio will be. 100% is the original volume.</p>
                     <div className="flex items-center justify-between">
-                      <label className="text-sm flex items-center gap-2">
-                        <Volume2 className="w-4 h-4" />
-                        Master Volume
-                      </label>
+                      <div className="flex items-center gap-1">
+                        <label className="text-sm flex items-center gap-2">
+                          <Volume2 className="w-4 h-4" />
+                          Master Volume
+                        </label>
+                        <InfoBubble text="Adjusts the overall loudness. Values above 100% amplify the sound, below 100% makes it quieter." />
+                      </div>
                       <Badge variant="secondary" className="text-xs" data-testid="badge-volume">
                         {volume}%
                       </Badge>
@@ -1353,7 +1366,10 @@ export default function AudioEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-muted-foreground">Bass (low frequencies)</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-muted-foreground">Bass (low frequencies)</label>
+                          <InfoBubble text="Controls low frequencies (deep sounds like bass drums, bass guitar). Boost to add warmth, reduce to remove muddiness." />
+                        </div>
                         <Badge variant="secondary" className="text-xs" data-testid="badge-eq-bass">
                           {eqBass > 0 ? `+${eqBass}` : eqBass} dB
                         </Badge>
@@ -1369,7 +1385,10 @@ export default function AudioEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-muted-foreground">Mid (vocal range)</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-muted-foreground">Mid (vocal range)</label>
+                          <InfoBubble text="Controls middle frequencies (vocals, guitars, most instruments). Boost for presence, reduce to push sounds back." />
+                        </div>
                         <Badge variant="secondary" className="text-xs" data-testid="badge-eq-mid">
                           {eqMid > 0 ? `+${eqMid}` : eqMid} dB
                         </Badge>
@@ -1385,7 +1404,10 @@ export default function AudioEditor() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-muted-foreground">Treble (high frequencies)</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-muted-foreground">Treble (high frequencies)</label>
+                          <InfoBubble text="Controls high frequencies (cymbals, sibilance, sparkle). Boost for clarity and air, reduce to soften harshness." />
+                        </div>
                         <Badge variant="secondary" className="text-xs" data-testid="badge-eq-treble">
                           {eqTreble > 0 ? `+${eqTreble}` : eqTreble} dB
                         </Badge>
@@ -1404,12 +1426,14 @@ export default function AudioEditor() {
 
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-muted-foreground">Reverb (echo/space)</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-muted-foreground">Reverb (echo/space)</label>
+                          <InfoBubble text="Adds a sense of space, like being in a room or hall. Higher values create more echo and ambiance." />
+                        </div>
                         <Badge variant="secondary" className="text-xs" data-testid="badge-reverb">
                           {reverbMix}%
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">Adds a sense of space and depth, like playing in a room or hall.</p>
                       <Slider
                         min={0}
                         max={80}
@@ -1424,12 +1448,14 @@ export default function AudioEditor() {
 
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs text-muted-foreground">Noise Gate</label>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs text-muted-foreground">Noise Gate</label>
+                          <InfoBubble text="Silences audio below a volume threshold, removing background hum or noise between sounds. Higher values are more aggressive." />
+                        </div>
                         <Badge variant="secondary" className="text-xs" data-testid="badge-noise-gate">
                           {noiseGate}%
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">Reduces background noise and hiss by silencing quiet parts. Higher values cut more aggressively.</p>
                       <Slider
                         min={0}
                         max={100}

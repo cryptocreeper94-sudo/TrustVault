@@ -264,6 +264,128 @@ Return this exact JSON format:
       res.status(500).json({ error: "Failed to generate caption" });
     }
   });
+
+  app.post("/api/ai/remove-background", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { imageUrl } = req.body;
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "imageUrl is required" });
+      }
+
+      let fullUrl = imageUrl;
+      if (imageUrl.startsWith("/")) {
+        const host = `${req.protocol}://${req.get("host")}`;
+        fullUrl = `${host}${imageUrl}`;
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Analyze this image and identify the main subject(s) that should be kept. Return the bounding box of the primary subject as normalized coordinates (0-1 range relative to image width and height).
+
+Also identify the dominant background color by analyzing the background pixels.
+
+Return this exact JSON format:
+{
+  "subject": {
+    "x": <0-1 normalized left position>,
+    "y": <0-1 normalized top position>,
+    "width": <0-1 normalized width>,
+    "height": <0-1 normalized height>
+  },
+  "backgroundColor": "<hex color code of dominant background>",
+  "confidence": <0-100 confidence percentage>,
+  "description": "Brief description of what is the main subject"
+}`,
+              },
+              { type: "image_url", image_url: { url: fullUrl, detail: "high" } },
+            ],
+          },
+        ],
+        max_completion_tokens: 300,
+        response_format: { type: "json_object" },
+      });
+
+      const text = response.choices[0]?.message?.content || "{}";
+      const parsed = JSON.parse(text);
+
+      res.json({
+        subject: parsed.subject || { x: 0.1, y: 0.1, width: 0.8, height: 0.8 },
+        backgroundColor: parsed.backgroundColor || "#ffffff",
+        confidence: Math.min(100, Math.max(0, parsed.confidence || 75)),
+        description: parsed.description || "Main subject identified",
+      });
+    } catch (error) {
+      console.error("AI remove-background error:", error);
+      res.status(500).json({ error: "Failed to analyze background" });
+    }
+  });
+
+  app.post("/api/ai/smart-erase", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { imageUrl, region } = req.body;
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "imageUrl is required" });
+      }
+
+      if (!region || typeof region.x !== "number" || typeof region.y !== "number" || 
+          typeof region.width !== "number" || typeof region.height !== "number") {
+        return res.status(400).json({ error: "region with x, y, width, height (normalized 0-1) is required" });
+      }
+
+      let fullUrl = imageUrl;
+      if (imageUrl.startsWith("/")) {
+        const host = `${req.protocol}://${req.get("host")}`;
+        fullUrl = `${host}${imageUrl}`;
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Analyze this image and a specific region within it. The region to be filled is defined by normalized coordinates: x=${region.x.toFixed(2)}, y=${region.y.toFixed(2)}, width=${region.width.toFixed(2)}, height=${region.height.toFixed(2)} (where 0-1 represents left-right and top-bottom).
+
+Analyze what's in that region and the surrounding context. Suggest the best way to fill this region to make it look natural. Consider the background, textures, and colors immediately surrounding the region.
+
+Return this exact JSON format:
+{
+  "fillColor": "<hex color code that best matches the surrounding area>",
+  "fillPattern": "<one of: solid, gradient, texture, blur, or auto>",
+  "description": "Brief description of recommended fill approach and why"
+}`,
+              },
+              { type: "image_url", image_url: { url: fullUrl, detail: "high" } },
+            ],
+          },
+        ],
+        max_completion_tokens: 300,
+        response_format: { type: "json_object" },
+      });
+
+      const text = response.choices[0]?.message?.content || "{}";
+      const parsed = JSON.parse(text);
+
+      res.json({
+        fillColor: parsed.fillColor || "#ffffff",
+        fillPattern: parsed.fillPattern || "solid",
+        description: parsed.description || "Fill suggestion generated",
+      });
+    } catch (error) {
+      console.error("AI smart-erase error:", error);
+      res.status(500).json({ error: "Failed to generate fill suggestion" });
+    }
+  });
 }
 
 function clamp(val: number, min: number, max: number): number {
