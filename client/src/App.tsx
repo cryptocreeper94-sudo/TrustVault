@@ -30,6 +30,12 @@ const InviteMessage = lazy(() => import("@/pages/InviteMessage"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const SmsOptIn = lazy(() => import("@/pages/SmsOptIn"));
+const SocialMediaKit = lazy(() => import("@/pages/SocialMediaKit"));
+const AudioVisualizer = lazy(() => import("@/pages/AudioVisualizer"));
+const BeatSyncVideo = lazy(() => import("@/pages/BeatSyncVideo"));
+const ThumbnailRanker = lazy(() => import("@/pages/ThumbnailRanker"));
+const PortfolioGenerator = lazy(() => import("@/pages/PortfolioGenerator"));
+const StyleDNA = lazy(() => import("@/pages/StyleDNA"));
 const SignalChatPanel = lazy(() => import("@/components/SignalChatPanel").then(m => ({ default: m.SignalChatPanel })));
 
 function LazyFallback() {
@@ -177,6 +183,12 @@ function Router() {
             <Route path="/privacy" component={Privacy} />
             <Route path="/terms" component={Terms} />
             <Route path="/sms-optin" component={SmsOptIn} />
+            <Route path="/social-media-kit" component={SocialMediaKit} />
+            <Route path="/audio-visualizer" component={AudioVisualizer} />
+            <Route path="/beat-sync" component={BeatSyncVideo} />
+            <Route path="/thumbnail-ranker" component={ThumbnailRanker} />
+            <Route path="/portfolio-generator" component={PortfolioGenerator} />
+            <Route path="/style-dna" component={StyleDNA} />
             <Route component={NotFound} />
           </Switch>
         </motion.div>

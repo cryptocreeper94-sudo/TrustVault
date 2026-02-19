@@ -2,18 +2,7 @@
 
 ## Overview
 
-This project is a **universal media vault** (TrustVault / DW Media Studio), a full-stack multi-tenant web application designed for a family of users to upload, store, organize, and preview various digital media types including videos, audio, images, and documents. Key features include multi-user authentication with tenant isolation, file uploads to Replit Object Storage via presigned URLs, a dark-themed UI with category filtering and tagging, and a multi-format modal media viewer. It emphasizes a premium user experience and is envisioned as a core component within a broader ecosystem (TrustLayer / Dark Wave Studios), with future plans for blockchain integration and native mobile applications. The project aims to provide robust media management capabilities, including advanced editing tools and smart organization features, making it a comprehensive solution for digital content.
-
-### Users & Tenants
-- **Jason** (developer/owner, admin): PIN 0424, tenant `jason`, isAdmin=true — has master access to all tenant spaces
-- **Madeline** (daughter): tenant `madeline` — has own isolated media space
-- **Natalie** (daughter): tenant `natalie` — has own isolated media space (must reset password on first login)
-- **Avery** (daughter): tenant `avery` — has own isolated media space (must reset password on first login)
-- **Jennifer** (sister): tenant `jennifer` — has own isolated media space (must reset password on first login)
-- **Will** (nephew): tenant `will` — has own isolated media space (must reset password on first login)
-- **Carley** (niece): tenant `carley` — has own isolated media space (must reset password on first login)
-- Multi-user login: when 4+ accounts exist, login shows Name + Password fields
-- Admin accounts can view/manage all tenant spaces (planned dev portal feature)
+This project, known as TrustVault or DW Media Studio, is a universal media vault. It's a full-stack multi-tenant web application designed for families to upload, store, organize, and preview various digital media types including videos, audio, images, and documents. It features multi-user authentication with tenant isolation, file uploads via presigned URLs to Replit Object Storage, a dark-themed UI with advanced filtering and tagging, and a multi-format modal media viewer. The project aims to deliver a premium user experience and is a foundational component within a larger ecosystem (TrustLayer / Dark Wave Studios), with future ambitions for blockchain integration and native mobile applications, providing comprehensive digital content management with advanced editing and smart organization features.
 
 ## User Preferences
 
@@ -28,76 +17,71 @@ This project is a **universal media vault** (TrustVault / DW Media Studio), a fu
 ## System Architecture
 
 ### Frontend (React SPA)
-- **Framework**: React 18 with TypeScript, bundled by Vite.
-- **Routing**: Wouter for client-side navigation.
-- **State Management**: TanStack React Query for server state.
-- **UI Components**: shadcn/ui (new-york style) built on Radix UI, styled with Tailwind CSS and CSS variables.
-- **Animations**: Framer Motion for transitions and micro-interactions.
-- **Styling**: Tailwind CSS, dark-mode-first design, custom fonts (Outfit, Plus Jakarta Sans).
+- **Framework**: React 18 with TypeScript and Vite.
+- **Routing**: Wouter.
+- **State Management**: TanStack React Query.
+- **UI Components**: shadcn/ui (new-york style) built on Radix UI, styled with Tailwind CSS.
+- **Animations**: Framer Motion.
+- **Styling**: Tailwind CSS, dark-mode-first, custom fonts.
 - **File Upload**: Uppy library with AWS S3 plugin for presigned URL uploads.
-- **Progressive Web App (PWA)**: Implemented with web app manifest, service worker for offline capabilities (stale-while-revalidate caching), and native splash screen.
-- **Media Editors**: Dedicated pages for image, audio, and video editing. Image editor: crop, rotate, flip, resize, filters, full color grading (brightness/contrast/saturation/blur/hue/temperature/vignette/sharpen), text overlays (draggable, font/size/color/bold), freehand drawing & annotation (brush/eraser/color/thickness), stickers & shapes (10 types, draggable, scalable). Audio editor: trim, fade, volume, EQ (bass/mid/treble), reverb, noise gate. Video editor: trim, full color grading (brightness/contrast/saturation/hue/temperature/vignette), frame capture. All save as new media items.
-- **Media Merge/Combine**: Guided workflow for creating image collages, audio concatenations, and video concatenations.
-- **Smart Browsing & Organization**: Collections system, timeline view, grid/timeline toggle, various sort options, date range filtering, and bulk selection with batch actions.
-- **AI-Driven Blog System**: Full blog platform with public and admin interfaces for SEO-optimized content, including AI content generation via OpenAI.
-- **Stripe Subscription System**: Pricing page with 4 tiers (Free/Personal/Pro/Studio), Stripe Checkout for payments, Customer Portal for management, webhook handling for subscription lifecycle.
-- **Spinny AI Agent**: Vinyl record mascot (googly eyes, smiley face) that lives as a floating side tab. Opens into a full chat panel powered by OpenAI (gpt-5.1) with streaming SSE responses. Tenant-scoped conversations with media vault context awareness. Uses `conversations` and `messages` tables with tenant isolation. Voice output via ElevenLabs TTS (primary, Sarah voice) with OpenAI gpt-audio (nova voice) as fallback. Auto-speak toggle and per-message speak buttons.
-- **AI-Powered Media Tools** (`server/ai/routes.ts`): Four AI features powered by OpenAI gpt-4.1-mini:
-  - **AI Auto-Tag on Upload**: Vision-based analysis of uploaded images generates tags and descriptions automatically. Text-based inference for audio/document files from filename/type.
-  - **AI Smart Search**: Natural language search across media vault. Toggle AI mode in search bar, type queries like "beach photos" or "concert videos" and AI matches against metadata.
-  - **AI Auto-Enhance (Image Editor)**: One-click button in adjustments panel analyzes image and auto-applies optimal color grading with smooth 500ms eased animation.
-  - **AI Caption Generator**: Sparkles button on media cards generates descriptive captions using Vision for images/videos, saves to media item description.
-- **Signal Chat**: Real-time ecosystem-wide chat system at `/chat`. JWT-authenticated via TrustLayer SSO. Channel-based messaging with WebSocket real-time delivery (typing indicators, presence, user join/leave). Supports reply threading. 6 default channels: general, announcements, darkwavestudios-support, garagebot-support, tlid-marketing, guardian-ai. **Future vision**: Signal Chat will evolve into a standalone Telegram/Discord-style platform — the communication foundation for the broader social network. Will be its own app/domain sharing TrustLayer SSO, not just embedded in TrustVault.
+- **PWA**: Implemented with manifest and service worker for offline capabilities.
+- **Media Editors**: Dedicated pages for image (crop, rotate, filters, color grading, text, drawing, stickers), audio (trim, fade, EQ, reverb, noise gate), and video (trim, color grading, frame capture) editing.
+- **Media Merge/Combine**: Guided workflows for collages, audio concatenation, and video concatenation.
+- **Smart Browsing & Organization**: Collections, timeline view, various sorting, date range filtering, bulk actions.
+- **AI-Driven Blog System**: Full blog platform with public and admin interfaces, AI content generation via OpenAI.
+- **Stripe Subscription System**: Pricing page with 4 tiers, Stripe Checkout, Customer Portal, webhook handling.
+- **Spinny AI Agent**: Floating side tab chat panel powered by OpenAI (gpt-5.1), streaming SSE responses, tenant-scoped, media vault context-aware, voice output via ElevenLabs TTS.
+- **AI-Powered Media Tools**: Comprehensive AI features via OpenAI gpt-4.1-mini, including:
+    - **AI Auto-Tag on Upload**: Vision-based analysis for images, text-based for audio/documents.
+    - **AI Smart Search**: Natural language search across media vault metadata.
+    - **AI Auto-Enhance**: One-click color grading in image editor.
+    - **AI Caption Generator**: Descriptive captions for media items.
+    - **AI Background Removal & Smart Erase**: Intelligent background and object removal in image editor.
+    - **Voice-Commanded Editing**: Web Speech API integration for image editor.
+    - **Social Media Kit**: Generates 5 platform-optimized image sizes.
+    - **Audio Visualizer Art**: Real-time Web Audio API visualizations.
+    - **Beat-Sync Video Maker**: Auto-detects beats for photo transition synchronization.
+    - **Style DNA**: AI analyzes user's photos for aesthetic preferences.
+    - **Thumbnail Ranker**: AI scores images for social media impact.
+    - **Portfolio Generator**: AI selects best work for a curated portfolio page.
+    - **Magic Aspect Ratio Fill**: AI-matched gradient fill for aspect ratio changes.
+- **AI Tools Dropdown**: Accessible from main vault toolbar.
+- **Signal Chat**: Real-time, ecosystem-wide chat system at `/chat` with JWT-authenticated SSO, channel-based messaging, WebSockets, typing indicators, and presence tracking.
 
 ### Backend (Express + Node.js)
-- **Runtime**: Node.js with TypeScript (tsx/esbuild).
+- **Runtime**: Node.js with TypeScript.
 - **Framework**: Express.js, serving API routes and static SPA.
-- **API Design**: RESTful JSON API using Zod for contract validation (`shared/routes.ts`).
-- **Authentication**: Dual auth system — (1) Custom password-based session auth for media vault (8+ chars, 1 uppercase, 1 special character, bcrypt hashing, express-session with PostgreSQL store), and (2) JWT-based TrustLayer SSO for cross-app ecosystem auth (HS256, 7-day expiry, shared JWT_SECRET across apps).
-- **TrustLayer SSO**: Cross-app single sign-on via shared JWT_SECRET. Trust Layer ID generation (tl-{base36-timestamp}-{random-8-chars}) at registration. Auth endpoints: /api/chat/auth/register, /api/chat/auth/login, /api/chat/auth/me. Bridge endpoint /api/auth/bridge-sso creates chat_users from existing TrustVault session users.
-- **WebSocket Chat Server**: ws library at /ws/chat with noServer mode (shares HTTP server with Vite HMR). JWT-authenticated join, channel switching, message broadcast, typing indicators, presence tracking.
-- **File Storage Interaction**: Generates presigned URLs for direct client uploads to Replit Object Storage, then stores metadata in the database.
-- **Ecosystem API (TrustHome Connectivity)**: Inter-service API for DarkWave ecosystem integration, featuring HMAC authentication, tenant scoping, project management, and webhook callbacks with retry mechanisms.
-- **ORBIT Ecosystem Client**: Outbound integration to ORBIT Staffing OS Financial Hub (`server/services/orbitClient.ts`). Trust Vault is registered as `dw_app_trustvault` with 100% Jason royalty split. Client class supports connection status, financial statements, transaction reporting, worker/contractor/timesheet sync, code snippets, and activity logs. Webhook receiver at `/webhooks/orbit` with HMAC signature verification. Admin-only API routes at `/api/orbit/*` for status, financial statements, transaction reporting, logs, and snippets.
-- **DarkWave Studio API**: External API layer (`server/studio/routes.ts`) for DarkWave Studios integration. JWT Bearer auth via TrustLayer SSO, CORS-whitelisted for DarkWave origins, rate-limited (60 req/min). Endpoints: media list/get/upload/confirm, project create/status/export, editor embed token generation. Webhook callbacks to DarkWave on render events.
-- **Stripe Integration**: Subscription management with Checkout Sessions, Customer Portal, and webhook event handling (`server/stripe/routes.ts`).
-- **Transactional Email System**: Resend-powered email notifications via Replit connector auth (`server/services/resendClient.ts`). Premium dark-themed HTML email templates (`server/services/emailTemplates.ts`) for 4 scenarios: purchase confirmation, subscription change (upgrade/downgrade), cancellation, and payment failure. Emails fire asynchronously from Stripe webhook handlers. Customer email resolved from Stripe checkout details, Stripe customer object, or pinAuth table fallback.
+- **API Design**: RESTful JSON API using Zod for contract validation.
+- **Authentication**: Dual system with custom password-based session auth (bcrypt, express-session) and JWT-based TrustLayer SSO for ecosystem (HS256).
+- **TrustLayer SSO**: Cross-app single sign-on with `tl-{base36-timestamp}-{random-8-chars}` ID generation.
+- **WebSocket Chat Server**: `ws` library at `/ws/chat`, JWT-authenticated.
+- **File Storage Interaction**: Generates presigned URLs for client-side uploads to Replit Object Storage, stores metadata.
+- **Ecosystem API (TrustHome Connectivity)**: Inter-service API with HMAC authentication, tenant scoping, and webhooks.
+- **ORBIT Ecosystem Client**: Outbound integration to ORBIT Staffing OS Financial Hub, handles financial statements, transactions, and webhook reception.
+- **DarkWave Studio API**: External API layer for DarkWave Studios integration with JWT Bearer auth, CORS, and rate-limiting.
+- **Stripe Integration**: Subscription management with Checkout Sessions, Customer Portal, and webhook handling.
+- **Transactional Email System**: Resend-powered email notifications via Replit connector, using dark-themed HTML templates for various subscription events.
 
 ### Shared Code (`shared/`)
-- **Schema**: Drizzle ORM schema definitions (`shared/schema.ts`) for all database tables.
-- **API Contract**: Zod schemas defining the full API contract (`shared/routes.ts`) for type safety.
+- **Schema**: Drizzle ORM schema definitions for all database tables.
+- **API Contract**: Zod schemas defining the full API contract for type safety.
 
 ### Database
 - **Database**: PostgreSQL.
-- **ORM**: Drizzle ORM for schema management and migrations.
-- **Key Tables**: `media_items` (media metadata), `pin_auth` (authentication), `sessions`, `collections`, `collection_items` (for media organization), `api_keys` (ecosystem credentials), `ecosystem_projects` (tenant-scoped projects), `blog_posts` (blog content), `subscriptions` (Stripe subscription state), `chat_users` (TrustLayer SSO accounts), `chat_channels` (Signal Chat channels), `chat_messages` (Signal Chat messages).
+- **ORM**: Drizzle ORM.
+- **Key Tables**: `media_items`, `pin_auth`, `sessions`, `collections`, `collection_items`, `api_keys`, `ecosystem_projects`, `blog_posts`, `subscriptions`, `chat_users`, `chat_channels`, `chat_messages`.
 
 ### Key Design Patterns
-- **Presigned URL Upload Flow**: Efficient file upload by offloading direct file transfer to cloud storage.
-- **Contract-First API**: Ensures type-safe communication between client and server.
+- **Presigned URL Upload Flow**: Offloads direct file transfer to cloud storage.
+- **Contract-First API**: Ensures type-safe client-server communication.
 - **Storage Abstraction**: Facilitates swapping storage backends via an `IStorage` interface.
 
 ## External Dependencies
 
-### Required Services
-- **PostgreSQL Database**: Essential for all application data; connected via `DATABASE_URL`.
-- **Replit Object Storage**: Primary storage for uploaded media files; accessed via Google Cloud Storage client library.
-- **OpenAI API**: Used for AI-driven blog content generation.
-
-### Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string.
-- `SESSION_SECRET`: Secret for `express-session` signing.
-- `STRIPE_SECRET_KEY`: Stripe secret API key for server-side operations.
-- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key exposed to frontend.
-- `STRIPE_WEBHOOK_SECRET`: (Optional) Stripe webhook signing secret for signature verification.
-- `ELEVENLABS_API_KEY`: ElevenLabs API key for Spinny TTS voice.
-- `JWT_SECRET`: Shared JWT signing secret for TrustLayer SSO (must be identical across all ecosystem apps).
-- `ORBIT_HUB_URL`: ORBIT Staffing OS hub URL (default: https://orbitstaffing.replit.app).
-- `ORBIT_ECOSYSTEM_API_KEY`: API key for ORBIT ecosystem authentication.
-- `ORBIT_ECOSYSTEM_API_SECRET`: API secret for ORBIT ecosystem authentication.
-- `ORBIT_WEBHOOK_SECRET`: (Optional) HMAC secret for verifying ORBIT webhook signatures.
-
-### Key NPM Dependencies
-- **Server**: `express`, `drizzle-orm`, `pg`, `express-session`, `connect-pg-simple`, `@google-cloud/storage`, `zod`, `jsonwebtoken`, `ws`.
-- **Client**: `react`, `@tanstack/react-query`, `wouter`, `framer-motion`, `@uppy/core`, `@uppy/aws-s3`, `@uppy/react`, `shadcn/ui` components.
-- **Build**: `vite`, `esbuild`, `tsx`, `drizzle-kit`, `typescript`.
+- **PostgreSQL Database**: Primary database for all application data.
+- **Replit Object Storage**: Main storage for uploaded media files (Google Cloud Storage client library).
+- **OpenAI API**: Used for AI-driven blog content generation and various AI media tools.
+- **Stripe**: Payment processing for subscriptions (Checkout, Customer Portal, webhooks).
+- **ElevenLabs**: Text-to-speech for Spinny AI Agent.
+- **Resend**: Transactional email service.
+- **ORBIT Staffing OS Financial Hub**: Outbound integration for financial operations.

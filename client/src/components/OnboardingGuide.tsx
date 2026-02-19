@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Upload, FolderOpen, Play, Pencil, Layers, LayoutGrid,
   Shield, ChevronRight, ChevronLeft, Sparkles, X,
-  HelpCircle,
+  HelpCircle, Mic, Share2, Music, Palette, Trophy, Briefcase, Wand2,
 } from "lucide-react";
 
 import imgWelcome from "../assets/images/onboarding-welcome.jpg";
@@ -14,6 +14,11 @@ import imgBrowse from "../assets/images/onboarding-browse.jpg";
 import imgPreview from "../assets/images/onboarding-preview.jpg";
 import imgEdit from "../assets/images/onboarding-edit.jpg";
 import imgMerge from "../assets/images/onboarding-merge.jpg";
+import imgVoice from "../assets/images/onboarding-voice.png";
+import imgSocialKit from "../assets/images/onboarding-social-kit.png";
+import imgVisualizer from "../assets/images/onboarding-visualizer.png";
+import imgStyleDNA from "../assets/images/onboarding-style-dna.png";
+import imgAITools from "../assets/images/onboarding-ai-tools.png";
 import imgReady from "../assets/images/onboarding-ready.jpg";
 
 export interface OnboardingSlide {
@@ -111,12 +116,78 @@ const DEFAULT_SLIDES: OnboardingSlide[] = [
     image: imgMerge,
   },
   {
+    icon: Mic,
+    iconColor: "from-red-500 to-pink-400",
+    title: "Voice-Commanded Editing",
+    description: "Talk to your photos. Just tap the microphone button in the image editor and say what you want. \"Make it warmer\" or \"increase brightness\" \u2014 AI does the rest.",
+    tips: [
+      "Tap the mic icon in the editor toolbar to start",
+      "Speak naturally: \"Make this brighter and more vivid\"",
+      "Works with all adjustments, rotation, and flips",
+      "Requires Chrome or Edge browser",
+    ],
+    image: imgVoice,
+  },
+  {
+    icon: Share2,
+    iconColor: "from-blue-500 to-indigo-400",
+    title: "Social Media Kit",
+    description: "One photo, every platform. Select an image and instantly generate perfectly-sized versions for Instagram, Twitter, LinkedIn, and YouTube \u2014 all in one tap.",
+    tips: [
+      "Go to Social Media Kit from the toolbar",
+      "Select any image from your vault",
+      "Get 5 platform-perfect sizes instantly",
+      "Download individually or all at once",
+    ],
+    image: imgSocialKit,
+  },
+  {
+    icon: Music,
+    iconColor: "from-cyan-500 to-teal-400",
+    title: "Audio Visualizer & Beat Sync",
+    description: "Turn your music into visual art. The Audio Visualizer creates stunning real-time animations that dance with your music. Beat-Sync Video Maker auto-cuts your photos to the rhythm.",
+    tips: [
+      "5 visualization styles: Waveform, Bars, Circle, Particles, Galaxy",
+      "5 color themes to match any vibe",
+      "Beat-Sync auto-detects the beat and times your cuts",
+      "Save frames as images from the visualizer",
+    ],
+    image: imgVisualizer,
+  },
+  {
+    icon: Palette,
+    iconColor: "from-purple-500 to-fuchsia-400",
+    title: "Style DNA",
+    description: "AI analyzes your photos to learn YOUR unique visual style. It builds a style profile \u2014 your color preferences, mood, contrast level \u2014 that can be auto-applied to future uploads.",
+    tips: [
+      "AI scans up to 10 of your images to learn your taste",
+      "See your color palette, warmth, mood, and editing style",
+      "Toggle auto-apply to give all new photos your signature look",
+      "Re-analyze anytime as your style evolves",
+    ],
+    image: imgStyleDNA,
+  },
+  {
+    icon: Wand2,
+    iconColor: "from-amber-500 to-yellow-400",
+    title: "AI Creative Tools",
+    description: "A full suite of AI-powered tools to level up your content. Rank thumbnails, generate portfolios, remove backgrounds, smart erase objects, and extend images with Magic Fill.",
+    tips: [
+      "Thumbnail Ranker: AI scores your images for social media impact",
+      "Portfolio Generator: AI picks your best work and builds a page",
+      "Magic Fill: Extend any photo to a new aspect ratio",
+      "AI Remove Background and Smart Erase in the image editor",
+    ],
+    image: imgAITools,
+  },
+  {
     icon: Sparkles,
     iconColor: "from-yellow-500 to-amber-400",
     title: "You're All Set!",
     description: "That's everything you need to get started. You can revisit this guide anytime from the help button in the menu. Now go ahead and start building your media vault!",
     tips: [
       "Tap the help icon in the menu to see this guide again",
+      "Every tool has info bubbles \u2014 hover the question marks for help",
       "Your vault grows with you \u2014 upgrade plans for more features",
       "Have fun and keep your memories safe!",
     ],

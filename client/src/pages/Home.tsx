@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,6 +32,7 @@ import {
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
   UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail, Fingerprint, MessageSquare, Monitor,
+  Wand2, Palette, Trophy, Briefcase,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1762,6 +1763,44 @@ export default function Home() {
                 Create Mix
               </Button>
             </Link>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button data-testid="button-ai-tools" variant="outline" className="gap-2 backdrop-blur-sm">
+                  <Wand2 className="w-4 h-4" />
+                  AI Tools
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <div className="grid gap-1">
+                  <Link href="/social-media-kit" data-testid="link-social-kit" className="flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-sm hover-elevate cursor-pointer">
+                    <Share2 className="w-4 h-4 text-blue-400" />
+                    Social Media Kit
+                  </Link>
+                  <Link href="/audio-visualizer" data-testid="link-audio-visualizer" className="flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-sm hover-elevate cursor-pointer">
+                    <Music className="w-4 h-4 text-cyan-400" />
+                    Audio Visualizer
+                  </Link>
+                  <Link href="/beat-sync" data-testid="link-beat-sync" className="flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-sm hover-elevate cursor-pointer">
+                    <Zap className="w-4 h-4 text-yellow-400" />
+                    Beat-Sync Video
+                  </Link>
+                  <Link href="/style-dna" data-testid="link-style-dna" className="flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-sm hover-elevate cursor-pointer">
+                    <Palette className="w-4 h-4 text-purple-400" />
+                    Style DNA
+                  </Link>
+                  <Link href="/thumbnail-ranker" data-testid="link-thumbnail-ranker" className="flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-sm hover-elevate cursor-pointer">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    Thumbnail Ranker
+                  </Link>
+                  <Link href="/portfolio-generator" data-testid="link-portfolio" className="flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-sm hover-elevate cursor-pointer">
+                    <Briefcase className="w-4 h-4 text-emerald-400" />
+                    Portfolio Generator
+                  </Link>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <UploadDialog>
               <Button data-testid="button-upload" className="bg-primary text-white shadow-lg shadow-primary/30 gap-2 relative overflow-visible">

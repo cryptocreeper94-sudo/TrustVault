@@ -45,6 +45,8 @@ import {
   Keyboard,
   Scissors,
   ImageOff,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { InfoBubble } from "@/components/InfoBubble";
 
@@ -425,6 +427,11 @@ export default function ImageEditor() {
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
   const [isSmartErasing, setIsSmartErasing] = useState(false);
+  const [isMagicFilling, setIsMagicFilling] = useState(false);
+  const [magicFillRatio, setMagicFillRatio] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const [rotation, setRotation] = useState(0);
   const [flipH, setFlipH] = useState(false);
@@ -882,6 +889,114 @@ export default function ImageEditor() {
     }
   };
 
+  const handleVoiceCommand = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({ title: "Not Supported", description: "Voice commands require Chrome or Edge browser.", variant: "destructive" });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => {
+      setIsListening(false);
+      toast({ title: "Voice Error", description: "Could not hear you. Please try again.", variant: "destructive" });
+    };
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setVoiceTranscript(transcript);
+      setIsListening(false);
+
+      try {
+        const resp = await fetch("/api/ai/voice-command", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command: transcript }),
+        });
+        if (!resp.ok) throw new Error("Failed to parse command");
+        const data = await resp.json();
+
+        if (data.actions && data.actions.length > 0) {
+          pushHistory();
+          for (const action of data.actions) {
+            switch (action.type) {
+              case "brightness":
+                setAdjustments(a => ({ ...a, brightness: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "contrast":
+                setAdjustments(a => ({ ...a, contrast: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "saturation":
+                setAdjustments(a => ({ ...a, saturation: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "blur":
+                setAdjustments(a => ({ ...a, blur: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "hue":
+                setAdjustments(a => ({ ...a, hue: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "temperature":
+                setAdjustments(a => ({ ...a, temperature: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "vignette":
+                setAdjustments(a => ({ ...a, vignette: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "sharpen":
+                setAdjustments(a => ({ ...a, sharpen: action.params.value }));
+                setActiveTool("adjustments");
+                break;
+              case "rotate_left":
+                handleRotateCCW();
+                break;
+              case "rotate_right":
+                handleRotateCW();
+                break;
+              case "flip_horizontal":
+                handleFlipH();
+                break;
+              case "flip_vertical":
+                handleFlipV();
+                break;
+              case "reset":
+                setAdjustments({ ...DEFAULT_ADJUSTMENTS });
+                setRotation(0);
+                setFlipH(false);
+                setFlipV(false);
+                setActiveFilter("none");
+                break;
+            }
+          }
+          toast({ title: "Voice Command Applied", description: data.explanation || `Applied ${data.actions.length} change(s)` });
+        }
+        setTimeout(() => setVoiceTranscript(null), 3000);
+      } catch (err) {
+        toast({ title: "Command Failed", description: "Could not process that command.", variant: "destructive" });
+      }
+    };
+
+    recognition.start();
+  }, [isListening, pushHistory, toast, handleRotateCCW, handleRotateCW, handleFlipH, handleFlipV]);
+
   const handleRemoveBackground = async () => {
     if (!mediaItem || !canvasRef.current || !originalImageRef.current) return;
     pushHistory();
@@ -1010,6 +1125,98 @@ export default function ImageEditor() {
       toast({ title: "Smart Erase Failed", description: "Could not process the selected area.", variant: "destructive" });
     } finally {
       setIsSmartErasing(false);
+    }
+  };
+
+  const handleMagicFill = async (targetRatio: string) => {
+    if (!mediaItem || !canvasRef.current || !originalImageRef.current) return;
+    pushHistory();
+    setIsMagicFilling(true);
+    setMagicFillRatio(targetRatio);
+    try {
+      const img = originalImageRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const [tw, th] = targetRatio.split(":").map(Number);
+      const targetAspect = tw / th;
+      const currentAspect = img.naturalWidth / img.naturalHeight;
+
+      let newWidth = img.naturalWidth;
+      let newHeight = img.naturalHeight;
+
+      if (targetAspect > currentAspect) {
+        newWidth = Math.round(img.naturalHeight * targetAspect);
+      } else {
+        newHeight = Math.round(img.naturalWidth / targetAspect);
+      }
+
+      const imageUrl = `/objects/${mediaItem.url}`;
+      const resp = await fetch("/api/ai/style-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+
+      let fillColor = "#1a1a2e";
+      let secondaryColor = "#16213e";
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.style?.colorPalette?.length > 0) {
+          fillColor = data.style.colorPalette[0];
+          secondaryColor = data.style.colorPalette.length > 1 ? data.style.colorPalette[1] : fillColor;
+        }
+      }
+
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+
+      const gradient = ctx.createLinearGradient(0, 0, newWidth, newHeight);
+      gradient.addColorStop(0, fillColor);
+      gradient.addColorStop(0.5, secondaryColor);
+      gradient.addColorStop(1, fillColor);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, newWidth, newHeight);
+
+      const offsetX = Math.round((newWidth - img.naturalWidth) / 2);
+      const offsetY = Math.round((newHeight - img.naturalHeight) / 2);
+
+      const edgeSize = 30;
+
+      if (offsetX > 0) {
+        const lg = ctx.createLinearGradient(offsetX, 0, offsetX + edgeSize, 0);
+        lg.addColorStop(0, "transparent");
+        lg.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.drawImage(img, 0, 0, edgeSize, img.naturalHeight, offsetX - edgeSize, offsetY, edgeSize, img.naturalHeight);
+        ctx.drawImage(img, img.naturalWidth - edgeSize, 0, edgeSize, img.naturalHeight, offsetX + img.naturalWidth, offsetY, edgeSize, img.naturalHeight);
+        ctx.globalAlpha = 0.15;
+        ctx.drawImage(img, 0, 0, edgeSize, img.naturalHeight, offsetX - edgeSize * 2, offsetY, edgeSize, img.naturalHeight);
+        ctx.drawImage(img, img.naturalWidth - edgeSize, 0, edgeSize, img.naturalHeight, offsetX + img.naturalWidth + edgeSize, offsetY, edgeSize, img.naturalHeight);
+        ctx.restore();
+      }
+
+      if (offsetY > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.drawImage(img, 0, 0, img.naturalWidth, edgeSize, offsetX, offsetY - edgeSize, img.naturalWidth, edgeSize);
+        ctx.drawImage(img, 0, img.naturalHeight - edgeSize, img.naturalWidth, edgeSize, offsetX, offsetY + img.naturalHeight, img.naturalWidth, edgeSize);
+        ctx.globalAlpha = 0.15;
+        ctx.drawImage(img, 0, 0, img.naturalWidth, edgeSize, offsetX, offsetY - edgeSize * 2, img.naturalWidth, edgeSize);
+        ctx.drawImage(img, 0, img.naturalHeight - edgeSize, img.naturalWidth, edgeSize, offsetX, offsetY + img.naturalHeight + edgeSize, img.naturalWidth, edgeSize);
+        ctx.restore();
+      }
+
+      ctx.drawImage(img, offsetX, offsetY);
+
+      toast({ title: "Magic Fill Applied", description: `Extended to ${targetRatio} with AI-matched colors from your image.` });
+    } catch (err) {
+      toast({ title: "Magic Fill Failed", description: "Could not extend the image.", variant: "destructive" });
+    } finally {
+      setIsMagicFilling(false);
+      setMagicFillRatio(null);
     }
   };
 
@@ -1594,6 +1801,20 @@ export default function ImageEditor() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant={isListening ? "default" : "ghost"}
+                onClick={handleVoiceCommand}
+                className={isListening ? "animate-pulse bg-red-500 hover:bg-red-600" : ""}
+                data-testid="button-voice-command"
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isListening ? "Stop listening" : "Voice command"}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button size="icon" variant="ghost" onClick={() => setShowHelp(true)} className="hidden sm:inline-flex" data-testid="button-shortcuts">
                 <Keyboard className="w-4 h-4" />
               </Button>
@@ -1714,6 +1935,14 @@ export default function ImageEditor() {
                   onTouchEnd={handleCanvasTouchEnd}
                   data-testid="editor-canvas"
                 />
+                {voiceTranscript && (
+                  <div
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 glass-morphism px-4 py-2 rounded-full text-sm text-white/80 z-50 animate-in fade-in slide-in-from-bottom-2"
+                    data-testid="text-voice-transcript"
+                  >
+                    "{voiceTranscript}"
+                  </div>
+                )}
                 {isCropping && cropOverlayStyle && cropRect && cropRect.width > 0 && (
                   <div
                     className="absolute border-2 border-primary bg-primary/10 pointer-events-none"
@@ -1965,6 +2194,41 @@ export default function ImageEditor() {
                 <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
                   Smart Erase: Select an area with the Crop tool first, then tap Smart Erase to fill it in.
                 </p>
+                <div className="border-t border-white/5 pt-3 mt-1">
+                  <div className="flex items-center gap-1 mb-2">
+                    <label className="text-xs text-muted-foreground font-medium">Magic Aspect Ratio Fill</label>
+                    <InfoBubble text="Extend your image to a new aspect ratio. AI analyzes your photo's colors and fills the new space with matching gradients. The original image stays centered and untouched." />
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { label: "16:9", desc: "Landscape" },
+                      { label: "9:16", desc: "Portrait" },
+                      { label: "1:1", desc: "Square" },
+                      { label: "4:3", desc: "Standard" },
+                      { label: "3:2", desc: "Photo" },
+                      { label: "21:9", desc: "Ultra Wide" },
+                    ].map((ratio) => (
+                      <Button
+                        key={ratio.label}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleMagicFill(ratio.label)}
+                        disabled={isMagicFilling || !imageLoaded}
+                        className="flex flex-col h-auto py-1.5 text-[10px] gap-0.5"
+                        data-testid={`button-magic-fill-${ratio.label.replace(":", "x")}`}
+                      >
+                        {isMagicFilling && magicFillRatio === ratio.label ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <>
+                            <span className="font-medium">{ratio.label}</span>
+                            <span className="text-muted-foreground/60">{ratio.desc}</span>
+                          </>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
