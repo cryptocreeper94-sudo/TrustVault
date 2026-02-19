@@ -1461,6 +1461,14 @@ export default function Home() {
                   <Separator className="my-2 shrink-0" />
 
                   <div className="flex-1 overflow-y-auto min-h-0">
+
+                  <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3.5 mb-3" data-testid="section-mission-statement">
+                    <p className="text-xs font-semibold text-foreground/90 mb-1.5 font-display">From Jason, Creator & Developer</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      I built DW Media Studio because everyone deserves access to professional-grade creative tools without the premium price tag. This is your affordable alternative to high-end editors &mdash; powerful image, audio, and video editing with AI at your fingertips. Built on TrustLayer, part of the Dark Wave Studios ecosystem. Your creativity shouldn't have a paywall.
+                    </p>
+                  </div>
+
                   <nav className="flex flex-col gap-1" data-testid="nav-hamburger-menu">
                     <a href="/" className="w-full">
                       <Button variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-vault">
@@ -1509,6 +1517,48 @@ export default function Home() {
                     >
                       <Sparkles className="w-4 h-4" />
                       Spinny AI
+                    </Button>
+                  </nav>
+
+                  <Separator className="my-2" />
+
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">AI Creative Tools</p>
+                  <nav className="flex flex-col gap-1" data-testid="nav-ai-tools-menu">
+                    <Button asChild variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-social-kit">
+                      <Link href="/social-media-kit">
+                        <Share2 className="w-4 h-4" />
+                        Social Media Kit
+                      </Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-audio-viz">
+                      <Link href="/audio-visualizer">
+                        <Music className="w-4 h-4" />
+                        Audio Visualizer
+                      </Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-beat-sync-menu">
+                      <Link href="/beat-sync">
+                        <Zap className="w-4 h-4" />
+                        Beat-Sync Video
+                      </Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-style-dna-menu">
+                      <Link href="/style-dna">
+                        <Palette className="w-4 h-4" />
+                        Style DNA
+                      </Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-thumbnail-menu">
+                      <Link href="/thumbnail-ranker">
+                        <Trophy className="w-4 h-4" />
+                        Thumbnail Ranker
+                      </Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-portfolio-menu">
+                      <Link href="/portfolio-generator">
+                        <Briefcase className="w-4 h-4" />
+                        Portfolio Generator
+                      </Link>
                     </Button>
                   </nav>
 
