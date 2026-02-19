@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AnimatePresence, motion } from "framer-motion";
+import { ConfettiProvider } from "@/components/Confetti";
 import Home from "@/pages/Home";
 import UserDashboard from "@/pages/UserDashboard";
 import NotFound from "@/pages/not-found";
@@ -156,10 +157,10 @@ function Router() {
       <AnimatePresence mode="wait">
         <motion.div
           key={location}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="flex-1"
         >
           <Switch>
@@ -204,11 +205,13 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <TooltipProvider>
-              <Router />
-              <Suspense fallback={null}>
-                <SignalChatPanel />
-              </Suspense>
-              <Toaster />
+              <ConfettiProvider>
+                <Router />
+                <Suspense fallback={null}>
+                  <SignalChatPanel />
+                </Suspense>
+                <Toaster />
+              </ConfettiProvider>
             </TooltipProvider>
           </ThemeProvider>
         </QueryClientProvider>

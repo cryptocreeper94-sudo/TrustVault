@@ -2,6 +2,8 @@ import { type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation } from "wouter";
+import { TiltCard } from "@/components/TiltCard";
+import { useSoundFeedback } from "@/hooks/use-sound-feedback";
 import {
   ArrowLeft, LogOut,
   Vault, Image, Music, Video, Layers,
@@ -51,61 +53,68 @@ function useStats() {
 
 function DashboardCard({ card, index }: { card: DashCard; index: number }) {
   const [, navigate] = useLocation();
+  const soundFeedback = useSoundFeedback();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, delay: index * 0.06, ease: "easeOut" }}
-      onClick={() => navigate(card.href)}
-      className="group relative rounded-2xl overflow-hidden cursor-pointer"
+    <TiltCard
+      tiltAmount={6}
+      glareEnabled
+      onClick={() => { soundFeedback("click"); navigate(card.href); }}
+      className="group rounded-2xl overflow-hidden cursor-pointer"
       style={{ minHeight: "220px" }}
       data-testid={`card-dash-${card.title.toLowerCase().replace(/\s+/g, "-")}`}
     >
-      <img
-        src={card.image}
-        alt={card.title}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-      />
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, delay: index * 0.06, ease: "easeOut" }}
+        className="h-full"
+      >
+        <img
+          src={card.image}
+          alt={card.title}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
 
-      {card.badge && (
-        <div className="absolute top-3 right-3 z-10">
-          <Badge variant="secondary" className="text-[10px] bg-white/15 text-white border-white/20">
-            {card.badge}
-          </Badge>
+        {card.badge && (
+          <div className="absolute top-3 right-3 z-10">
+            <Badge variant="secondary" className="text-[10px] bg-white/15 text-white border-white/20">
+              {card.badge}
+            </Badge>
+          </div>
+        )}
+
+        {card.stat && (
+          <div className="absolute top-3 left-3 z-10">
+            <Badge variant="secondary" className="text-[10px] bg-white/10 text-white/80 border-white/10">
+              {card.stat}
+            </Badge>
+          </div>
+        )}
+
+        <div className="relative z-10 h-full flex flex-col justify-end p-4 gap-2">
+          <div className={`
+            w-10 h-10 rounded-xl flex items-center justify-center
+            bg-gradient-to-br ${card.gradient}
+            text-white shadow-lg
+          `}>
+            {card.icon}
+          </div>
+          <div>
+            <h3 className="text-white font-semibold text-base leading-tight">{card.title}</h3>
+            <p className="text-white/55 text-xs mt-1 leading-snug">{card.description}</p>
+          </div>
         </div>
-      )}
 
-      {card.stat && (
-        <div className="absolute top-3 left-3 z-10">
-          <Badge variant="secondary" className="text-[10px] bg-white/10 text-white/80 border-white/10">
-            {card.stat}
-          </Badge>
-        </div>
-      )}
-
-      <div className="relative z-10 h-full flex flex-col justify-end p-4 gap-2">
         <div className={`
-          w-10 h-10 rounded-xl flex items-center justify-center
-          bg-gradient-to-br ${card.gradient}
-          text-white shadow-lg
-        `}>
-          {card.icon}
-        </div>
-        <div>
-          <h3 className="text-white font-semibold text-base leading-tight">{card.title}</h3>
-          <p className="text-white/55 text-xs mt-1 leading-snug">{card.description}</p>
-        </div>
-      </div>
-
-      <div className={`
-        absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100
-        transition-opacity duration-300 shadow-2xl ${card.glowColor}
-        pointer-events-none
-      `} />
-    </motion.div>
+          absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100
+          transition-opacity duration-300 shadow-2xl ${card.glowColor}
+          pointer-events-none
+        `} />
+      </motion.div>
+    </TiltCard>
   );
 }
 

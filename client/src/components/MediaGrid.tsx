@@ -88,9 +88,13 @@ export function MediaGrid({ items, onPlay, onEdit, onShare, onAddToPlaylist, ben
             transition={{ duration: 0.5, delay: 0.1 }}
             className="space-y-4"
           >
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full premium-gradient-image flex items-center justify-center mx-auto shadow-2xl card-glow">
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full premium-gradient-image flex items-center justify-center mx-auto shadow-2xl card-glow"
+            >
               <Zap className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
-            </div>
+            </motion.div>
             <h1 className="text-4xl sm:text-5xl font-display font-bold theme-gradient-text" data-testid="text-welcome-heading">
               Welcome to Your Vault
             </h1>

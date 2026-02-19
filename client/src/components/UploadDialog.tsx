@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundFeedback } from "@/hooks/use-sound-feedback";
+import { useConfetti } from "@/components/Confetti";
 import { motion, AnimatePresence } from "framer-motion";
 
 const MAX_BATCH_SIZE = 10;
@@ -171,6 +172,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const [label, setLabel] = useState("");
   const [tagInput, setTagInput] = useState("");
   const soundFeedback = useSoundFeedback();
+  const confetti = useConfetti();
   const [tags, setTags] = useState<string[]>([]);
   const [fileDate, setFileDate] = useState<string>("");
   const [artist, setArtist] = useState("");
@@ -430,6 +432,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
 
     if (errors === 0) {
       soundFeedback("success");
+      confetti.fireCelebration();
       toast({
         title: "Upload Complete",
         description: `${completed} file${completed !== 1 ? "s" : ""} uploaded successfully.`,

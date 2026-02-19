@@ -65,6 +65,8 @@ import ccRoadmapNew from "../assets/images/cc-roadmap-new.png";
 import ccActivityImg from "../assets/images/cc-activity.png";
 import ccSettingsImg from "../assets/images/cc-settings.png";
 import trustlayerEmblem from "../assets/images/trustvault-emblem.png";
+import { TiltCard } from "@/components/TiltCard";
+import { useSoundFeedback } from "@/hooks/use-sound-feedback";
 
 interface LaunchCard {
   label: string;
@@ -482,56 +484,62 @@ const categories: Category[] = [
 
 function CommandCard({ card, index }: { card: LaunchCard; index: number }) {
   const [, navigate] = useLocation();
+  const soundFeedback = useSoundFeedback();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      onClick={() => navigate(card.href)}
+    <TiltCard
+      tiltAmount={8}
+      glareEnabled
+      onClick={() => { soundFeedback("click"); navigate(card.href); }}
       className={`
-        relative overflow-hidden rounded-2xl cursor-pointer group
+        overflow-hidden rounded-2xl cursor-pointer group
         border border-white/5 
         ${card.featured ? "min-h-[220px]" : "min-h-[200px]"}
-        transition-all duration-300 hover:scale-[1.03]
       `}
       data-testid={`card-${card.label.toLowerCase().replace(/\s+/g, "-")}`}
     >
-      <img
-        src={card.image}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover brightness-110"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/30" />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.05 }}
+        className="h-full"
+      >
+        <img
+          src={card.image}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover brightness-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/30" />
 
-      {card.badge && (
-        <div className="absolute top-3 right-3 z-10">
-          <Badge className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 text-[10px] px-2 py-0.5 no-default-hover-elevate no-default-active-elevate">
-            {card.badge}
-          </Badge>
+        {card.badge && (
+          <div className="absolute top-3 right-3 z-10">
+            <Badge className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0 text-[10px] px-2 py-0.5 no-default-hover-elevate no-default-active-elevate">
+              {card.badge}
+            </Badge>
+          </div>
+        )}
+
+        <div className="relative z-10 h-full flex flex-col justify-end p-4 gap-2">
+          <div className={`
+            w-9 h-9 rounded-lg flex items-center justify-center
+            bg-gradient-to-br ${categories.find(c => c.cards.includes(card))?.gradient || "from-violet-500 to-purple-500"}
+            text-white shadow-lg
+          `}>
+            {card.icon}
+          </div>
+          <div>
+            <h3 className="text-white font-semibold text-sm leading-tight">{card.label}</h3>
+            <p className="text-white/60 text-xs mt-0.5 leading-snug">{card.description}</p>
+          </div>
         </div>
-      )}
 
-      <div className="relative z-10 h-full flex flex-col justify-end p-4 gap-2">
         <div className={`
-          w-9 h-9 rounded-lg flex items-center justify-center
-          bg-gradient-to-br ${categories.find(c => c.cards.includes(card))?.gradient || "from-violet-500 to-purple-500"}
-          text-white shadow-lg
-        `}>
-          {card.icon}
-        </div>
-        <div>
-          <h3 className="text-white font-semibold text-sm leading-tight">{card.label}</h3>
-          <p className="text-white/60 text-xs mt-0.5 leading-snug">{card.description}</p>
-        </div>
-      </div>
-
-      <div className={`
-        absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100
-        transition-opacity duration-300 shadow-2xl ${card.glowColor}
-        pointer-events-none
-      `} />
-    </motion.div>
+          absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100
+          transition-opacity duration-300 shadow-2xl ${card.glowColor}
+          pointer-events-none
+        `} />
+      </motion.div>
+    </TiltCard>
   );
 }
 

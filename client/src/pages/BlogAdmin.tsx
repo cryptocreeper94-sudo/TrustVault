@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { useConfetti } from "@/components/Confetti";
 import {
   Plus, Sparkles, Trash2, Edit, Eye, ArrowLeft,
   Send, Loader2, FileText, Globe, Archive, X,
@@ -46,6 +47,7 @@ function formatDate(dateStr: string | null) {
 
 export default function BlogAdmin() {
   const { toast } = useToast();
+  const confetti = useConfetti();
   const [showEditor, setShowEditor] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
@@ -75,6 +77,7 @@ export default function BlogAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/blog/posts/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/blog/posts"] });
       toast({ title: "Post created" });
+      confetti.fire();
       resetForm();
     },
     onError: (err: Error) => {

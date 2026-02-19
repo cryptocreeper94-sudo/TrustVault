@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 interface TiltCardProps {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   tiltAmount?: number;
   glareEnabled?: boolean;
   onClick?: () => void;
@@ -13,6 +14,7 @@ interface TiltCardProps {
 export function TiltCard({
   children,
   className = "",
+  style: extraStyle,
   tiltAmount = 6,
   glareEnabled = true,
   onClick,
@@ -57,6 +59,7 @@ export function TiltCard({
       style={{
         transformStyle: "preserve-3d",
         perspective: "800px",
+        ...extraStyle,
       }}
       animate={{
         rotateX: tilt.x,
