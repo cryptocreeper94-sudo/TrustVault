@@ -11,7 +11,8 @@ import {
   Globe, Wallet, Radio, Shield,
   Users, UserPlus, Mail, KeyRound,
   Map, BarChart3, Activity, CreditCard,
-  Newspaper, Send, Settings, Eye,
+  Newspaper, Send, Settings,
+  Share2, Zap, Palette, Trophy, Briefcase, Mic, Eraser,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,14 +27,43 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
-import ccVaultOps from "../assets/images/cc-vault-ops.png";
-import ccMediaStudio from "../assets/images/cc-media-studio.png";
-import ccAiTools from "../assets/images/cc-ai-tools.png";
-import ccPublishing from "../assets/images/cc-publishing.png";
-import ccEcosystem from "../assets/images/cc-ecosystem.png";
-import ccAccess from "../assets/images/cc-access.png";
-import ccFinance from "../assets/images/cc-finance.png";
-import ccRoadmap from "../assets/images/cc-roadmap.png";
+import ccOpenVault from "../assets/images/cc-open-vault.png";
+import ccUploadCenter from "../assets/images/cc-upload-center.png";
+import ccCollections from "../assets/images/cc-collections.png";
+import ccStorage from "../assets/images/cc-storage.png";
+import ccImageEditor from "../assets/images/cc-image-editor.png";
+import ccAudioEditor from "../assets/images/cc-audio-editor.png";
+import ccVideoEditor from "../assets/images/cc-video-editor.png";
+import ccMergeStudio from "../assets/images/cc-merge-studio.png";
+import ccAiAutotag from "../assets/images/cc-ai-autotag.png";
+import ccAiSearch from "../assets/images/cc-ai-search.png";
+import ccAiEnhance from "../assets/images/cc-ai-enhance.png";
+import ccAiCaptions from "../assets/images/cc-ai-captions.png";
+import ccSocialKit from "../assets/images/cc-social-kit.png";
+import ccAudioViz from "../assets/images/cc-audio-viz.png";
+import ccBeatSync from "../assets/images/cc-beat-sync.png";
+import ccStyleDna from "../assets/images/cc-style-dna.png";
+import ccThumbnailRank from "../assets/images/cc-thumbnail-rank.png";
+import ccPortfolio from "../assets/images/cc-portfolio.png";
+import ccVoiceEdit from "../assets/images/cc-voice-edit.png";
+import ccBgRemove from "../assets/images/cc-bg-remove.png";
+import ccBlogAdmin from "../assets/images/cc-blog-admin.png";
+import ccBlogView from "../assets/images/cc-blog-view.png";
+import ccAiWriter from "../assets/images/cc-ai-writer.png";
+import ccOrbitHub from "../assets/images/cc-orbit-hub.png";
+import ccSignalChat from "../assets/images/cc-signal-chat.png";
+import ccTrustlayerSso from "../assets/images/cc-trustlayer-sso.png";
+import ccDarkwaveApi from "../assets/images/cc-darkwave-api.png";
+import ccPricing from "../assets/images/cc-pricing.png";
+import ccRevenue from "../assets/images/cc-revenue.png";
+import ccInvites from "../assets/images/cc-invites.png";
+import ccUserMgmt from "../assets/images/cc-user-mgmt.png";
+import ccInviteSys from "../assets/images/cc-invite-sys.png";
+import ccJoinLinks from "../assets/images/cc-join-links.png";
+import ccApiKeys from "../assets/images/cc-api-keys.png";
+import ccRoadmapNew from "../assets/images/cc-roadmap-new.png";
+import ccActivityImg from "../assets/images/cc-activity.png";
+import ccSettingsImg from "../assets/images/cc-settings.png";
 import trustlayerEmblem from "../assets/images/trustvault-emblem.png";
 
 interface LaunchCard {
@@ -67,7 +97,7 @@ const categories: Category[] = [
         description: "Browse your complete media library",
         href: "/vault",
         icon: <Vault className="size-5" />,
-        image: ccVaultOps,
+        image: ccOpenVault,
         glowColor: "shadow-violet-500/30",
         badge: "Core",
         featured: true,
@@ -77,7 +107,7 @@ const categories: Category[] = [
         description: "Upload files to your vault",
         href: "/vault?action=upload",
         icon: <Upload className="size-5" />,
-        image: ccVaultOps,
+        image: ccUploadCenter,
         glowColor: "shadow-blue-500/20",
       },
       {
@@ -85,7 +115,7 @@ const categories: Category[] = [
         description: "Organize files into smart collections",
         href: "/vault?view=collections",
         icon: <FolderOpen className="size-5" />,
-        image: ccVaultOps,
+        image: ccCollections,
         glowColor: "shadow-cyan-500/20",
       },
       {
@@ -93,7 +123,7 @@ const categories: Category[] = [
         description: "Monitor your vault capacity",
         href: "/vault?view=storage",
         icon: <HardDrive className="size-5" />,
-        image: ccVaultOps,
+        image: ccStorage,
         glowColor: "shadow-emerald-500/20",
       },
     ],
@@ -109,7 +139,7 @@ const categories: Category[] = [
         description: "Crop, filter, annotate, and transform images",
         href: "/editor/image/0",
         icon: <Image className="size-5" />,
-        image: ccMediaStudio,
+        image: ccImageEditor,
         glowColor: "shadow-pink-500/30",
         featured: true,
       },
@@ -118,7 +148,7 @@ const categories: Category[] = [
         description: "Trim, EQ, effects, and audio mastering",
         href: "/editor/audio/0",
         icon: <Music className="size-5" />,
-        image: ccMediaStudio,
+        image: ccAudioEditor,
         glowColor: "shadow-rose-500/20",
       },
       {
@@ -126,7 +156,7 @@ const categories: Category[] = [
         description: "Trim, color grade, and capture frames",
         href: "/editor/video/0",
         icon: <Video className="size-5" />,
-        image: ccMediaStudio,
+        image: ccVideoEditor,
         glowColor: "shadow-orange-500/20",
       },
       {
@@ -134,7 +164,7 @@ const categories: Category[] = [
         description: "Combine images, audio, and video files",
         href: "/merge",
         icon: <Layers className="size-5" />,
-        image: ccMediaStudio,
+        image: ccMergeStudio,
         glowColor: "shadow-amber-500/20",
         badge: "Pro",
       },
@@ -151,7 +181,7 @@ const categories: Category[] = [
         description: "Automatically tag and describe uploads",
         href: "/vault?ai=autotag",
         icon: <Sparkles className="size-5" />,
-        image: ccAiTools,
+        image: ccAiAutotag,
         glowColor: "shadow-cyan-500/30",
         badge: "Smart",
         featured: true,
@@ -161,7 +191,7 @@ const categories: Category[] = [
         description: "Find files with natural language queries",
         href: "/vault?ai=search",
         icon: <Search className="size-5" />,
-        image: ccAiTools,
+        image: ccAiSearch,
         glowColor: "shadow-blue-500/20",
       },
       {
@@ -169,7 +199,7 @@ const categories: Category[] = [
         description: "One-click intelligent image optimization",
         href: "/vault?ai=enhance",
         icon: <Wand2 className="size-5" />,
-        image: ccAiTools,
+        image: ccAiEnhance,
         glowColor: "shadow-indigo-500/20",
       },
       {
@@ -177,8 +207,89 @@ const categories: Category[] = [
         description: "Generate descriptive captions for media",
         href: "/vault?ai=captions",
         icon: <MessageSquareText className="size-5" />,
-        image: ccAiTools,
+        image: ccAiCaptions,
         glowColor: "shadow-purple-500/20",
+      },
+    ],
+  },
+  {
+    title: "AI Creative Tools",
+    icon: <Zap className="size-4" />,
+    gradient: "from-fuchsia-500 to-violet-500",
+    description: "Groundbreaking AI-powered creative tools. Social media optimization, audio visualization, beat-sync videos, style analysis, and more.",
+    cards: [
+      {
+        label: "Social Media Kit",
+        description: "Generate 5 platform-optimized image sizes",
+        href: "/social-media-kit",
+        icon: <Share2 className="size-5" />,
+        image: ccSocialKit,
+        glowColor: "shadow-blue-500/30",
+        badge: "New",
+        featured: true,
+      },
+      {
+        label: "Audio Visualizer",
+        description: "Real-time audio visualization art",
+        href: "/audio-visualizer",
+        icon: <Music className="size-5" />,
+        image: ccAudioViz,
+        glowColor: "shadow-cyan-500/20",
+        badge: "New",
+      },
+      {
+        label: "Beat-Sync Video",
+        description: "Auto-sync photo transitions to music beats",
+        href: "/beat-sync",
+        icon: <Zap className="size-5" />,
+        image: ccBeatSync,
+        glowColor: "shadow-amber-500/20",
+        badge: "New",
+      },
+      {
+        label: "Style DNA",
+        description: "AI analyzes your aesthetic preferences",
+        href: "/style-dna",
+        icon: <Palette className="size-5" />,
+        image: ccStyleDna,
+        glowColor: "shadow-fuchsia-500/20",
+        badge: "New",
+      },
+      {
+        label: "Thumbnail Ranker",
+        description: "AI scores images for social media impact",
+        href: "/thumbnail-ranker",
+        icon: <Trophy className="size-5" />,
+        image: ccThumbnailRank,
+        glowColor: "shadow-yellow-500/20",
+        badge: "New",
+      },
+      {
+        label: "Portfolio Generator",
+        description: "AI curates your best work into a portfolio",
+        href: "/portfolio-generator",
+        icon: <Briefcase className="size-5" />,
+        image: ccPortfolio,
+        glowColor: "shadow-emerald-500/20",
+        badge: "New",
+      },
+      {
+        label: "Voice Editing",
+        description: "Voice-commanded image editing",
+        href: "/editor/image/0",
+        icon: <Mic className="size-5" />,
+        image: ccVoiceEdit,
+        glowColor: "shadow-red-500/20",
+        badge: "AI",
+      },
+      {
+        label: "Background Removal",
+        description: "AI-powered background and object removal",
+        href: "/editor/image/0",
+        icon: <Eraser className="size-5" />,
+        image: ccBgRemove,
+        glowColor: "shadow-indigo-500/20",
+        badge: "AI",
       },
     ],
   },
@@ -193,7 +304,7 @@ const categories: Category[] = [
         description: "Create and manage blog posts",
         href: "/blog/admin",
         icon: <PenTool className="size-5" />,
-        image: ccPublishing,
+        image: ccBlogAdmin,
         glowColor: "shadow-emerald-500/30",
         featured: true,
       },
@@ -202,7 +313,7 @@ const categories: Category[] = [
         description: "See your published articles",
         href: "/blog",
         icon: <Newspaper className="size-5" />,
-        image: ccPublishing,
+        image: ccBlogView,
         glowColor: "shadow-teal-500/20",
         badge: "Live",
       },
@@ -211,7 +322,7 @@ const categories: Category[] = [
         description: "Generate SEO-optimized articles with AI",
         href: "/blog/admin",
         icon: <Bot className="size-5" />,
-        image: ccPublishing,
+        image: ccAiWriter,
         glowColor: "shadow-green-500/20",
         badge: "AI",
       },
@@ -228,7 +339,7 @@ const categories: Category[] = [
         description: "Financial tracking and ecosystem analytics",
         href: "/admin",
         icon: <Wallet className="size-5" />,
-        image: ccEcosystem,
+        image: ccOrbitHub,
         glowColor: "shadow-orange-500/30",
         badge: "Earn",
         featured: true,
@@ -238,7 +349,7 @@ const categories: Category[] = [
         description: "Real-time ecosystem-wide messaging",
         href: "/chat",
         icon: <Radio className="size-5" />,
-        image: ccEcosystem,
+        image: ccSignalChat,
         glowColor: "shadow-amber-500/20",
         badge: "Live",
       },
@@ -247,7 +358,7 @@ const categories: Category[] = [
         description: "Cross-app single sign-on identity",
         href: "/admin",
         icon: <Shield className="size-5" />,
-        image: ccEcosystem,
+        image: ccTrustlayerSso,
         glowColor: "shadow-yellow-500/20",
       },
       {
@@ -255,7 +366,7 @@ const categories: Category[] = [
         description: "External studio API integrations",
         href: "/admin",
         icon: <Globe className="size-5" />,
-        image: ccEcosystem,
+        image: ccDarkwaveApi,
         glowColor: "shadow-red-500/20",
       },
     ],
@@ -271,7 +382,7 @@ const categories: Category[] = [
         description: "View and manage subscription tiers",
         href: "/pricing",
         icon: <CreditCard className="size-5" />,
-        image: ccFinance,
+        image: ccPricing,
         glowColor: "shadow-yellow-500/30",
         featured: true,
       },
@@ -280,7 +391,7 @@ const categories: Category[] = [
         description: "Track subscription revenue and metrics",
         href: "/admin",
         icon: <BarChart3 className="size-5" />,
-        image: ccFinance,
+        image: ccRevenue,
         glowColor: "shadow-orange-500/20",
       },
       {
@@ -288,7 +399,7 @@ const categories: Category[] = [
         description: "Invite new members to the platform",
         href: "/invite",
         icon: <Send className="size-5" />,
-        image: ccFinance,
+        image: ccInvites,
         glowColor: "shadow-emerald-500/20",
       },
     ],
@@ -304,7 +415,7 @@ const categories: Category[] = [
         description: "View and manage all family accounts",
         href: "/admin",
         icon: <Users className="size-5" />,
-        image: ccAccess,
+        image: ccUserMgmt,
         glowColor: "shadow-blue-500/30",
         featured: true,
       },
@@ -313,7 +424,7 @@ const categories: Category[] = [
         description: "Create and manage invite codes",
         href: "/invite",
         icon: <UserPlus className="size-5" />,
-        image: ccAccess,
+        image: ccInviteSys,
         glowColor: "shadow-indigo-500/20",
       },
       {
@@ -321,7 +432,7 @@ const categories: Category[] = [
         description: "Generate public join pages",
         href: "/join",
         icon: <Mail className="size-5" />,
-        image: ccAccess,
+        image: ccJoinLinks,
         glowColor: "shadow-purple-500/20",
       },
       {
@@ -329,7 +440,7 @@ const categories: Category[] = [
         description: "Manage ecosystem API credentials",
         href: "/admin",
         icon: <KeyRound className="size-5" />,
-        image: ccAccess,
+        image: ccApiKeys,
         glowColor: "shadow-violet-500/20",
       },
     ],
@@ -345,7 +456,7 @@ const categories: Category[] = [
         description: "View upcoming features and milestones",
         href: "/roadmap",
         icon: <Map className="size-5" />,
-        image: ccRoadmap,
+        image: ccRoadmapNew,
         glowColor: "shadow-fuchsia-500/30",
         featured: true,
       },
@@ -354,7 +465,7 @@ const categories: Category[] = [
         description: "Recent platform events and logs",
         href: "/admin",
         icon: <Activity className="size-5" />,
-        image: ccRoadmap,
+        image: ccActivityImg,
         glowColor: "shadow-pink-500/20",
       },
       {
@@ -362,7 +473,7 @@ const categories: Category[] = [
         description: "Global configuration and preferences",
         href: "/admin",
         icon: <Settings className="size-5" />,
-        image: ccRoadmap,
+        image: ccSettingsImg,
         glowColor: "shadow-rose-500/20",
       },
     ],

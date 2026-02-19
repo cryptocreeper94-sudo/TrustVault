@@ -45,7 +45,9 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
     - **Thumbnail Ranker**: AI scores images for social media impact.
     - **Portfolio Generator**: AI selects best work for a curated portfolio page.
     - **Magic Aspect Ratio Fill**: AI-matched gradient fill for aspect ratio changes.
-- **AI Tools Dropdown**: Accessible from main vault toolbar.
+- **AI Tools Dropdown**: Accessible from main vault toolbar and hamburger menu AI Creative Tools section.
+- **Command Center**: PIN-protected admin dashboard at `/command-center` with 9 categories, unique photorealistic card images per feature, horizontal carousel navigation, and full ecosystem coverage.
+- **Founder Mission Statement**: Jason's creator statement in hamburger menu emphasizing affordable professional tools and TrustLayer foundation.
 - **Signal Chat**: Real-time, ecosystem-wide chat system at `/chat` with JWT-authenticated SSO, channel-based messaging, WebSockets, typing indicators, and presence tracking.
 
 ### Backend (Express + Node.js)
