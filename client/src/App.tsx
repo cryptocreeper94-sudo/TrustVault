@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode, lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
@@ -8,28 +8,40 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AnimatePresence, motion } from "framer-motion";
 import Home from "@/pages/Home";
-import ImageEditor from "@/pages/ImageEditor";
-import AudioEditor from "@/pages/AudioEditor";
-import VideoEditor from "@/pages/VideoEditor";
-import MergeEditor from "@/pages/MergeEditor";
-import Blog from "@/pages/Blog";
-import BlogPostPage from "@/pages/BlogPost";
-import BlogAdmin from "@/pages/BlogAdmin";
-import Pricing from "@/pages/Pricing";
-import Invite from "@/pages/Invite";
-import Join from "@/pages/Join";
-import Admin from "@/pages/Admin";
-import CommandCenter from "@/pages/CommandCenter";
 import UserDashboard from "@/pages/UserDashboard";
-import Roadmap from "@/pages/Roadmap";
-import InviteMessage from "@/pages/InviteMessage";
-import Privacy from "@/pages/Privacy";
-import Terms from "@/pages/Terms";
-import SmsOptIn from "@/pages/SmsOptIn";
-import { SignalChatPanel } from "@/components/SignalChatPanel";
 import NotFound from "@/pages/not-found";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Loader2 } from "lucide-react";
+
+const ImageEditor = lazy(() => import("@/pages/ImageEditor"));
+const AudioEditor = lazy(() => import("@/pages/AudioEditor"));
+const VideoEditor = lazy(() => import("@/pages/VideoEditor"));
+const MergeEditor = lazy(() => import("@/pages/MergeEditor"));
+const Blog = lazy(() => import("@/pages/Blog"));
+const BlogPostPage = lazy(() => import("@/pages/BlogPost"));
+const BlogAdmin = lazy(() => import("@/pages/BlogAdmin"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const Invite = lazy(() => import("@/pages/Invite"));
+const Join = lazy(() => import("@/pages/Join"));
+const Admin = lazy(() => import("@/pages/Admin"));
+const CommandCenter = lazy(() => import("@/pages/CommandCenter"));
+const Roadmap = lazy(() => import("@/pages/Roadmap"));
+const InviteMessage = lazy(() => import("@/pages/InviteMessage"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const SmsOptIn = lazy(() => import("@/pages/SmsOptIn"));
+const SignalChatPanel = lazy(() => import("@/components/SignalChatPanel").then(m => ({ default: m.SignalChatPanel })));
+
+function LazyFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -134,40 +146,42 @@ class ErrorBoundary extends Component<
 function Router() {
   const [location] = useLocation();
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
-        className="flex-1"
-      >
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/dashboard" component={UserDashboard} />
-          <Route path="/vault" component={Home} />
-          <Route path="/editor/image/:id" component={ImageEditor} />
-          <Route path="/editor/audio/:id" component={AudioEditor} />
-          <Route path="/editor/video/:id" component={VideoEditor} />
-          <Route path="/merge" component={MergeEditor} />
-          <Route path="/blog" component={Blog} />
-          <Route path="/blog/admin" component={BlogAdmin} />
-          <Route path="/blog/:slug" component={BlogPostPage} />
-          <Route path="/pricing" component={Pricing} />
-          <Route path="/invite" component={Invite} />
-          <Route path="/invite-message" component={InviteMessage} />
-          <Route path="/join" component={Join} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/command-center" component={CommandCenter} />
-          <Route path="/roadmap" component={Roadmap} />
-          <Route path="/privacy" component={Privacy} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/sms-optin" component={SmsOptIn} />
-          <Route component={NotFound} />
-        </Switch>
-      </motion.div>
-    </AnimatePresence>
+    <Suspense fallback={<LazyFallback />}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="flex-1"
+        >
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/dashboard" component={UserDashboard} />
+            <Route path="/vault" component={Home} />
+            <Route path="/editor/image/:id" component={ImageEditor} />
+            <Route path="/editor/audio/:id" component={AudioEditor} />
+            <Route path="/editor/video/:id" component={VideoEditor} />
+            <Route path="/merge" component={MergeEditor} />
+            <Route path="/blog" component={Blog} />
+            <Route path="/blog/admin" component={BlogAdmin} />
+            <Route path="/blog/:slug" component={BlogPostPage} />
+            <Route path="/pricing" component={Pricing} />
+            <Route path="/invite" component={Invite} />
+            <Route path="/invite-message" component={InviteMessage} />
+            <Route path="/join" component={Join} />
+            <Route path="/admin" component={Admin} />
+            <Route path="/command-center" component={CommandCenter} />
+            <Route path="/roadmap" component={Roadmap} />
+            <Route path="/privacy" component={Privacy} />
+            <Route path="/terms" component={Terms} />
+            <Route path="/sms-optin" component={SmsOptIn} />
+            <Route component={NotFound} />
+          </Switch>
+        </motion.div>
+      </AnimatePresence>
+    </Suspense>
   );
 }
 
@@ -179,7 +193,9 @@ function App() {
           <ThemeProvider>
             <TooltipProvider>
               <Router />
-              <SignalChatPanel />
+              <Suspense fallback={null}>
+                <SignalChatPanel />
+              </Suspense>
               <Toaster />
             </TooltipProvider>
           </ThemeProvider>

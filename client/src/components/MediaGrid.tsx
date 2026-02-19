@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { type MediaResponse } from "@shared/routes";
 import { type MediaCategory, MEDIA_CATEGORIES } from "@shared/schema";
-import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic, Sparkles, Loader2, Upload, Edit3, Tag, Users, Zap, Lock } from "lucide-react";
+import { Play, Calendar, Trash2, Heart, Film, Music, ImageIcon, FileText, File, Pencil, Eye, Clock, Scissors, SlidersHorizontal, Crop, Download, Share2, ListMusic, Sparkles, Loader2, Upload, Edit3, Tag, Users, Zap, Lock, FolderPlus, ExternalLink } from "lucide-react";
 import featureUploadImg from "@assets/images/feature-upload.jpg";
 import featureEditImg from "@assets/images/feature-edit.jpg";
 import featureOrganizeImg from "@assets/images/feature-organize.jpg";
@@ -21,6 +21,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import {
+  ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 const CATEGORY_ICONS: Record<MediaCategory, any> = {
   video: Film,
@@ -329,6 +332,8 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
     : null;
 
   return (
+    <ContextMenu>
+    <ContextMenuTrigger asChild>
     <motion.div
       ref={cardRef}
       initial={{ opacity: 0, y: 20 }}
@@ -598,5 +603,57 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
         }}
       />
     </motion.div>
+    </ContextMenuTrigger>
+    <ContextMenuContent className="w-52 bg-[rgba(12,18,36,0.95)] backdrop-blur-xl border-white/10">
+      <ContextMenuItem onClick={onPlay} data-testid={`context-open-${item.id}`}>
+        <Eye className="w-4 h-4 mr-2" />
+        Open
+      </ContextMenuItem>
+      {(cat === "video" || cat === "audio" || cat === "image") && (
+        <ContextMenuItem onClick={() => navigate(`/editor/${cat}/${item.id}`)} data-testid={`context-edit-${item.id}`}>
+          <Pencil className="w-4 h-4 mr-2" />
+          Edit in Studio
+        </ContextMenuItem>
+      )}
+      <ContextMenuItem onClick={() => {
+        const link = document.createElement("a");
+        link.href = `/objects/${item.url}`;
+        link.download = item.filename || item.title;
+        link.click();
+      }} data-testid={`context-download-${item.id}`}>
+        <Download className="w-4 h-4 mr-2" />
+        Download
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleFavorite(e as any); }} data-testid={`context-fav-${item.id}`}>
+        <Heart className={`w-4 h-4 mr-2 ${item.isFavorite ? "fill-red-400 text-red-400" : ""}`} />
+        {item.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+      </ContextMenuItem>
+      {onShare && (
+        <ContextMenuItem onClick={onShare} data-testid={`context-share-${item.id}`}>
+          <Share2 className="w-4 h-4 mr-2" />
+          Share
+        </ContextMenuItem>
+      )}
+      <ContextMenuItem onClick={onEdit} data-testid={`context-details-${item.id}`}>
+        <Edit3 className="w-4 h-4 mr-2" />
+        Edit Details
+      </ContextMenuItem>
+      {(cat === "image" || cat === "video") && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={handleGenerateCaption} data-testid={`context-ai-caption-${item.id}`}>
+            <Sparkles className="w-4 h-4 mr-2" />
+            AI Caption
+          </ContextMenuItem>
+        </>
+      )}
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={handleDelete} className="text-red-400 focus:text-red-400" data-testid={`context-delete-${item.id}`}>
+        <Trash2 className="w-4 h-4 mr-2" />
+        Delete
+      </ContextMenuItem>
+    </ContextMenuContent>
+    </ContextMenu>
   );
 }

@@ -80,6 +80,10 @@ import { ActivityFeed } from "@/components/ActivityFeed";
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
 import { HelpCircle, Share2, Users, Activity, Sparkles, ListMusic } from "lucide-react";
 import { PlaylistPanel, AddToPlaylistDialog } from "@/components/PlaylistPanel";
+import { CommandPalette } from "@/components/CommandPalette";
+import { NotificationCenter, addNotification } from "@/components/NotificationCenter";
+import { GlobalDropZone } from "@/components/GlobalDropZone";
+import { CinematicLanding } from "@/components/CinematicLanding";
 
 function getGreeting(): string {
   const now = new Date();
@@ -736,9 +740,58 @@ function BulkActionBar({
   const [showLabelPopover, setShowLabelPopover] = useState(false);
   const [showCollectionPopover, setShowCollectionPopover] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
+  const [aiProgress, setAiProgress] = useState<{ current: number; total: number; type: string } | null>(null);
 
   const ids = Array.from(selectedIds);
   const count = ids.length;
+
+  const handleBatchAiTag = async () => {
+    haptic("tap");
+    const tagItems = allItems.filter(m => selectedIds.has(m.id) && (m.category === "image" || m.category === "video" || m.category === "audio" || m.category === "document"));
+    if (tagItems.length === 0) return;
+    setAiProgress({ current: 0, total: tagItems.length, type: "Tagging" });
+    let done = 0;
+    for (const item of tagItems) {
+      try {
+        const isVisual = item.category === "image" || item.category === "video";
+        const body = isVisual
+          ? { imageUrl: "/objects/" + item.url, title: item.title, category: item.category, filename: item.filename, contentType: item.contentType }
+          : { title: item.title, category: item.category, filename: item.filename, contentType: item.contentType };
+        await apiRequest("POST", `/api/ai/auto-tag/${item.id}`, body);
+      } catch {}
+      done++;
+      setAiProgress({ current: done, total: tagItems.length, type: "Tagging" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+    setAiProgress(null);
+    toast({ title: "AI Tagging Complete", description: `Tagged ${done} of ${tagItems.length} items.` });
+    addNotification({ type: "ai", title: "Batch AI Tagging Complete", description: `Tagged ${done} items successfully.` });
+  };
+
+  const handleBatchAiCaption = async () => {
+    haptic("tap");
+    const capItems = allItems.filter(m => selectedIds.has(m.id) && (m.category === "image" || m.category === "video"));
+    if (capItems.length === 0) {
+      toast({ title: "No visual items", description: "Select images or videos for AI captioning.", variant: "destructive" });
+      return;
+    }
+    setAiProgress({ current: 0, total: capItems.length, type: "Captioning" });
+    let done = 0;
+    for (const item of capItems) {
+      try {
+        const body = { imageUrl: "/objects/" + item.url, title: item.title, category: item.category, style: "descriptive" };
+        const res = await apiRequest("POST", "/api/ai/caption", body);
+        const { caption } = await res.json();
+        await apiRequest("PATCH", `/api/media/${item.id}`, { description: caption });
+      } catch {}
+      done++;
+      setAiProgress({ current: done, total: capItems.length, type: "Captioning" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+    setAiProgress(null);
+    toast({ title: "AI Captioning Complete", description: `Captioned ${done} of ${capItems.length} items.` });
+    addNotification({ type: "ai", title: "Batch AI Captioning Complete", description: `Captioned ${done} items successfully.` });
+  };
 
   const handleFavoriteAll = async () => {
     haptic("tap");
@@ -949,6 +1002,50 @@ function BulkActionBar({
                 </div>
               </PopoverContent>
             </Popover>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBatchAiTag}
+                  disabled={count === 0 || !!aiProgress}
+                  data-testid="button-bulk-ai-tag"
+                >
+                  {aiProgress?.type === "Tagging" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                  AI Tag
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Auto-tag all selected with AI</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBatchAiCaption}
+                  disabled={count === 0 || !!aiProgress}
+                  data-testid="button-bulk-ai-caption"
+                >
+                  {aiProgress?.type === "Captioning" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                  AI Caption
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Auto-caption all selected images/videos</TooltipContent>
+            </Tooltip>
+
+            {aiProgress && (
+              <div className="flex items-center gap-2">
+                <div className="w-20 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-300"
+                    style={{ width: `${(aiProgress.current / aiProgress.total) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground">{aiProgress.current}/{aiProgress.total}</span>
+              </div>
+            )}
 
             {activeCollectionId && (
               <Button
@@ -1337,6 +1434,7 @@ export default function Home() {
               <span className="text-sm font-medium hidden lg:block text-muted-foreground mr-1" data-testid="text-greeting">
                 {greeting}, {user.name}
               </span>
+              <NotificationCenter />
               <ThemeSwitcher />
               <Sheet>
                 <SheetTrigger asChild>
@@ -2014,6 +2112,8 @@ export default function Home() {
         item={viewingItem}
         open={!!viewingItem}
         onOpenChange={(open) => !open && setViewingItem(null)}
+        items={filtered}
+        onNavigate={(item) => setViewingItem(item)}
       />
 
       {nowPlayingItem && (
@@ -2074,6 +2174,36 @@ export default function Home() {
         onOpenChange={setShowOnboarding}
       />
 
+      <CommandPalette
+        user={user}
+        onAction={(action) => {
+          switch (action) {
+            case "upload": break;
+            case "new-collection": setShowNewCollectionDialog(true); break;
+            case "spinny": setShowSpinny(true); break;
+            case "ambient": setShowAmbientMode(true); break;
+            case "help": openGuide(); break;
+            case "change-password": setShowChangePassword(true); break;
+            case "theme": break;
+            case "activity": break;
+            case "logout": logout(); break;
+            default:
+              if (action.startsWith("view-media-")) {
+                const id = parseInt(action.replace("view-media-", ""));
+                const item = mediaItems?.find(m => m.id === id);
+                if (item) setViewingItem(item);
+              }
+          }
+        }}
+      />
+
+      <GlobalDropZone
+        onFilesDropped={(files) => {
+          addNotification({ type: "upload", title: `${files.length} file${files.length !== 1 ? "s" : ""} dropped`, description: "Open the upload dialog to add these to your vault." });
+        }}
+        disabled={!user}
+      />
+
     </div>
   );
 }
@@ -2095,6 +2225,7 @@ function PasswordLogin() {
   });
   const [claimEmail, setClaimEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2169,6 +2300,10 @@ function PasswordLogin() {
       setPassword("");
     }
   };
+
+  if (!showLoginForm && !claimMode) {
+    return <CinematicLanding onGetStarted={() => setShowLoginForm(true)} />;
+  }
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row">
