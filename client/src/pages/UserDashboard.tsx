@@ -4,6 +4,21 @@ import { Helmet } from "react-helmet-async";
 import { Link, useLocation } from "wouter";
 import { TiltCard } from "@/components/TiltCard";
 import { useSoundFeedback } from "@/hooks/use-sound-feedback";
+
+function getGreeting(): string {
+  const now = new Date();
+  const centralHour = parseInt(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: "America/Chicago",
+    }).format(now),
+    10
+  );
+  if (centralHour >= 5 && centralHour < 12) return "Good morning";
+  if (centralHour >= 12 && centralHour < 17) return "Good afternoon";
+  return "Good evening";
+}
 import {
   ArrowLeft, LogOut,
   Vault, Image, Music, Video, Layers,
@@ -248,7 +263,7 @@ export default function UserDashboard() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-white/50 text-xs hidden sm:block" data-testid="text-welcome-user">
-                Welcome, {user.name}
+                {getGreeting()}, {user.name}
               </span>
               {user.isAdmin && (
                 <Link href="/command-center">

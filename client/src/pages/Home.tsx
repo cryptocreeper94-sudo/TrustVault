@@ -1432,7 +1432,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-1 pl-3 border-l border-white/10">
-              <span className="text-sm font-medium hidden lg:block text-muted-foreground mr-1" data-testid="text-greeting">
+              <span className="text-sm font-medium hidden sm:block text-muted-foreground mr-1" data-testid="text-greeting">
                 {greeting}, {user.name}
               </span>
               <NotificationCenter />

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import { ArrowRight, Lock, Eye, EyeOff, UserPlus, Mail, Loader2, Heart, KeyRound } from "lucide-react";
+import { ArrowRight, Lock, Eye, EyeOff, UserPlus, Mail, Loader2, Heart, KeyRound, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,45 @@ function extractErrorMessage(err: any): string {
     }
     return raw || fallback;
   }
+}
+
+function validatePassword(pw: string): string | null {
+  if (pw.length < 8) return "Password must be at least 8 characters";
+  if (!/[A-Z]/.test(pw)) return "Password must contain at least one uppercase letter";
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pw)) return "Password must contain at least one special character";
+  return null;
+}
+
+function PasswordChecklist({ password }: { password: string }) {
+  const rules = useMemo(() => [
+    { label: "8+ characters", met: password.length >= 8 },
+    { label: "One uppercase letter", met: /[A-Z]/.test(password) },
+    { label: "One special character", met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password) },
+  ], [password]);
+
+  if (!password) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className="space-y-1"
+    >
+      {rules.map((rule) => (
+        <div key={rule.label} className="flex items-center gap-2" data-testid={`pw-rule-${rule.label.replace(/\s+/g, "-").toLowerCase()}`}>
+          {rule.met ? (
+            <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          ) : (
+            <X className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+          )}
+          <span className={`text-[11px] ${rule.met ? "text-emerald-500" : "text-muted-foreground/60"}`}>
+            {rule.label}
+          </span>
+        </div>
+      ))}
+    </motion.div>
+  );
 }
 
 export default function Join() {
@@ -55,6 +94,11 @@ export default function Join() {
     }
     if (!password) {
       setErrorMsg("Please create a password");
+      return;
+    }
+    const pwErr = validatePassword(password);
+    if (pwErr) {
+      setErrorMsg(pwErr);
       return;
     }
     if (password !== confirmPassword) {
@@ -264,9 +308,7 @@ export default function Join() {
                   )}
                 </Button>
 
-                <p className="text-[11px] text-muted-foreground/60 text-center leading-relaxed">
-                  Password must be 8+ characters with at least one uppercase letter and one special character.
-                </p>
+                <PasswordChecklist password={password} />
               </form>
             </Card>
 
