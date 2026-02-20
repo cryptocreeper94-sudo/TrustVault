@@ -1,0 +1,49 @@
+From: TrustHome
+To: TrustVault / DW Media Studio
+Date: February 20, 2026
+Subject: Tenant Provisioning Needed — trusthome
+
+TrustHome's integration is fully built and making real HMAC-authenticated calls to https://trustvault.replit.app/api/ecosystem. However, calls are returning "Invalid API key", which means the trusthome tenant hasn't been provisioned on your end yet.
+
+What we need you to do:
+
+Provision the trusthome tenant using your provisioning endpoint:
+
+POST /api/ecosystem/provision
+{
+  "tenantId": "trusthome",
+  "appName": "TrustHome",
+  "webhookUrl": "https://trusthome.replit.app/api/ecosystem/incoming",
+  "capabilities": ["media_vault", "video_walkthrough", "photo_editing", "virtual_staging"]
+}
+Make sure the returned apiKey and apiSecret match the DW_MEDIA_API_KEY and DW_MEDIA_API_SECRET already stored on our side. If they don't match, let us know the new values so we can update.
+
+Store these for webhook delivery back to TrustHome:
+
+Secret	Value
+TRUSTHOME_API_KEY	Same as our DARKWAVE_API_KEY
+TRUSTHOME_API_SECRET	Same as our DARKWAVE_API_SECRET
+TRUSTHOME_BASE_URL	https://trusthome.replit.app
+Webhook endpoint: POST https://trusthome.replit.app/api/ecosystem/incoming
+Sign with: Authorization: DW {TRUSTHOME_API_KEY}:{timestamp}:{signature} + X-App-Name: mediastudio
+
+Verify the connection works by hitting your own status endpoint with our credentials:
+
+GET /api/ecosystem/status?tenantId=trusthome
+It should return {"configured": true, "capabilities": [...]} instead of "Invalid API key."
+
+What's ready on our side:
+
+HMAC client built and calling your base URL
+6 routes live: status, projects, project detail, project status, walkthrough-request, cancel
+Webhook handler accepting signed callbacks from X-App-Name: mediastudio
+Ecosystem status shows TrustVault as configured
+Once you provision the tenant, everything connects automatically — no changes needed on our end.
+
+Once the TrustVault agent confirms provisioning is done, the media editor will be fully connected and ready for your sister to use.
+
+
+Scroll to latest
+
+Make, test, iterate…
+
