@@ -87,3 +87,5 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
 - **ElevenLabs**: Text-to-speech for Spinny AI Agent.
 - **Resend**: Transactional email service.
 - **ORBIT Staffing OS Financial Hub**: Outbound integration for financial operations.
+- **DarkWave Ecosystem Widget**: Embeddable widget loaded via `<script src="https://dwsc.io/api/ecosystem/widget.js"></script>`. Widget data API: `GET https://dwsc.io/api/ecosystem/widget-data` with Trust Layer SSO JWT in Authorization header.
+- **Verdara (App #28)**: Ecosystem integration handoff documented at `docs/VERDARA_RETURN_HANDOFF.md`.
