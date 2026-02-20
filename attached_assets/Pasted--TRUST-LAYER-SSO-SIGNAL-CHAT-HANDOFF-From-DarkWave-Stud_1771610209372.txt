@@ -1,0 +1,127 @@
+=== TRUST LAYER SSO & SIGNAL CHAT HANDOFF ===
+From: DarkWave Studios (darkwavestudios.replit.app)
+To: dwtl.io (Trust Layer Hub)
+
+== REQUIRED SECRETS ==
+JWT_SECRET must be identical across all ecosystem apps for cross-app SSO.
+The DarkWave Studios instance uses a JWT_SECRET set as an environment variable.
+You must use the SAME JWT_SECRET value so tokens generated on one app are valid on all others.
+DATABASE_URL: If connecting to the same shared user database, use the same PostgreSQL connection string.
+
+== PASSWORD POLICY (enforced on all ecosystem apps) ==
+- Minimum 8 characters
+- At least 1 capital letter (A-Z)
+- At least 1 special character (!@#$%^&*()_+-=[]{}|;:'"<>,.?/)
+- Hashed with bcryptjs, 12 salt rounds
+- Regex: /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/
+
+== TRUST LAYER ID FORMAT ==
+Generated at registration: tl-{base36-timestamp}-{random-8-chars}
+Example: tl-mlamvhdd-qvg07fyt
+Stored in chat_users.trust_layer_id (unique per user, shared across all apps)
+
+== JWT TOKEN FORMAT ==
+- Signed with HS256 using shared JWT_SECRET
+- Payload: { userId, trustLayerId, iss: "trust-layer-sso" }
+- Expiry: 7 days
+- Stored client-side in localStorage key: "tl-sso-token"
+
+== AUTH API ENDPOINTS ==
+POST /api/chat/auth/register
+  Body: { username, email, password, displayName }
+  Returns: { success, user: { id, username, displayName, email, avatarColor, role, trustLayerId }, token }
+
+POST /api/chat/auth/login
+  Body: { username, password }
+  Returns: { success, user: { id, username, displayName, email, avatarColor, role, trustLayerId }, token }
+
+GET /api/chat/auth/me
+  Header: Authorization: Bearer <token>
+  Returns: { success, user: { id, username, displayName, email, avatarColor, role, trustLayerId } }
+
+== DATABASE SCHEMA (PostgreSQL / Drizzle ORM) ==
+
+-- chat_users (shared identity table across ecosystem)
+CREATE TABLE chat_users (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  avatar_color TEXT NOT NULL DEFAULT '#06b6d4',
+  role TEXT NOT NULL DEFAULT 'member',
+  trust_layer_id TEXT UNIQUE,
+  is_online BOOLEAN DEFAULT false,
+  last_seen TIMESTAMP DEFAULT now(),
+  created_at TIMESTAMP DEFAULT now()
+);
+
+-- chat_channels
+CREATE TABLE chat_channels (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  category TEXT NOT NULL DEFAULT 'ecosystem',
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+-- chat_messages
+CREATE TABLE chat_messages (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  channel_id VARCHAR NOT NULL,
+  user_id VARCHAR NOT NULL,
+  content TEXT NOT NULL,
+  reply_to_id VARCHAR,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+== SEEDED CHANNELS ==
+Ecosystem: general, announcements
+App Support: darkwavestudios-support, garagebot-support, tlid-marketing, guardian-ai
+
+== WEBSOCKET PROTOCOL ==
+Path: /ws/chat
+Auth: JWT token required on join (NOT userId - prevents impersonation)
+
+Client sends:
+  { type: "join", token: "<jwt>", channelId: "<id>" }
+  { type: "switch_channel", channelId: "<id>" }
+  { type: "message", content: "<text>", replyToId?: "<id>" }
+  { type: "typing" }
+
+Server sends:
+  { type: "history", messages: [...] }
+  { type: "message", id, channelId, userId, username, avatarColor, role, content, replyToId, createdAt }
+  { type: "typing", userId, username }
+  { type: "presence", onlineCount, channelUsers: { channelId: [usernames] } }
+  { type: "user_joined", userId, username }
+  { type: "user_left", userId, username }
+  { type: "error", message }
+
+Message limit: 2000 characters max, trimmed, must be non-empty.
+
+== NPM DEPENDENCIES ==
+bcryptjs (+ @types/bcryptjs) - password hashing
+jsonwebtoken (+ @types/jsonwebtoken) - JWT tokens
+ws - WebSocket server
+
+== CROSS-APP SSO FLOW ==
+1. User registers on ANY ecosystem app (DarkWave, GarageBot, dwtl.io, etc.)
+2. Gets a Trust Layer ID (tl-xxxx-xxxx) and JWT token
+3. Token is valid on ALL apps sharing the same JWT_SECRET
+4. User logs into another app with same email + password
+5. Same Trust Layer ID links their identity across the ecosystem
+6. Signal Chat WebSocket verifies JWT on join - no impersonation possible
+
+== KEY FILES (from DarkWave Studios source) ==
+server/trustlayer-sso.ts - Full SSO module (register, login, token gen/verify, password validation)
+server/chat-ws.ts - WebSocket server with JWT-authenticated join
+server/seedChat.ts - Channel and bot user seeding
+shared/schema.ts - Database schema (chatUsers, chatChannels, chatMessages tables)
+
+== GARAGEBOT.IO INTEGRATION ==
+GarageBot uses the same SSO. If a user registers on Signal Chat with email "user@example.com"
+and password "MyPass!23", they log into garagebot.io with the same credentials.
+The trust_layer_id column links them as the same person across all apps.
+Both apps MUST share the same JWT_SECRET and the same chat_users database table.
