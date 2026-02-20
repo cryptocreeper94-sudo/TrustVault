@@ -1,0 +1,50 @@
+
+Trust Vault <> TrustHome Media Editor Connection Handoff
+What We Need
+TrustHome has a DarkWave Media Studio integration already scaffolded and ready. We need the Trust Vault / Media Studio side to enable the actual API connection so TrustHome agents can use the media editor tool directly from within the platform.
+
+Credentials we already have stored:
+
+DW_MEDIA_API_KEY — stored as a secret in TrustHome
+DW_MEDIA_API_SECRET — stored as a secret in TrustHome
+What we need confirmed or provided from Trust Vault:
+
+Base URL — We currently point to https://media.darkwavestudios.io/api/ecosystem. Is this correct, or has it changed?
+
+Auth pattern confirmation — Does the media editor API use the same HMAC-SHA256 ecosystem pattern?
+
+Authorization: DW {apiKey}:{timestamp}:{signature}
+Where signature = HMAC-SHA256 of {timestamp}:{apiKey} using the API secret?
+
+Endpoint documentation — TrustHome is ready to call these endpoints. We need confirmation they exist and their exact request/response format:
+
+Endpoint	Method	Purpose
+/api/ecosystem/status	GET	Health check / connection verification
+/api/ecosystem/projects	GET	List media projects for a tenant
+/api/ecosystem/upload	POST	Upload property photos/videos for editing
+/api/ecosystem/projects/{id}/export	GET	Download finished media
+/api/ecosystem/walkthrough	POST	Request a video walkthrough
+/api/ecosystem/editor	GET	Get embeddable editor URL or session token
+Tenant ID — We send tenant=trusthome in requests. Is this the correct tenant identifier, or do we need a different app ID?
+
+TrustHome credentials for Trust Vault — If Trust Vault needs to send requests back to TrustHome (webhooks for completed edits, etc.), store these:
+
+Secret Name	Value
+TRUSTHOME_API_KEY	(Same as DARKWAVE_API_KEY from TrustHome's secrets)
+TRUSTHOME_API_SECRET	(Same as DARKWAVE_API_SECRET from TrustHome's secrets)
+TRUSTHOME_BASE_URL	https://trusthome.replit.app
+TrustHome's inbound webhook endpoint: POST https://trusthome.replit.app/api/ecosystem/incoming
+
+Webhook/callback support — When a media project finishes editing, can Trust Vault send a callback to TrustHome? We'll need the payload format so we can process it on our end.
+
+What TrustHome Already Has Built
+Routes: /api/media-studio/status, /api/media-studio/projects, /api/media-studio/walkthrough-request, /api/media-studio/upload, /api/media-studio/projects/:id/download
+Secrets: DW_MEDIA_API_KEY and DW_MEDIA_API_SECRET stored and ready
+Ecosystem incoming endpoint: POST /api/ecosystem/incoming with HMAC signature verification for callbacks
+What We'll Build Once Connected
+Once we get the confirmed endpoints and auth pattern, we'll wire up a full media-studio-client.ts (same pattern as our Verdara and Trust Layer clients) that makes real authenticated calls instead of the current placeholder responses. TrustHome agents will be able to upload property photos/videos, request walkthroughs, and pull finished media directly from their dashboard.
+
+Send that to the Trust Vault agent. Once they confirm the endpoints and auth pattern, I'll build out the real client connection here.
+
+
+Scroll to latest
