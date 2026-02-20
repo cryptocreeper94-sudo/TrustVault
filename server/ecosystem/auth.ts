@@ -65,10 +65,12 @@ export function ecosystemAuth(
   lookupApiKey(key)
     .then((tenant) => {
       if (!tenant) {
+        console.error(`[EcosystemAuth] API key not found in DB: "${key}" (length: ${key.length})`);
         return res.status(401).json({ message: "Invalid API key" });
       }
 
       if (!verifySignature(key, tenant.apiSecret, timestamp, signature)) {
+        console.error(`[EcosystemAuth] Signature mismatch for tenant: ${tenant.tenantId}`);
         return res.status(401).json({ message: "Invalid signature" });
       }
 
