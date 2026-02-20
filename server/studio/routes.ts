@@ -408,7 +408,6 @@ export function registerStudioRoutes(app: Express): void {
 
       await storage.updateProcessingJob(job.id, {
         status: "processing",
-        inputData: JSON.stringify({ ...parsedData, webhookUrl }),
       });
 
       sendDarkWaveWebhook(webhookUrl, {
@@ -420,7 +419,7 @@ export function registerStudioRoutes(app: Express): void {
         timestamp: new Date().toISOString(),
       }).catch((err) => console.error("[Studio API] Webhook send error:", err));
 
-      simulateRenderCompletion(job.id, webhookUrl, req.jwtPayload!.userId, req.jwtPayload!.trustLayerId);
+      simulateRenderCompletion(job.id, webhookUrl, req.jwtPayload!.userId as any, req.jwtPayload!.trustLayerId);
 
       return res.json({
         projectId: job.id,
@@ -496,7 +495,7 @@ async function simulateRenderCompletion(
 
       if (success) {
         await storage.updateProcessingJob(jobId, {
-          status: "completed",
+          status: "complete",
           progress: 100,
         });
 
@@ -504,7 +503,7 @@ async function simulateRenderCompletion(
         if (job.outputMediaId) {
           const media = await storage.getMediaItem(job.outputMediaId);
           if (media) {
-            downloadUrl = media.storageUrl;
+            downloadUrl = media.url;
           }
         }
 
