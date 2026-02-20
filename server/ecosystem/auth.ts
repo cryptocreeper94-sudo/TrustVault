@@ -73,7 +73,7 @@ export function ecosystemAuth(
       }
 
       const appName = req.headers["x-app-name"] as string | undefined;
-      if (appName && appName !== tenant.appName) {
+      if (appName && appName.toLowerCase() !== tenant.appName.toLowerCase()) {
         return res.status(403).json({ message: "App name mismatch" });
       }
 
