@@ -60,7 +60,7 @@ function baseLayout(content: string, preheaderText: string): string {
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="background: ${BRAND_GRADIENT}; border-radius: 12px; padding: 8px 20px;">
-                    <span style="font-size: 18px; font-weight: 800; color: white; letter-spacing: 1px;">DW MEDIA STUDIO</span>
+                    <span style="font-size: 18px; font-weight: 800; color: white; letter-spacing: 1px;">TRUSTVAULT</span>
                   </td>
                 </tr>
               </table>
