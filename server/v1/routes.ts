@@ -8,6 +8,7 @@ import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { ObjectStorageService, objectStorageClient } from "../replit_integrations/object_storage/objectStorage";
 import { randomUUID } from "crypto";
 import { storage } from "../storage";
+import { dispatchV1Webhook, extractUserFromTenantId, extractServiceFromTenantId } from "./webhooks";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -369,10 +370,20 @@ export function registerV1Routes(app: Express): void {
         }
       } catch {}
 
+      const deletedUserId = extractUserFromTenantId(item.tenantId);
+      const deletedServiceId = extractServiceFromTenantId(item.tenantId);
+
       await db.delete(collectionItems).where(eq(collectionItems.mediaItemId, mediaId));
       await db.delete(mediaItems).where(eq(mediaItems.id, mediaId));
 
       console.log(`[V1 API] Media deleted: tv-media-${mediaId} by ${req.serviceId}`);
+
+      if (deletedServiceId) {
+        dispatchV1Webhook(deletedServiceId, "media.deleted", {
+          mediaId: `tv-media-${mediaId}`,
+          userId: deletedUserId || undefined,
+        }).catch(() => {});
+      }
 
       return res.json({ success: true, deleted: `tv-media-${mediaId}` });
     } catch (err: any) {
@@ -437,6 +448,53 @@ export function registerV1Routes(app: Express): void {
     } catch (err: any) {
       console.error("[V1 API] Batch retrieval error:", err.message);
       return res.status(500).json({ error: "Failed to retrieve media" });
+    }
+  });
+
+  app.post("/api/v1/media/:mediaId/flag", rateLimit, serviceAuth, requireScope("media:write"), async (req: ServiceRequest, res: Response) => {
+    try {
+      const rawId = String(req.params.mediaId).replace(/^tv-media-/, "");
+      const mediaId = parseInt(rawId, 10);
+      if (isNaN(mediaId)) {
+        return res.status(400).json({ error: "Invalid media ID" });
+      }
+
+      const { reason, details } = req.body as { reason?: string; details?: string };
+      if (!reason) {
+        return res.status(400).json({ error: "reason is required" });
+      }
+
+      const tenantPrefix = `v1:${(req as any)._tenantId}:`;
+      const [item] = await db
+        .select()
+        .from(mediaItems)
+        .where(and(eq(mediaItems.id, mediaId), sql`${mediaItems.tenantId} LIKE ${tenantPrefix + '%'}`));
+
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+
+      const flaggedUserId = extractUserFromTenantId(item.tenantId);
+      const flaggedServiceId = extractServiceFromTenantId(item.tenantId);
+
+      console.log(`[V1 API] Media flagged: tv-media-${mediaId} reason=${reason} by ${req.serviceId}`);
+
+      if (flaggedServiceId) {
+        dispatchV1Webhook(flaggedServiceId, "media.flagged", {
+          mediaId: `tv-media-${mediaId}`,
+          userId: flaggedUserId || undefined,
+          data: { reason, details: details || null },
+        }).catch(() => {});
+      }
+
+      return res.json({
+        success: true,
+        flagged: `tv-media-${mediaId}`,
+        reason,
+      });
+    } catch (err: any) {
+      console.error("[V1 API] Flag error:", err.message);
+      return res.status(500).json({ error: "Failed to flag media" });
     }
   });
 

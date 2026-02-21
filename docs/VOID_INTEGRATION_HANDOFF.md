@@ -272,20 +272,115 @@ Rate limit headers on every response:
 
 ---
 
-## Webhook Support
+## 7. Media Flagging
 
-TrustVault will POST to `https://intothevoid.replit.app/api/trustvault/webhook` for events:
+**`POST /api/v1/media/:mediaId/flag`**
+
+Flag media for moderation or content policy review. Triggers a `media.flagged` webhook to the owning service.
+
+**Request:**
+```json
+{
+  "reason": "inappropriate",
+  "details": "User-reported content violation"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "flagged": "tv-media-42",
+  "reason": "inappropriate"
+}
+```
+
+---
+
+## Webhook Events — LIVE
+
+TrustVault actively dispatches webhooks to `https://intothevoid.replit.app/api/trustvault/webhook` with 3 retries and exponential backoff.
+
+### Supported Events
+
+| Event | Trigger | Status |
+|---|---|---|
+| `media.deleted` | Media item deleted via API | Live |
+| `media.flagged` | Media flagged via `/flag` endpoint | Live |
+| `service.quota_warning` | Storage quota approaching limit | Planned |
+
+### Webhook Payload
 
 ```json
 {
   "event": "media.deleted",
   "mediaId": "tv-media-42",
   "userId": "tl-m4abc123-xk9f2g7h",
+  "serviceId": "the-void",
   "timestamp": "2026-02-21T10:00:00.000Z"
 }
 ```
 
-Events: `media.deleted`, `media.flagged` (future), `service.quota_warning` (future).
+For `media.flagged`, the payload includes additional data:
+```json
+{
+  "event": "media.flagged",
+  "mediaId": "tv-media-42",
+  "userId": "tl-m4abc123-xk9f2g7h",
+  "serviceId": "the-void",
+  "timestamp": "2026-02-21T10:00:00.000Z",
+  "data": {
+    "reason": "inappropriate",
+    "details": "User-reported content violation"
+  }
+}
+```
+
+### Webhook Security
+
+Every webhook POST includes these headers for verification:
+
+| Header | Description |
+|---|---|
+| `X-TrustVault-Signature` | HMAC-SHA256 signature of the request body, signed with your API secret |
+| `X-TrustVault-Event` | Event type (e.g., `media.deleted`) |
+| `X-TrustVault-Timestamp` | ISO 8601 timestamp of the event |
+| `User-Agent` | `TrustVault/1.0` |
+
+**Verification on THE VOID's side:**
+```javascript
+import crypto from "crypto";
+
+function verifyWebhook(body, signature, secret) {
+  const expected = crypto.createHmac("sha256", secret).update(body).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+
+// In your Express route:
+app.post("/api/trustvault/webhook", (req, res) => {
+  const signature = req.headers["x-trustvault-signature"];
+  const rawBody = JSON.stringify(req.body);
+  
+  if (!verifyWebhook(rawBody, signature, process.env.TRUSTVAULT_API_SECRET)) {
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+  
+  const { event, mediaId, userId } = req.body;
+  // Handle event...
+  
+  res.json({ received: true });
+});
+```
+
+**Your API Secret** (store as `TRUSTVAULT_API_SECRET`):
+`6501933226dbc1d7c2b9952ff6f1d83d07d51d0b2d7832f9f267cc922cff70ed`
+
+### Delivery Behavior
+
+- **Retries:** 3 attempts with exponential backoff (1s, 2s, 3s)
+- **Timeout:** 10 seconds per attempt
+- **Non-blocking:** Webhook failures do not affect the API response — deletions and flags succeed regardless of webhook delivery
+- **Idempotent:** Design your handler to safely process duplicate events
 
 ---
 
