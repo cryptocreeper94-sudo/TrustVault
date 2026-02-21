@@ -21,6 +21,7 @@ import { registerOrbitRoutes } from "./orbit/routes";
 import { registerStudioRoutes } from "./studio/routes";
 import { registerAIRoutes } from "./ai/routes";
 import { registerBlockchainRoutes } from "./blockchain/routes";
+import { registerV1Routes } from "./v1/routes";
 import { generateTrustLayerId, generateJWT, hashPassword } from "./trustlayer-sso";
 
 declare module "express-session" {
@@ -141,6 +142,14 @@ async function bootstrapEcosystemTenants() {
       webhookUrl: "https://tldriverconnect.com/api/trustvault/webhook",
       capabilities: ["media_vault", "video_walkthrough", "photo_editing", "virtual_staging"],
     },
+    {
+      tenantId: "the-void",
+      appName: "THE VOID",
+      apiKey: "dw_0fb4a28916a412c11ec57a3e61311c74",
+      apiSecret: "6501933226dbc1d7c2b9952ff6f1d83d07d51d0b2d7832f9f267cc922cff70ed",
+      webhookUrl: "https://intothevoid.replit.app/api/trustvault/webhook",
+      capabilities: ["media_vault", "media_upload", "media_read", "media_delete", "batch_retrieval"],
+    },
   ];
 
   for (const t of tenants) {
@@ -203,6 +212,7 @@ export async function registerRoutes(
   registerStudioRoutes(app);
   registerAIRoutes(app);
   registerBlockchainRoutes(app);
+  registerV1Routes(app);
   setupChatWebSocket(httpServer);
 
   storage.seedDefaultChannels().then(() => {
