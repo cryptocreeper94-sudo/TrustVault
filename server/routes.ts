@@ -121,6 +121,50 @@ async function bootstrapFamilyAccounts() {
   console.log("[Bootstrap] Family accounts ready");
 }
 
+async function bootstrapEcosystemTenants() {
+  const { ecosystemStorage } = await import("./ecosystem/storage");
+
+  const tenants = [
+    {
+      tenantId: "trusthome",
+      appName: "TrustHome",
+      apiKey: "dw_4c5f4e62a04cf0aff2ee69468021a373",
+      apiSecret: "f95477a1daa27f0edf40e336a79cd07f0ae72218b2783c64332d33a3459581b0",
+      webhookUrl: "https://trusthome.replit.app/api/ecosystem/incoming",
+      capabilities: ["media_vault", "video_walkthrough", "photo_editing", "virtual_staging"],
+    },
+    {
+      tenantId: "driver-connect",
+      appName: "TL Driver Connect",
+      apiKey: "dw_63e5db8f122ad2c4dc89440bb355995c",
+      apiSecret: "24d4c036e266bf40921877257c8ea8d3748a6e46d01f83ae86984531200cb924",
+      webhookUrl: "https://tldriverconnect.com/api/trustvault/webhook",
+      capabilities: ["media_vault", "video_walkthrough", "photo_editing", "virtual_staging"],
+    },
+  ];
+
+  for (const t of tenants) {
+    const existing = await ecosystemStorage.getTenantByTenantId(t.tenantId);
+    if (existing) {
+      console.log(`[Bootstrap] Ecosystem tenant ${t.tenantId} already exists, skipping`);
+    } else {
+      const { db } = await import("./db");
+      const { apiKeys } = await import("@shared/schema");
+      await db.insert(apiKeys).values({
+        tenantId: t.tenantId,
+        appName: t.appName,
+        apiKey: t.apiKey,
+        apiSecret: t.apiSecret,
+        webhookUrl: t.webhookUrl,
+        capabilities: t.capabilities,
+        active: true,
+      });
+      console.log(`[Bootstrap] Provisioned ecosystem tenant: ${t.tenantId}`);
+    }
+  }
+  console.log("[Bootstrap] Ecosystem tenants ready");
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -173,6 +217,10 @@ export async function registerRoutes(
 
   bootstrapInviteCodes().catch((err) => {
     console.error("[Bootstrap] Failed to seed invite codes:", err);
+  });
+
+  bootstrapEcosystemTenants().catch((err) => {
+    console.error("[Bootstrap] Failed to seed ecosystem tenants:", err);
   });
 
   app.post("/api/client-error", (req, res) => {

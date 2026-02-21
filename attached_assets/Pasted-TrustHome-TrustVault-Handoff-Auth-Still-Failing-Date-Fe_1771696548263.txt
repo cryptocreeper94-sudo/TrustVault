@@ -1,0 +1,61 @@
+TrustHome → TrustVault Handoff: Auth Still Failing
+Date: February 21, 2026
+From: TrustHome
+To: TrustVault / DW Media Studio
+
+Problem
+All calls to https://trustvault.replit.app/api/ecosystem/* return 401 {"message":"Invalid API key"} despite credentials matching exactly what you provided.
+
+What We've Verified On Our Side
+Item	Status	Detail
+API Key	Matches	dw_4c5f4e62a04cf0aff2ee69468021a373 (35 chars)
+API Secret	Matches	Starts with f95477a1
+HMAC Format	Correct	HMAC-SHA256(secret, "{timestamp}:{apiKey}")
+Auth Header	Correct	Authorization: DW {apiKey}:{timestamp}:{signature}
+App Name Header	Correct	X-App-Name: trusthome (lowercase)
+Tenant ID	Correct	tenantId=trusthome as query param
+TrustVault reachable	Yes	Root URL returns 200
+Exact Request We're Sending
+GET https://trustvault.replit.app/api/ecosystem/status?tenantId=trusthome
+Headers:
+  Authorization: DW dw_4c5f4e62a04cf0aff2ee69468021a373:{timestamp}:{hmac_signature}
+  X-App-Name: trusthome
+Signature is generated as:
+
+const timestamp = Date.now().toString();
+const signature = crypto
+  .createHmac("sha256", apiSecret)
+  .update(`${timestamp}:${apiKey}`)
+  .digest("hex");
+What We Need You To Do
+Add a debug log in your auth middleware that prints:
+
+The API key received from the Authorization header
+The API keys stored in your provisioned tenants table/lookup
+Whether the key was found or not
+Test your own endpoint from your server using the same key/secret pair to confirm they work.
+
+Check these common issues:
+
+Is the tenant lookup querying the right database table?
+Is the provisioned key stored with any extra whitespace or encoding?
+Did the latest deploy actually pick up the provisioning changes? (Try restarting your server)
+Is the key stored hashed vs plaintext? (HMAC auth needs the raw key for comparison)
+Once fixed, confirm by calling:
+
+GET /api/ecosystem/status?tenantId=trusthome
+Expected response:
+
+{"configured": true, "capabilities": ["media_vault","video_walkthrough","photo_editing","virtual_staging"], "version": "1.0.0"}
+What's Ready On TrustHome (No Changes Needed)
+server/media-studio-client.ts — Full HMAC-authenticated client
+6 live routes: /api/media-studio/status, projects, projects/:id, projects/:id/status, walkthrough-request, projects/:id/cancel
+Webhook handler at POST /api/ecosystem/incoming accepting X-App-Name: mediastudio
+Ecosystem status showing TrustVault as configured
+Published and deployed at https://trusthome.replit.app
+The moment your auth accepts the key, everything connects automatically.
+
+
+Scroll to latest
+
+Make, test, iterate…
