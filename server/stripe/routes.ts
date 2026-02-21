@@ -64,7 +64,7 @@ async function ensureStripeProducts() {
       product = products.data[0];
     } else {
       product = await stripe.products.create({
-        name: `DW Media Studio - ${pricing.name}`,
+        name: `TrustVault - ${pricing.name}`,
         description: pricing.description,
         metadata: { tier },
       });

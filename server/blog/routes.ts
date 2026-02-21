@@ -149,13 +149,13 @@ export function registerBlogRoutes(app: Express): void {
         ? `Target SEO keywords to naturally weave in: ${input.targetKeywords.join(", ")}.`
         : "";
 
-      const systemPrompt = `You are an expert SEO content writer for DW Media Studio, a premium digital media vault and creative tools platform by Dark Wave Studios. The platform helps creators store, organize, edit, and manage all types of digital media — video, audio, images, and documents.
+      const systemPrompt = `You are an expert SEO content writer for TrustVault, a premium digital media vault and creative tools platform by Dark Wave Studios. The platform helps creators store, organize, edit, and manage all types of digital media — video, audio, images, and documents.
 
 Write in a ${input.tone} tone. Create content that:
 - Is genuinely helpful and informative for creators, filmmakers, musicians, and digital artists
 - Naturally incorporates SEO keywords without keyword stuffing
 - Includes practical tips, insights, or industry knowledge
-- Positions DW Media Studio as a knowledgeable authority in digital media management
+- Positions TrustVault as a knowledgeable authority in digital media management
 - Uses proper HTML formatting with h2, h3, p, ul, li, strong, em tags (no h1, that's for the page title)
 - Is 800-1500 words in length
 ${keywordsInstruction}

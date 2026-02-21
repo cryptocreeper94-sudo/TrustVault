@@ -10,9 +10,9 @@ export default function Invite() {
   return (
     <>
       <Helmet>
-        <title>You're Invited | DW Media Studio — TrustVault</title>
-        <meta name="description" content="You've been invited to DW Media Studio — your private digital vault for media and memories. Powered by Dark Wave Studios." />
-        <meta property="og:title" content="You're Invited to DW Media Studio" />
+        <title>You're Invited | TrustVault</title>
+        <meta name="description" content="You've been invited to TrustVault — your private digital vault for media and memories. Powered by Dark Wave Studios." />
+        <meta property="og:title" content="You're Invited to TrustVault" />
         <meta property="og:description" content="Your private digital vault for media and memories. Secure, beautiful, and built for you." />
         <meta property="og:type" content="website" />
       </Helmet>

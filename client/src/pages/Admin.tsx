@@ -236,7 +236,7 @@ export default function Admin() {
   return (
     <>
       <Helmet>
-        <title>Developer Portal | DW Media Studio</title>
+        <title>Developer Portal | TrustVault</title>
         <meta name="description" content="Admin dashboard for managing users and invites." />
       </Helmet>
 
@@ -467,7 +467,7 @@ export default function Admin() {
 
           <div className="pt-4 border-t border-border/50 text-center">
             <p className="text-[11px] text-muted-foreground/50">
-              DW Media Studio Developer Portal
+              TrustVault Developer Portal
             </p>
           </div>
         </main>

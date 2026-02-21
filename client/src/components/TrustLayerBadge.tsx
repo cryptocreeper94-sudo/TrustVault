@@ -68,7 +68,7 @@ export function TrustLayerBadge() {
               </div>
             </div>
             <p className="text-[11px] text-white/80 leading-relaxed">
-              DW Media Studio is part of the TrustLayer ecosystem by Dark Wave Studios — a trust-based engagement platform.
+              TrustVault is part of the TrustLayer ecosystem by Dark Wave Studios — a trust-based engagement platform.
             </p>
           </div>
         </div>

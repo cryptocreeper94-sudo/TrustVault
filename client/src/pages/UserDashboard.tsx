@@ -141,7 +141,7 @@ export default function UserDashboard() {
   if (isLoading) {
     return (
       <>
-        <Helmet><title>My Studio | DW Media Studio</title></Helmet>
+        <Helmet><title>My Studio | TrustVault</title></Helmet>
         <div className="min-h-screen px-4 py-20" style={{ background: "linear-gradient(135deg, #070b16, #0c1222, #070b16)" }}>
           <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-10">
             {[1,2,3,4,5,6,7,8].map(i => (
@@ -244,7 +244,7 @@ export default function UserDashboard() {
   return (
     <>
       <Helmet>
-        <title>My Studio | DW Media Studio</title>
+        <title>My Studio | TrustVault</title>
         <meta name="description" content="Your personal creative studio dashboard - access all your media tools from one place." />
       </Helmet>
 
@@ -255,10 +255,10 @@ export default function UserDashboard() {
         >
           <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
-              <img src={trustlayerEmblem} alt="DW Media Studio" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+              <img src={trustlayerEmblem} alt="TrustVault" className="w-8 h-8 rounded-lg object-cover shrink-0" />
               <div className="min-w-0">
                 <h1 className="text-white font-bold text-sm truncate" data-testid="text-dashboard-title">My Studio</h1>
-                <p className="text-white/40 text-[10px] truncate">DW Media Studio</p>
+                <p className="text-white/40 text-[10px] truncate">TrustVault</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">

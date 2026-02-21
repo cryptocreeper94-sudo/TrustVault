@@ -10,17 +10,17 @@ export default function Privacy() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Privacy Policy | DW Media Studio</title>
-        <meta name="description" content="DW Media Studio privacy policy. Learn how we collect, use, and protect your personal information." />
-        <meta property="og:title" content="Privacy Policy | DW Media Studio" />
-        <meta property="og:description" content="Learn how DW Media Studio collects, uses, and protects your personal information." />
+        <title>Privacy Policy | TrustVault</title>
+        <meta name="description" content="TrustVault privacy policy. Learn how we collect, use, and protect your personal information." />
+        <meta property="og:title" content="Privacy Policy | TrustVault" />
+        <meta property="og:description" content="Learn how TrustVault collects, uses, and protects your personal information." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://dw-media-studio.replit.app/privacy" />
         <meta property="og:image" content="/icon-512.png" />
-        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:site_name" content="TrustVault" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Privacy Policy | DW Media Studio" />
-        <meta name="twitter:description" content="Learn how DW Media Studio collects, uses, and protects your personal information." />
+        <meta name="twitter:title" content="Privacy Policy | TrustVault" />
+        <meta name="twitter:description" content="Learn how TrustVault collects, uses, and protects your personal information." />
         <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
@@ -49,7 +49,7 @@ export default function Privacy() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-bold text-foreground" data-testid="text-section-intro">Introduction</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              DW Media Studio ("we," "our," or "us"), a product of Dark Wave Studios, is committed to protecting
+              TrustVault ("we," "our," or "us"), a product of Dark Wave Studios, is committed to protecting
               your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your
               information when you use our media vault platform, related services, and mobile applications
               (collectively, the "Service").
@@ -105,7 +105,7 @@ export default function Privacy() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-bold text-foreground">Multi-Tenant Architecture</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              DW Media Studio uses a multi-tenant architecture where each user's data is logically isolated.
+              TrustVault uses a multi-tenant architecture where each user's data is logically isolated.
               Your media files, collections, and personal data are accessible only to you and authorized
               administrators. Admin users may access tenant spaces for support and maintenance purposes only.
             </p>
@@ -178,7 +178,7 @@ export default function Privacy() {
               <Button variant="outline" size="sm" data-testid="link-to-sms">SMS Notifications</Button>
             </Link>
             <Link href="/">
-              <Button variant="ghost" size="sm" data-testid="link-to-home">Back to DW Media Studio</Button>
+              <Button variant="ghost" size="sm" data-testid="link-to-home">Back to TrustVault</Button>
             </Link>
           </div>
         </motion.article>

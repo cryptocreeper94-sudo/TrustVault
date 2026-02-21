@@ -104,7 +104,7 @@ export function CinematicLanding({ onGetStarted }: { onGetStarted: () => void })
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ duration: 1, delay: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
             src={trustlayerEmblem}
-            alt="DW Media Studio"
+            alt="TrustVault"
             className="w-24 h-24 sm:w-32 sm:h-32 object-cover mb-6"
             data-testid="img-hero-emblem"
           />
@@ -271,7 +271,7 @@ export function CinematicLanding({ onGetStarted }: { onGetStarted: () => void })
         <div className="max-w-6xl mx-auto px-4 sm:px-8 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src={trustlayerEmblem} alt="DW" className="w-6 h-6 object-cover" />
-            <span className="text-sm text-white/30">DW Media Studio</span>
+            <span className="text-sm text-white/30">TrustVault</span>
           </div>
           <p className="text-xs text-white/20">Dark Wave Studios. All rights reserved.</p>
         </div>

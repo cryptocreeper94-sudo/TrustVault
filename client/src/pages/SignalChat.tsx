@@ -503,7 +503,7 @@ export default function SignalChat() {
           <meta property="og:type" content="website" />
           <meta property="og:url" content="https://dw-media-studio.replit.app/chat" />
           <meta property="og:image" content="/icon-512.png" />
-          <meta property="og:site_name" content="DW Media Studio" />
+          <meta property="og:site_name" content="TrustVault" />
           <meta name="twitter:card" content="summary" />
           <meta name="twitter:title" content="Signal Chat | TrustLayer" />
           <meta name="twitter:description" content="Secure, real-time messaging for the TrustLayer ecosystem." />
@@ -527,7 +527,7 @@ export default function SignalChat() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://dw-media-studio.replit.app/chat" />
         <meta property="og:image" content="/icon-512.png" />
-        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:site_name" content="TrustVault" />
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content="Signal Chat | TrustLayer" />
         <meta name="twitter:description" content="Secure, real-time messaging for the TrustLayer ecosystem." />

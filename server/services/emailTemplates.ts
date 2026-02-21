@@ -34,7 +34,7 @@ function baseLayout(content: string, preheaderText: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="supported-color-schemes" content="dark">
-  <title>DW Media Studio</title>
+  <title>TrustVault</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -150,7 +150,7 @@ export function buildPurchaseConfirmationEmail(data: PurchaseEmailData): { subje
   const nextBillingDate = data.periodEnd.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const purchaseDate = data.periodStart.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-  const subject = `Welcome to ${pricing.name} - Your DW Media Studio subscription is active`;
+  const subject = `Welcome to ${pricing.name} - Your TrustVault subscription is active`;
 
   const content = `
           <tr>
@@ -317,8 +317,8 @@ export function buildSubscriptionChangeEmail(data: SubscriptionChangeEmailData):
   const isUpgrade = ["free", "personal", "pro", "studio"].indexOf(data.newTier) > ["free", "personal", "pro", "studio"].indexOf(data.oldTier);
 
   const subject = isUpgrade
-    ? `Upgraded to ${newPricing.name} - DW Media Studio`
-    : `Plan changed to ${newPricing.name} - DW Media Studio`;
+    ? `Upgraded to ${newPricing.name} - TrustVault`
+    : `Plan changed to ${newPricing.name} - TrustVault`;
 
   const content = `
           <tr>
@@ -374,7 +374,7 @@ export interface CancellationEmailData {
 export function buildCancellationEmail(data: CancellationEmailData): { subject: string; html: string } {
   const pricing = TIER_PRICING[data.tier];
 
-  const subject = `Your ${pricing.name} subscription has been canceled - DW Media Studio`;
+  const subject = `Your ${pricing.name} subscription has been canceled - TrustVault`;
 
   const content = `
           <tr>
@@ -430,7 +430,7 @@ export function buildPaymentFailedEmail(data: PaymentFailedEmailData): { subject
   const pricing = TIER_PRICING[data.tier];
   const amountFormatted = `$${(data.amount / 100).toFixed(2)}`;
 
-  const subject = `Action required: Payment failed for DW Media Studio`;
+  const subject = `Action required: Payment failed for TrustVault`;
 
   const content = `
           <tr>

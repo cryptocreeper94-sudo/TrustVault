@@ -82,16 +82,16 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Pricing | DW Media Studio</title>
+        <title>Pricing | TrustVault</title>
         <meta name="description" content="Choose the perfect plan for your creative needs. From free media storage to professional studio tools." />
-        <meta property="og:title" content="DW Media Studio Pricing" />
+        <meta property="og:title" content="TrustVault Pricing" />
         <meta property="og:description" content="Affordable plans for every creator. Start free, upgrade anytime." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://dw-media-studio.replit.app/pricing" />
         <meta property="og:image" content="/icon-512.png" />
-        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:site_name" content="TrustVault" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="DW Media Studio Pricing" />
+        <meta name="twitter:title" content="TrustVault Pricing" />
         <meta name="twitter:description" content="Affordable plans for every creator. Start free, upgrade anytime." />
         <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>

@@ -46,17 +46,17 @@ export default function SmsOptIn() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>SMS Notifications | DW Media Studio</title>
-        <meta name="description" content="Opt in to receive SMS notifications from DW Media Studio. Stay updated on your media vault activity." />
-        <meta property="og:title" content="SMS Notifications | DW Media Studio" />
-        <meta property="og:description" content="Opt in to receive SMS notifications from DW Media Studio." />
+        <title>SMS Notifications | TrustVault</title>
+        <meta name="description" content="Opt in to receive SMS notifications from TrustVault. Stay updated on your media vault activity." />
+        <meta property="og:title" content="SMS Notifications | TrustVault" />
+        <meta property="og:description" content="Opt in to receive SMS notifications from TrustVault." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://dw-media-studio.replit.app/sms-opt-in" />
         <meta property="og:image" content="/icon-512.png" />
-        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:site_name" content="TrustVault" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="SMS Notifications | DW Media Studio" />
-        <meta name="twitter:description" content="Opt in to receive SMS notifications from DW Media Studio." />
+        <meta name="twitter:title" content="SMS Notifications | TrustVault" />
+        <meta name="twitter:description" content="Opt in to receive SMS notifications from TrustVault." />
         <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
@@ -190,7 +190,7 @@ export default function SmsOptIn() {
                       data-testid="checkbox-agree-sms"
                     />
                     <label htmlFor="agree-sms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                      I consent to receive SMS text messages from DW Media Studio at the phone number provided.
+                      I consent to receive SMS text messages from TrustVault at the phone number provided.
                       I understand that message frequency varies, message and data rates may apply, and I can
                       opt out at any time by replying STOP. Reply HELP for assistance.
                     </label>
@@ -226,7 +226,7 @@ export default function SmsOptIn() {
                 <div className="space-y-2">
                   <h3 className="font-semibold text-sm">SMS Program Details</h3>
                   <div className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
-                    <p><strong>Program:</strong> DW Media Studio Notifications</p>
+                    <p><strong>Program:</strong> TrustVault Notifications</p>
                     <p><strong>Message Frequency:</strong> Varies; typically 2-5 messages per month</p>
                     <p><strong>Message & Data Rates:</strong> Standard message and data rates may apply</p>
                     <p><strong>Opt-Out:</strong> Text STOP to cancel at any time</p>
@@ -240,7 +240,7 @@ export default function SmsOptIn() {
             <div className="flex items-start gap-2 text-xs text-muted-foreground/60">
               <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
               <p>
-                By opting in, you agree to receive autodialed SMS messages from DW Media Studio.
+                By opting in, you agree to receive autodialed SMS messages from TrustVault.
                 Consent is not a condition of purchase. Supported carriers include AT&T, T-Mobile,
                 Verizon, Sprint, and others. View our full{" "}
                 <Link href="/privacy" className="text-primary/60 hover:text-primary transition-colors underline">

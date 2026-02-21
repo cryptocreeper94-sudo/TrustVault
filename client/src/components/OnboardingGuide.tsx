@@ -34,7 +34,7 @@ const DEFAULT_SLIDES: OnboardingSlide[] = [
   {
     icon: Shield,
     iconColor: "from-primary to-primary/60",
-    title: "Welcome to DW Media Studio",
+    title: "Welcome to TrustVault",
     description: "Your personal vault for all your digital media \u2014 videos, music, photos, and documents. Everything is securely stored and organized in your own private space.",
     tips: [
       "Each family member gets their own private vault",

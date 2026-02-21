@@ -1163,16 +1163,16 @@ export default function Home() {
 
   const seoHelmet = (
     <Helmet>
-      <title>DW Media Studio | Your Universal Media Vault</title>
+      <title>TrustVault | Your Universal Media Vault</title>
       <meta name="description" content="Store, organize, edit, and preview your photos, videos, music, and documents in one secure vault. Built by Dark Wave Studios." />
-      <meta property="og:title" content="DW Media Studio — Universal Media Vault" />
+      <meta property="og:title" content="TrustVault — Universal Media Vault" />
       <meta property="og:description" content="Your private, secure space for all digital media. Upload, organize, and access your files from anywhere." />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://dw-media-studio.replit.app/" />
       <meta property="og:image" content="/icon-512.png" />
-      <meta property="og:site_name" content="DW Media Studio" />
+      <meta property="og:site_name" content="TrustVault" />
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="DW Media Studio — Universal Media Vault" />
+      <meta name="twitter:title" content="TrustVault — Universal Media Vault" />
       <meta name="twitter:description" content="Your private, secure space for all digital media. Upload, organize, and access your files from anywhere." />
       <meta name="twitter:image" content="/icon-512.png" />
     </Helmet>
@@ -1451,7 +1451,7 @@ export default function Home() {
                   <SheetHeader className="text-left shrink-0">
                     <SheetTitle className="font-display flex items-center gap-2">
                       <img src={trustlayerEmblem} alt="TrustLayer" className="w-7 h-7 rounded-lg object-cover" />
-                      DW Media Studio
+                      TrustVault
                     </SheetTitle>
                     <p className="text-xs text-muted-foreground">
                       {greeting}, {user.name}
@@ -1465,7 +1465,7 @@ export default function Home() {
                   <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3.5 mb-3" data-testid="section-mission-statement">
                     <p className="text-xs font-semibold text-foreground/90 mb-1.5 font-display">From Jason, Creator & Developer</p>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      I built DW Media Studio because everyone deserves access to professional-grade creative tools without the premium price tag. This is your affordable alternative to high-end editors &mdash; powerful image, audio, and video editing with AI at your fingertips. Built on TrustLayer, part of the Dark Wave Studios ecosystem. Your creativity shouldn't have a paywall.
+                      I built TrustVault because everyone deserves access to professional-grade creative tools without the premium price tag. This is your affordable alternative to high-end editors &mdash; powerful image, audio, and video editing with AI at your fingertips. Built on TrustLayer, part of the Dark Wave Studios ecosystem. Your creativity shouldn't have a paywall.
                     </p>
                   </div>
 
@@ -2417,7 +2417,7 @@ function PasswordLogin() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
             src={trustlayerEmblem}
-            alt="DW Media Studio"
+            alt="TrustVault"
             className="w-20 h-20 sm:w-32 sm:h-32 md:w-44 md:h-44 object-cover mb-4 md:mb-8"
           />
           <motion.h2

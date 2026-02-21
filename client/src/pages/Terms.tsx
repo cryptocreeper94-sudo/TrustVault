@@ -10,17 +10,17 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Terms of Service | DW Media Studio</title>
-        <meta name="description" content="DW Media Studio terms of service. Read the terms and conditions for using our platform." />
-        <meta property="og:title" content="Terms of Service | DW Media Studio" />
-        <meta property="og:description" content="Read the terms and conditions for using DW Media Studio." />
+        <title>Terms of Service | TrustVault</title>
+        <meta name="description" content="TrustVault terms of service. Read the terms and conditions for using our platform." />
+        <meta property="og:title" content="Terms of Service | TrustVault" />
+        <meta property="og:description" content="Read the terms and conditions for using TrustVault." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://dw-media-studio.replit.app/terms" />
         <meta property="og:image" content="/icon-512.png" />
-        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:site_name" content="TrustVault" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Terms of Service | DW Media Studio" />
-        <meta name="twitter:description" content="Read the terms and conditions for using DW Media Studio." />
+        <meta name="twitter:title" content="Terms of Service | TrustVault" />
+        <meta name="twitter:description" content="Read the terms and conditions for using TrustVault." />
         <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
 
@@ -49,7 +49,7 @@ export default function Terms() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-bold text-foreground">1. Acceptance of Terms</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              By accessing or using DW Media Studio ("the Service"), a product of Dark Wave Studios,
+              By accessing or using TrustVault ("the Service"), a product of Dark Wave Studios,
               you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these
               Terms, you may not access or use the Service. These Terms apply to all users, including
               visitors, registered users, and subscribers.
@@ -59,7 +59,7 @@ export default function Terms() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-bold text-foreground">2. Description of Service</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              DW Media Studio is a universal media vault platform that allows users to upload, store,
+              TrustVault is a universal media vault platform that allows users to upload, store,
               organize, edit, and preview digital media files including images, audio, video, and documents.
               The Service includes media editing tools, AI-powered features, collection management,
               and integration with the broader TrustLayer/Dark Wave Studios ecosystem.
@@ -137,7 +137,7 @@ export default function Terms() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-bold text-foreground">8. SMS Communications</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              If you opt in to SMS notifications, you agree to receive text messages from DW Media Studio.
+              If you opt in to SMS notifications, you agree to receive text messages from TrustVault.
               Message frequency varies. Message and data rates may apply. You can opt out at any time
               by texting STOP. For help, text HELP or contact support. See our{" "}
               <Link href="/sms-optin" className="text-primary/80 hover:text-primary transition-colors underline">SMS opt-in page</Link>{" "}
@@ -148,7 +148,7 @@ export default function Terms() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-bold text-foreground">9. TrustLayer Ecosystem</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              DW Media Studio is part of the TrustLayer / Dark Wave Studios ecosystem. Paid subscribers
+              TrustVault is part of the TrustLayer / Dark Wave Studios ecosystem. Paid subscribers
               may receive TrustLayer membership benefits. Cross-platform single sign-on (SSO) is available
               across ecosystem applications. Use of other ecosystem services is governed by their
               respective terms.
@@ -215,7 +215,7 @@ export default function Terms() {
               <Button variant="outline" size="sm" data-testid="link-to-sms">SMS Notifications</Button>
             </Link>
             <Link href="/">
-              <Button variant="ghost" size="sm" data-testid="link-to-home">Back to DW Media Studio</Button>
+              <Button variant="ghost" size="sm" data-testid="link-to-home">Back to TrustVault</Button>
             </Link>
           </div>
         </motion.article>

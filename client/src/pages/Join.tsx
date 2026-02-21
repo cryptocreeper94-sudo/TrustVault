@@ -150,16 +150,16 @@ export default function Join() {
   return (
     <>
       <Helmet>
-        <title>Join the Family Vault | DW Media Studio</title>
+        <title>Join the Family Vault | TrustVault</title>
         <meta name="description" content="Set up your private media vault — a personal space for your photos, videos, and memories." />
-        <meta property="og:title" content="Join the Family Vault | DW Media Studio" />
+        <meta property="og:title" content="Join the Family Vault | TrustVault" />
         <meta property="og:description" content="Set up your private media vault — a personal space for your photos, videos, and memories." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://dw-media-studio.replit.app/join" />
         <meta property="og:image" content="/icon-512.png" />
-        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:site_name" content="TrustVault" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Join the Family Vault | DW Media Studio" />
+        <meta name="twitter:title" content="Join the Family Vault | TrustVault" />
         <meta name="twitter:description" content="Set up your private media vault — a personal space for your photos, videos, and memories." />
         <meta name="twitter:image" content="/icon-512.png" />
       </Helmet>
@@ -177,8 +177,8 @@ export default function Join() {
             transition={{ duration: 0.5 }}
             className="flex items-center gap-2 mb-8"
           >
-            <img src={trustlayerEmblem} alt="DW Media Studio" className="w-8 h-8 rounded-lg object-cover" />
-            <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">DW Media Studio</span>
+            <img src={trustlayerEmblem} alt="TrustVault" className="w-8 h-8 rounded-lg object-cover" />
+            <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">TrustVault</span>
           </motion.div>
 
           <motion.div

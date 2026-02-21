@@ -31,15 +31,15 @@ export default function BlogPostPage() {
 
   const blogSeoFallback = (
     <Helmet>
-      <title>DW Media Studio Blog</title>
+      <title>TrustVault Blog</title>
       <meta name="description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
-      <meta property="og:title" content="DW Media Studio Blog" />
+      <meta property="og:title" content="TrustVault Blog" />
       <meta property="og:description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
       <meta property="og:type" content="article" />
       <meta property="og:image" content="/icon-512.png" />
-      <meta property="og:site_name" content="DW Media Studio" />
+      <meta property="og:site_name" content="TrustVault" />
       <meta name="twitter:card" content="summary" />
-      <meta name="twitter:title" content="DW Media Studio Blog" />
+      <meta name="twitter:title" content="TrustVault Blog" />
       <meta name="twitter:description" content="Expert insights, tutorials, and industry knowledge for digital creators." />
       <meta name="twitter:image" content="/icon-512.png" />
     </Helmet>
@@ -83,7 +83,7 @@ export default function BlogPostPage() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{post.title} | DW Media Studio Blog</title>
+        <title>{post.title} | TrustVault Blog</title>
         <meta name="description" content={post.metaDescription || post.excerpt || ""} />
         {post.keywords && (
           <meta name="keywords" content={post.keywords.join(", ")} />
@@ -92,7 +92,7 @@ export default function BlogPostPage() {
         <meta property="og:description" content={post.metaDescription || post.excerpt || ""} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={`https://dw-media-studio.replit.app/blog/${post.slug}`} />
-        <meta property="og:site_name" content="DW Media Studio" />
+        <meta property="og:site_name" content="TrustVault" />
         <meta property="og:image" content={post.coverImageUrl || "/icon-512.png"} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={post.title} />

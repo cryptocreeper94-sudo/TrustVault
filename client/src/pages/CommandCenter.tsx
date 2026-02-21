@@ -451,7 +451,7 @@ const categories: Category[] = [
     title: "Roadmap & Status",
     icon: <Map className="size-4" />,
     gradient: "from-fuchsia-500 to-pink-500",
-    description: "Track the product roadmap, monitor system health, and stay updated on what's coming next for DW Media Studio.",
+    description: "Track the product roadmap, monitor system health, and stay updated on what's coming next for TrustVault.",
     cards: [
       {
         label: "Product Roadmap",
@@ -705,7 +705,7 @@ export default function CommandCenter() {
     return (
       <>
         <Helmet>
-          <title>Command Center | DW Media Studio</title>
+          <title>Command Center | TrustVault</title>
         </Helmet>
         <SkeletonLoader />
       </>
@@ -721,7 +721,7 @@ export default function CommandCenter() {
     return (
       <>
         <Helmet>
-          <title>Access Denied | DW Media Studio</title>
+          <title>Access Denied | TrustVault</title>
         </Helmet>
         <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "linear-gradient(135deg, #070b16, #0c1222, #070b16)" }}>
           <div className="text-center space-y-4">
@@ -744,7 +744,7 @@ export default function CommandCenter() {
     return (
       <>
         <Helmet>
-          <title>Command Center | DW Media Studio</title>
+          <title>Command Center | TrustVault</title>
         </Helmet>
         <PinGate onSuccess={() => setPinVerified(true)} />
       </>
@@ -754,8 +754,8 @@ export default function CommandCenter() {
   return (
     <>
       <Helmet>
-        <title>Command Center | DW Media Studio</title>
-        <meta name="description" content="DW Media Studio Command Center - central admin dashboard for managing your entire media vault ecosystem." />
+        <title>Command Center | TrustVault</title>
+        <meta name="description" content="TrustVault Command Center - central admin dashboard for managing your entire media vault ecosystem." />
       </Helmet>
 
       <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #070b16, #0c1222, #070b16)" }}>
@@ -770,7 +770,7 @@ export default function CommandCenter() {
               <img src={trustlayerEmblem} alt="TrustVault" className="w-8 h-8 rounded-lg object-cover shrink-0" />
               <div className="min-w-0">
                 <h1 className="text-white font-bold text-sm truncate">Command Center</h1>
-                <p className="text-white/40 text-[10px] truncate">DW Media Studio</p>
+                <p className="text-white/40 text-[10px] truncate">TrustVault</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
