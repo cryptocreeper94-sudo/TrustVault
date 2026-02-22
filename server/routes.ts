@@ -75,9 +75,9 @@ async function bootstrapFamilyAccounts() {
 
   const familyMembers = [
     { name: "Jason", isAdmin: true, mustReset: false, password: hashedJasonPin, tier: "studio" as const },
-    { name: "Madeline", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "free" as const },
-    { name: "Natalie", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "free" as const },
-    { name: "Avery", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "free" as const },
+    { name: "Madeline", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
+    { name: "Natalie", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
+    { name: "Avery", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
     { name: "Jennifer", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
     { name: "Will", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
     { name: "Carley", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
