@@ -2299,7 +2299,7 @@ export default function Home() {
 
 
 function PasswordLogin() {
-  const { login, isLoggingIn, loginError, accountCount, claimAccount, isClaimingAccount } = useAuth();
+  const { login, isLoggingIn, loginError, accountCount, claimAccount, isClaimingAccount, ecosystemLogin, isEcosystemLoggingIn } = useAuth();
   const [, navigateAfterLogin] = useLocation();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -2315,6 +2315,9 @@ function PasswordLogin() {
   const [claimEmail, setClaimEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showLoginForm, setShowLoginForm] = useState(false);
+  const [ecosystemMode, setEcosystemMode] = useState(false);
+  const [ecosystemIdentifier, setEcosystemIdentifier] = useState("");
+  const [ecosystemCredential, setEcosystemCredential] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2354,6 +2357,21 @@ function PasswordLogin() {
         setTimeout(() => setShake(false), 600);
         const msg = err.message || "Account setup failed";
         setErrorMsg(msg.includes(":") ? msg.split(": ").slice(1).join(": ") : msg);
+      }
+      return;
+    }
+
+    if (ecosystemMode) {
+      if (!ecosystemIdentifier.trim() || !ecosystemCredential) return;
+      setErrorMsg("");
+      try {
+        await ecosystemLogin({ identifier: ecosystemIdentifier.trim(), credential: ecosystemCredential });
+        navigateAfterLogin("/dashboard");
+      } catch (err: any) {
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+        setErrorMsg(err.message || "Ecosystem login failed.");
+        setEcosystemCredential("");
       }
       return;
     }
@@ -2451,20 +2469,63 @@ function PasswordLogin() {
         <div className="max-w-sm w-full space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-display font-bold tracking-tight mb-1" data-testid="text-login-title">
-              {claimMode ? "Set Up Your Account" : devMode ? "Developer Access" : "Welcome Back"}
+              {claimMode ? "Set Up Your Account" : devMode ? "Developer Access" : ecosystemMode ? "Ecosystem Login" : "Welcome Back"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {claimMode
                 ? "Enter your name, email, and create a password"
                 : devMode
                 ? "Enter your developer PIN to continue"
+                : ecosystemMode
+                ? "Sign in with your Trust Layer ID or email"
                 : multiUser ? "Enter your name and password to continue" : "Enter your password to continue"}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className={`space-y-3 transition-transform ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}>
-              {claimMode ? (
+              {ecosystemMode ? (
+                <>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      value={ecosystemIdentifier}
+                      onChange={(e) => setEcosystemIdentifier(e.target.value)}
+                      placeholder="Trust Layer ID or email"
+                      className="pl-10 h-12 text-base bg-white/5 border-white/10"
+                      data-testid="input-ecosystem-identifier"
+                      autoFocus
+                      disabled={isEcosystemLoggingIn}
+                    />
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={ecosystemCredential}
+                      onChange={(e) => setEcosystemCredential(e.target.value)}
+                      placeholder="Ecosystem PIN or password"
+                      className="pl-10 pr-10 h-12 text-base bg-white/5 border-white/10"
+                      data-testid="input-ecosystem-credential"
+                      disabled={isEcosystemLoggingIn}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                    Use your Trust Layer ID (tl-...) or registered email, along with your ecosystem PIN or password.
+                  </p>
+                </>
+              ) : claimMode ? (
                 <>
                   <div className="relative">
                     <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -2595,7 +2656,7 @@ function PasswordLogin() {
               )}
             </div>
 
-            {!devMode && !claimMode && (
+            {!devMode && !claimMode && !ecosystemMode && (
               <div className="flex items-center gap-3">
                 <Switch
                   id="remember-me"
@@ -2617,7 +2678,9 @@ function PasswordLogin() {
               size="lg"
               data-testid="button-login-submit"
               disabled={
-                claimMode
+                ecosystemMode
+                  ? (!ecosystemIdentifier.trim() || !ecosystemCredential || isEcosystemLoggingIn)
+                  : claimMode
                   ? (!name.trim() || !claimEmail.trim() || !password || !confirmPassword || isClaimingAccount)
                   : devMode
                   ? devPin.length < 1
@@ -2625,8 +2688,10 @@ function PasswordLogin() {
               }
               className="w-full text-base font-medium"
             >
-              {(isLoggingIn || isClaimingAccount) ? (
+              {(isLoggingIn || isClaimingAccount || isEcosystemLoggingIn) ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
+              ) : ecosystemMode ? (
+                "Sign In"
               ) : claimMode ? (
                 "Set Up Account"
               ) : devMode ? (
@@ -2637,7 +2702,7 @@ function PasswordLogin() {
             </Button>
 
             <div className="flex flex-col items-center gap-2">
-              {!devMode && (
+              {!devMode && !ecosystemMode && (
                 <button
                   type="button"
                   onClick={() => { setClaimMode(!claimMode); setErrorMsg(""); setPassword(""); setConfirmPassword(""); setClaimEmail(""); }}
@@ -2647,7 +2712,7 @@ function PasswordLogin() {
                   {claimMode ? "Already have a password? Log in" : "First time? Set up your account"}
                 </button>
               )}
-              {!claimMode && (
+              {!claimMode && !ecosystemMode && (
                 <button
                   type="button"
                   onClick={() => { setDevMode(!devMode); setErrorMsg(""); setDevPin(""); setPassword(""); }}
@@ -2656,6 +2721,17 @@ function PasswordLogin() {
                 >
                   <Monitor className="w-3.5 h-3.5" />
                   {devMode ? "Back to login" : "Developer access"}
+                </button>
+              )}
+              {!devMode && !claimMode && (
+                <button
+                  type="button"
+                  onClick={() => { setEcosystemMode(!ecosystemMode); setErrorMsg(""); setEcosystemIdentifier(""); setEcosystemCredential(""); setPassword(""); }}
+                  className="text-xs text-muted-foreground/70 hover:text-primary transition-colors flex items-center gap-1.5 mt-1"
+                  data-testid="button-ecosystem-login-toggle"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  {ecosystemMode ? "Back to login" : "Ecosystem login"}
                 </button>
               )}
             </div>

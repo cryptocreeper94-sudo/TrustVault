@@ -112,6 +112,20 @@ export function useAuth() {
     },
   });
 
+  const ecosystemLoginMutation = useMutation({
+    mutationFn: async ({ identifier, credential }: { identifier: string; credential: string }) => {
+      const res = await apiRequest("POST", "/api/auth/ecosystem-login", { identifier, credential });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Ecosystem login failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/auth/logout");
@@ -143,6 +157,9 @@ export function useAuth() {
     changePassword: changePasswordMutation.mutateAsync,
     changePasswordError: changePasswordMutation.error,
     isChangingPassword: changePasswordMutation.isPending,
+    ecosystemLogin: ecosystemLoginMutation.mutateAsync,
+    ecosystemLoginError: ecosystemLoginMutation.error,
+    isEcosystemLoggingIn: ecosystemLoginMutation.isPending,
     logout: logoutMutation.mutate,
     isLoggingOut: logoutMutation.isPending,
   };

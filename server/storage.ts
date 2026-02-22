@@ -82,6 +82,8 @@ export interface IStorage {
   getPinAuth(): Promise<PinAuth | undefined>;
   getPinAuthByName(name: string): Promise<PinAuth | undefined>;
   getPinAuthById(id: number): Promise<PinAuth | undefined>;
+  getPinAuthByTrustLayerId(trustLayerId: string): Promise<PinAuth | undefined>;
+  getPinAuthByEmail(email: string): Promise<PinAuth | undefined>;
   getAllPinAuths(): Promise<PinAuth[]>;
   updatePin(id: number, pin: string, mustReset: boolean, email?: string): Promise<PinAuth>;
   initializePinAuth(pin: string, name: string, mustReset?: boolean, tenantId?: string): Promise<PinAuth>;
@@ -292,6 +294,16 @@ export class DatabaseStorage implements IStorage {
   async getPinAuthById(id: number): Promise<PinAuth | undefined> {
     const [auth] = await db.select().from(pinAuth).where(eq(pinAuth.id, id));
     return auth;
+  }
+
+  async getPinAuthByTrustLayerId(trustLayerId: string): Promise<PinAuth | undefined> {
+    const [auth] = await db.select().from(pinAuth).where(eq(pinAuth.trustLayerId, trustLayerId));
+    return auth;
+  }
+
+  async getPinAuthByEmail(email: string): Promise<PinAuth | undefined> {
+    const allAuths = await db.select().from(pinAuth);
+    return allAuths.find(a => a.email?.toLowerCase() === email.toLowerCase());
   }
 
   async getAllPinAuths(): Promise<PinAuth[]> {

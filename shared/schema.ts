@@ -27,6 +27,9 @@ export const pinAuth = pgTable("pin_auth", {
   email: text("email"),
   tenantId: varchar("tenant_id"),
   isAdmin: boolean("is_admin").default(false),
+  trustLayerId: text("trust_layer_id"),
+  ecosystemPinHash: text("ecosystem_pin_hash"),
+  ecosystemApp: text("ecosystem_app"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -122,6 +122,58 @@ async function bootstrapFamilyAccounts() {
   console.log("[Bootstrap] Family accounts ready");
 }
 
+async function bootstrapEcosystemMembers() {
+  const { db } = await import("./db");
+  const { pinAuth } = await import("@shared/schema");
+  const { eq } = await import("drizzle-orm");
+
+  const ecosystemMembers = [
+    { name: "Kathy Nguyen", email: "kathy@happyeats.io", password: "HappyEats@2025", pin: "7724", trustLayerId: "tl-kathy-he01", ecosystemApp: "Happy Eats" },
+    { name: "Marcus Chen", email: "marcus@trusthome.io", password: "TrustHome@2025", pin: "4419", trustLayerId: "tl-marc-th01", ecosystemApp: "TrustHome" },
+    { name: "Devon Park", email: "devon@signal.dw", password: "Signal@2025", pin: "8832", trustLayerId: "tl-devn-sg01", ecosystemApp: "Signal" },
+  ];
+
+  for (const m of ecosystemMembers) {
+    const existing = await storage.getPinAuthByTrustLayerId(m.trustLayerId);
+    if (existing) {
+      console.log(`[Bootstrap] Ecosystem member ${m.name} (${m.trustLayerId}) already exists, skipping`);
+      continue;
+    }
+    const existingByEmail = await storage.getPinAuthByEmail(m.email);
+    if (existingByEmail) {
+      if (!existingByEmail.trustLayerId) {
+        const pinHash = await bcrypt.hash(m.pin, 12);
+        await db.update(pinAuth).set({
+          trustLayerId: m.trustLayerId,
+          ecosystemPinHash: pinHash,
+          ecosystemApp: m.ecosystemApp,
+        }).where(eq(pinAuth.id, existingByEmail.id));
+        console.log(`[Bootstrap] Linked existing ${m.name} to Trust Layer (${m.trustLayerId})`);
+      }
+      continue;
+    }
+    const passwordHash = await bcrypt.hash(m.password, 12);
+    const pinHash = await bcrypt.hash(m.pin, 12);
+    const storagePrefix = m.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    const tenant = await storage.createTenant({
+      name: m.name,
+      storagePrefix,
+      tier: "free",
+      status: "active",
+    });
+    const auth = await storage.initializePinAuth(passwordHash, m.name, false, tenant.id);
+    await db.update(pinAuth).set({
+      email: m.email,
+      trustLayerId: m.trustLayerId,
+      ecosystemPinHash: pinHash,
+      ecosystemApp: m.ecosystemApp,
+    }).where(eq(pinAuth.id, auth.id));
+    await storage.updateTenant(tenant.id, { pinAuthId: auth.id });
+    console.log(`[Bootstrap] Created ecosystem member ${m.name} (${m.trustLayerId}) from ${m.ecosystemApp}`);
+  }
+  console.log("[Bootstrap] Ecosystem members ready");
+}
+
 async function bootstrapEcosystemTenants() {
   const { ecosystemStorage } = await import("./ecosystem/storage");
 
@@ -231,6 +283,10 @@ export async function registerRoutes(
 
   bootstrapEcosystemTenants().catch((err) => {
     console.error("[Bootstrap] Failed to seed ecosystem tenants:", err);
+  });
+
+  bootstrapEcosystemMembers().catch((err) => {
+    console.error("[Bootstrap] Failed to seed ecosystem members:", err);
   });
 
   app.post("/api/client-error", (req, res) => {
@@ -383,6 +439,83 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Login error:", err);
       return res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/ecosystem-login", async (req, res) => {
+    try {
+      const { identifier, credential } = req.body;
+      if (!identifier || !credential || typeof identifier !== "string" || typeof credential !== "string") {
+        return res.status(400).json({ message: "Trust Layer ID or email and credential are required" });
+      }
+      const trimmedId = identifier.trim();
+      const trimmedCred = credential.trim();
+      if (!trimmedId || !trimmedCred) {
+        return res.status(400).json({ message: "Trust Layer ID or email and credential are required" });
+      }
+
+      let auth;
+      if (trimmedId.startsWith("tl-")) {
+        auth = await storage.getPinAuthByTrustLayerId(trimmedId);
+      }
+      if (!auth) {
+        auth = await storage.getPinAuthByEmail(trimmedId.toLowerCase());
+      }
+      if (!auth) {
+        return res.status(401).json({ message: "No ecosystem account found. Check your Trust Layer ID or email." });
+      }
+
+      if (!auth.trustLayerId) {
+        return res.status(401).json({ message: "This account is not linked to the Trust Layer ecosystem. Please sign in with your email and password instead." });
+      }
+
+      let authenticated = false;
+      if (auth.ecosystemPinHash && trimmedCred.length <= 8 && /^\d+$/.test(trimmedCred)) {
+        authenticated = await bcrypt.compare(trimmedCred, auth.ecosystemPinHash);
+      }
+      if (!authenticated) {
+        authenticated = await bcrypt.compare(trimmedCred, auth.pin);
+      }
+      if (!authenticated) {
+        return res.status(401).json({ message: "Invalid credential. Please check your password or ecosystem PIN." });
+      }
+
+      let tenant;
+      if (auth.tenantId) {
+        tenant = await storage.getTenant(auth.tenantId);
+      }
+      if (!tenant) {
+        tenant = await storage.getTenantByPinAuthId(auth.id);
+      }
+      if (!tenant) {
+        const storagePrefix = auth.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        tenant = await storage.createTenant({
+          name: auth.name,
+          storagePrefix,
+          tier: "free",
+          status: "active",
+          pinAuthId: auth.id,
+        });
+      }
+
+      req.session.authenticated = true;
+      req.session.name = auth.name;
+      req.session.tenantId = tenant.id;
+      req.session.pinAuthId = auth.id;
+      req.session.isAdmin = auth.isAdmin ?? false;
+
+      console.log(`[Ecosystem Login] ${auth.name} (${auth.email}) authenticated via Trust Layer (${auth.trustLayerId}) from ${auth.ecosystemApp || "unknown"}`);
+
+      return res.json({
+        name: auth.name,
+        mustReset: false,
+        tenantId: tenant.id,
+        isAdmin: auth.isAdmin ?? false,
+        ecosystemApp: auth.ecosystemApp,
+      });
+    } catch (err) {
+      console.error("Ecosystem login error:", err);
+      return res.status(500).json({ message: "Login failed. Please try again." });
     }
   });
 
