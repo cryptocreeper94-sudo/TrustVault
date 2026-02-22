@@ -74,13 +74,13 @@ async function bootstrapFamilyAccounts() {
   const hashedJasonPin = await bcrypt.hash(JASON_PIN, 10);
 
   const familyMembers = [
-    { name: "Jason", isAdmin: true, mustReset: false, password: hashedJasonPin },
-    { name: "Madeline", isAdmin: false, mustReset: true, password: hashedTempPassword },
-    { name: "Natalie", isAdmin: false, mustReset: true, password: hashedTempPassword },
-    { name: "Avery", isAdmin: false, mustReset: true, password: hashedTempPassword },
-    { name: "Jennifer", isAdmin: false, mustReset: true, password: hashedTempPassword },
-    { name: "Will", isAdmin: false, mustReset: true, password: hashedTempPassword },
-    { name: "Carley", isAdmin: false, mustReset: true, password: hashedTempPassword },
+    { name: "Jason", isAdmin: true, mustReset: false, password: hashedJasonPin, tier: "studio" as const },
+    { name: "Madeline", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "free" as const },
+    { name: "Natalie", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "free" as const },
+    { name: "Avery", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "free" as const },
+    { name: "Jennifer", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
+    { name: "Will", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
+    { name: "Carley", isAdmin: false, mustReset: true, password: hashedTempPassword, tier: "studio" as const },
   ];
 
   for (const member of familyMembers) {
@@ -100,12 +100,19 @@ async function bootstrapFamilyAccounts() {
       } else {
         console.log(`[Bootstrap] ${member.name} already set up, skipping`);
       }
+      if (existing.tenantId && member.tier !== "free") {
+        const tenant = await storage.getTenant(existing.tenantId);
+        if (tenant && tenant.tier !== member.tier) {
+          await storage.updateTenant(tenant.id, { tier: member.tier });
+          console.log(`[Bootstrap] Upgraded ${member.name} to ${member.tier} tier`);
+        }
+      }
     } else {
       const storagePrefix = member.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
       const tenant = await storage.createTenant({
         name: member.name,
         storagePrefix,
-        tier: "free",
+        tier: member.tier,
         status: "active",
       });
       const auth = await storage.initializePinAuth(member.password, member.name, member.mustReset, tenant.id);
