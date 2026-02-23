@@ -46,8 +46,8 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
     - **Portfolio Generator**: AI selects best work for a curated portfolio page.
     - **Magic Aspect Ratio Fill**: AI-matched gradient fill for aspect ratio changes.
 - **AI Tools Dropdown**: Accessible from main vault toolbar and hamburger menu AI Creative Tools section.
-- **Explorer Page**: User-facing landing page at `/explore` with photorealistic card grid covering all main features (Vault, Editors, AI Tools, Blog, Chat, Pricing, Roadmap). First screen after login. Developer Portal link at bottom for admin users.
-- **Developer Explorer**: Admin-only portal at `/developer` with photorealistic card grid for platform management (User Management, Blockchain, API Keys, Revenue, Ecosystem, Invites, System Activity, Settings). Cross-navigates to/from User Explorer. Replaces the old Command Center.
+- **Explorer Page**: User-facing landing page at `/explore` with cinematic rotating video hero (6 AI-generated flyover videos with crossfade transitions, parallax scroll fade, navigation dots) and photorealistic card grid covering all main features (Vault, Editors, AI Tools, Blog, Chat, Pricing, Roadmap). First screen after login. Developer Portal link at bottom for admin users.
+- **Developer Explorer**: Admin-only portal at `/developer` with cinematic rotating video hero (same 6 videos as Explorer) and photorealistic card grid for platform management (User Management, Blockchain, API Keys, Revenue, Ecosystem, Invites, System Activity, Settings). Cross-navigates to/from User Explorer. Replaces the old Command Center.
 - **Founder Mission Statement**: Jason's creator statement in hamburger menu emphasizing affordable professional tools and TrustLayer foundation.
 - **Signal Chat**: Real-time, ecosystem-wide chat system at `/chat` with JWT-authenticated SSO, channel-based messaging, WebSockets, typing indicators, and presence tracking.
 

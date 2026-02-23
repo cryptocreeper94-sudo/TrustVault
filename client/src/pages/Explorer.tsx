@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMediaItems, useCollections } from "@/hooks/use-media";
 import { TiltCard } from "@/components/TiltCard";
 import { useSoundFeedback } from "@/hooks/use-sound-feedback";
+import { VideoHero } from "@/components/VideoHero";
 
 import trustlayerEmblem from "../assets/images/trustvault-emblem.png";
 import exploreVault from "../assets/images/explore-vault.png";
@@ -313,20 +314,16 @@ export default function Explorer() {
           </div>
         </header>
 
-        <main className="max-w-6xl mx-auto px-4 pt-20 pb-20">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center py-6"
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold text-white font-display" data-testid="text-explore-heading">
-              Explore TrustVault
-            </h2>
-            <p className="text-white/50 text-sm mt-2 max-w-md mx-auto">
-              Your complete creative studio. Pick a tool to get started.
-            </p>
-          </motion.div>
+        <VideoHero>
+          <h2 className="text-4xl sm:text-5xl font-bold text-white font-display drop-shadow-lg" data-testid="text-explore-heading">
+            Explore TrustVault
+          </h2>
+          <p className="text-white/60 text-base mt-3 max-w-lg mx-auto drop-shadow">
+            Your complete creative studio. Pick a tool to get started.
+          </p>
+        </VideoHero>
+
+        <main className="max-w-6xl mx-auto px-4 pt-10 pb-20">
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {cards.map((card, i) => (

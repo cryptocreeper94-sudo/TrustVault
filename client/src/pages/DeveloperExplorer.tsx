@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { TiltCard } from "@/components/TiltCard";
 import { useSoundFeedback } from "@/hooks/use-sound-feedback";
+import { VideoHero } from "@/components/VideoHero";
 
 import trustlayerEmblem from "../assets/images/trustvault-emblem.png";
 import devUserMgmt from "../assets/images/dev-user-mgmt.png";
@@ -308,24 +309,20 @@ export default function DeveloperExplorer() {
           </div>
         </header>
 
-        <main className="max-w-6xl mx-auto px-4 pt-20 pb-20">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center py-6"
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/20 bg-violet-500/10 mb-4">
-              <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
-              <span className="text-violet-300 text-xs font-medium">Admin Mode</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white font-display" data-testid="text-dev-heading">
-              Developer Portal
-            </h2>
-            <p className="text-white/50 text-sm mt-2 max-w-lg mx-auto">
-              Platform management, ecosystem integrations, and system administration tools.
-            </p>
-          </motion.div>
+        <VideoHero>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/20 bg-violet-500/10 mb-4">
+            <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+            <span className="text-violet-300 text-xs font-medium">Admin Mode</span>
+          </div>
+          <h2 className="text-4xl sm:text-5xl font-bold text-white font-display drop-shadow-lg" data-testid="text-dev-heading">
+            Developer Portal
+          </h2>
+          <p className="text-white/60 text-base mt-3 max-w-lg mx-auto drop-shadow">
+            Platform management, ecosystem integrations, and system administration tools.
+          </p>
+        </VideoHero>
+
+        <main className="max-w-6xl mx-auto px-4 pt-10 pb-20">
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {cards.map((card, i) => (
