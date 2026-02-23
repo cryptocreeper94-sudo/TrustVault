@@ -69,7 +69,7 @@ function useStats() {
   };
 }
 
-function ExploreCardComponent({ card, index }: { card: ExploreCard; index: number }) {
+function ExploreCardComponent({ card, index, loggedIn }: { card: ExploreCard; index: number; loggedIn: boolean }) {
   const [, navigate] = useLocation();
   const soundFeedback = useSoundFeedback();
 
@@ -77,7 +77,7 @@ function ExploreCardComponent({ card, index }: { card: ExploreCard; index: numbe
     <TiltCard
       tiltAmount={6}
       glareEnabled
-      onClick={() => { soundFeedback("click"); navigate(card.href); }}
+      onClick={() => { soundFeedback("click"); navigate(loggedIn ? card.href : "/login"); }}
       className={`group rounded-2xl overflow-hidden cursor-pointer ${card.featured ? "sm:col-span-2 sm:row-span-2" : ""}`}
       style={{ minHeight: card.featured ? "280px" : "220px" }}
       data-testid={`card-explore-${card.title.toLowerCase().replace(/\s+/g, "-")}`}
@@ -159,10 +159,7 @@ export default function Explorer() {
     );
   }
 
-  if (!user) {
-    navigate("/login");
-    return null;
-  }
+  const loggedIn = !!user;
 
   const cards: ExploreCard[] = [
     {
@@ -298,18 +295,32 @@ export default function Explorer() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-white/50 text-xs hidden sm:block" data-testid="text-explore-greeting">
-                {getGreeting()}, {user.name}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white/60"
-                onClick={() => { logout(); navigate("/login"); }}
-                data-testid="button-explore-logout"
-              >
-                <LogOut className="size-4" />
-              </Button>
+              {loggedIn ? (
+                <>
+                  <span className="text-white/50 text-xs hidden sm:block" data-testid="text-explore-greeting">
+                    {getGreeting()}, {user!.name}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/60"
+                    onClick={() => { logout(); navigate("/"); }}
+                    data-testid="button-explore-logout"
+                  >
+                    <LogOut className="size-4" />
+                  </Button>
+                </>
+              ) : (
+                <Link href="/login">
+                  <Button
+                    size="sm"
+                    className="bg-violet-600 hover:bg-violet-500 text-white text-xs px-4"
+                    data-testid="button-explore-signin"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -327,11 +338,11 @@ export default function Explorer() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {cards.map((card, i) => (
-              <ExploreCardComponent key={card.title} card={card} index={i} />
+              <ExploreCardComponent key={card.title} card={card} index={i} loggedIn={loggedIn} />
             ))}
           </div>
 
-          {user.isAdmin && (
+          {user?.isAdmin && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
