@@ -165,10 +165,11 @@ function Router() {
           className="flex-1"
         >
           <Switch>
-            <Route path="/" component={Home} />
+            <Route path="/" component={Explorer} />
             <Route path="/explore" component={Explorer} />
             <Route path="/dashboard" component={Explorer} />
             <Route path="/developer" component={DeveloperExplorer} />
+            <Route path="/login" component={Home} />
             <Route path="/vault" component={Home} />
             <Route path="/editor/image/:id" component={ImageEditor} />
             <Route path="/editor/audio/:id" component={AudioEditor} />
