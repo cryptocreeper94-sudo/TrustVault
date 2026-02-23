@@ -1284,7 +1284,7 @@ export default function Home() {
     return <>{seoHelmet}<PasswordLogin /></>;
   }
 
-  if (currentPath === "/" && user && !user.mustReset) {
+  if ((currentPath === "/" || currentPath === "/login") && user && !user.mustReset) {
     navigateHome("/explore");
     return null;
   }

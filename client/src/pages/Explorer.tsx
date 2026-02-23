@@ -159,7 +159,7 @@ export default function Explorer() {
   }
 
   if (!user) {
-    navigate("/");
+    navigate("/login");
     return null;
   }
 
@@ -304,7 +304,7 @@ export default function Explorer() {
                 variant="ghost"
                 size="icon"
                 className="text-white/60"
-                onClick={() => { logout(); navigate("/"); }}
+                onClick={() => { logout(); navigate("/login"); }}
                 data-testid="button-explore-logout"
               >
                 <LogOut className="size-4" />

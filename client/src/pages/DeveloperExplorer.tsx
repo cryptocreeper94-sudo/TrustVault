@@ -299,7 +299,7 @@ export default function DeveloperExplorer() {
                 variant="ghost"
                 size="icon"
                 className="text-white/60"
-                onClick={() => { logout(); navigate("/"); }}
+                onClick={() => { logout(); navigate("/login"); }}
                 data-testid="button-dev-logout"
               >
                 <LogOut className="size-4" />
