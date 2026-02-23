@@ -114,7 +114,7 @@ export function VideoHero({ children }: VideoHeroProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-[#070b16]" />
       </div>
 
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
         {HERO_VIDEOS.map((v, idx) => (
           <button
             key={idx}
