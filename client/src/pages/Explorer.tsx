@@ -1,12 +1,12 @@
-import { type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { type ReactNode, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation } from "wouter";
 import {
   Vault, Image, Music, Video, Layers,
   Sparkles, FolderOpen, Radio, CreditCard,
   FileText, Map, LogOut, Wrench,
-  ArrowRight,
+  ArrowRight, X, Check, Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +54,245 @@ interface ExploreCard {
   badge?: string;
   stat?: string;
   featured?: boolean;
+  demoFeatures?: string[];
+  demoDescription?: string;
+}
+
+const DEMO_DATA: Record<string, { description: string; features: string[] }> = {
+  "Media Vault": {
+    description: "Your central hub for all digital media. Upload, organize, preview, and manage images, audio, video, and documents — all in one secure, multi-tenant space.",
+    features: [
+      "Drag & drop upload with presigned URL streaming",
+      "Grid and list view with live previews",
+      "Category filtering — images, audio, video, documents",
+      "Tag-based organization with smart search",
+      "Collections for grouping related files",
+      "Timeline view for chronological browsing",
+      "Bulk actions — download, delete, tag multiple files",
+      "Date range filtering and advanced sorting",
+      "Full modal media viewer with playback controls",
+      "Multi-tenant isolation — your files stay private",
+    ],
+  },
+  "Image Editor": {
+    description: "A full-featured image editor rivaling professional tools. From quick adjustments to AI-powered enhancements, everything runs right in your browser.",
+    features: [
+      "Crop, rotate, flip, and resize",
+      "16 built-in filters — Vintage, Noir, Vivid, Retro Pop, and more",
+      "Manual color grading — brightness, contrast, saturation, temperature",
+      "AI Auto-Enhance — one-click professional optimization",
+      "AI Background Removal — isolate subjects instantly",
+      "AI Smart Erase — remove unwanted objects",
+      "Magic Aspect Ratio Fill — AI-matched gradient expansion",
+      "Voice-commanded editing via Web Speech API",
+      "Text overlays with custom fonts, sizes, and colors",
+      "Freehand drawing with adjustable brush and eraser",
+      "Sticker overlays — stars, hearts, arrows, lightning",
+      "Style presets — Portrait, Landscape, Food, Night, Cinematic",
+      "Full undo/redo history",
+      "Before/after comparison mode",
+    ],
+  },
+  "Audio Editor": {
+    description: "Professional audio editing powered by the Web Audio API. Trim, mix, and master your tracks with real-time effects and a visual waveform editor.",
+    features: [
+      "Interactive waveform visualizer with trim handles",
+      "Fade in and fade out controls",
+      "3-band EQ — bass, mid, treble adjustments",
+      "Reverb with adjustable wet/dry mix",
+      "Noise gate for cleaning up audio",
+      "Volume control from 0% to 200%",
+      "Adjustable playback speed (0.5x to 2.0x)",
+      "Audio presets — Podcast Voice, Music Boost, Lo-Fi, Concert Hall",
+      "Full undo/redo history",
+      "Export to WAV format",
+    ],
+  },
+  "Video Editor": {
+    description: "Color grade and trim your video clips with real-time preview. Apply cinematic looks and capture perfect frames from any moment in your footage.",
+    features: [
+      "Timeline trimming with visual handles",
+      "Color grading — brightness, contrast, saturation, hue",
+      "Temperature and vignette adjustments",
+      "Cinematic presets — Film, Vintage, Noir, Warm Sunset",
+      "Frame capture — save any moment as a still image",
+      "Adjustable playback speed (0.5x to 2.0x)",
+      "Before/after comparison toggle",
+      "Skip forward/backward, mute, fullscreen controls",
+      "Full undo/redo history",
+    ],
+  },
+  "Merge Studio": {
+    description: "Combine your media into finished projects. Create image collages, join audio tracks, or concatenate video clips — all in one guided workflow.",
+    features: [
+      "Image collage — 2x2, 3x3, 2x1, 1x2, auto layouts",
+      "Adjustable gap and background color for collages",
+      "Audio concatenation with crossfade transitions",
+      "Video merging with automatic format normalization",
+      "Smart aspect ratio handling across all merge types",
+      "Real-time preview before exporting",
+      "Automatic upload of finished projects to your vault",
+    ],
+  },
+  "AI Creative Tools": {
+    description: "A suite of AI-powered creative tools that analyze, enhance, and transform your media using advanced vision and language models.",
+    features: [
+      "AI Auto-Tag — automatic tagging on upload using vision analysis",
+      "AI Smart Search — find files with natural language queries",
+      "AI Caption Generator — descriptive, social, or professional captions",
+      "Social Media Kit — generate 5 platform-optimized image sizes",
+      "Audio Visualizer — real-time visualization with 5 styles",
+      "Beat-Sync Video Maker — sync photo transitions to music beats",
+      "Thumbnail Ranker — AI scores images for social media impact",
+      "Portfolio Generator — AI curates your best work",
+      "Style DNA — analyze your aesthetic across all your photos",
+    ],
+  },
+  "Collections": {
+    description: "Organize your files into themed collections. Group related media together for easy access and streamlined project management.",
+    features: [
+      "Create unlimited collections",
+      "Add any media type to a collection",
+      "Browse collections in a dedicated view",
+      "Drag and drop to organize",
+      "Quick access from the vault sidebar",
+    ],
+  },
+  "Blog": {
+    description: "A built-in content platform with AI-powered article creation. Write, edit, and publish blog posts to share with your audience.",
+    features: [
+      "AI-powered content generation via OpenAI",
+      "Rich text editing with formatting tools",
+      "Public blog with SEO-friendly URLs",
+      "Admin dashboard for managing posts",
+      "Draft and publish workflow",
+    ],
+  },
+  "Signal Chat": {
+    description: "Real-time secure messaging across the entire TrustLayer ecosystem. Connect with other users through channel-based conversations.",
+    features: [
+      "Real-time WebSocket messaging",
+      "Channel-based conversations",
+      "Typing indicators and presence tracking",
+      "JWT-authenticated single sign-on",
+      "Cross-app ecosystem messaging",
+    ],
+  },
+  "Plans & Pricing": {
+    description: "Choose the plan that fits your creative needs. From free to studio-level, each tier unlocks more storage, features, and AI capabilities.",
+    features: [
+      "Free tier — get started with basic features",
+      "Personal — expanded storage and editing tools",
+      "Pro — full AI suite and advanced features",
+      "Studio — unlimited everything, priority support",
+      "Stripe-powered secure checkout",
+      "Manage subscriptions via customer portal",
+    ],
+  },
+  "Roadmap": {
+    description: "See what's coming next for TrustVault. Explore upcoming features, planned integrations, and the vision for the platform.",
+    features: [
+      "Phase-by-phase development timeline",
+      "Upcoming feature previews",
+      "Blockchain integration roadmap",
+      "Native app development plans",
+      "Community feedback integration",
+    ],
+  },
+};
+
+function DemoModal({ card, onClose, onSignIn }: { card: ExploreCard; onClose: () => void; onSignIn: () => void }) {
+  const demo = DEMO_DATA[card.title];
+  if (!demo) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10"
+        style={{ background: "linear-gradient(135deg, #0c1222, #111827, #0c1222)" }}
+      >
+        <div className="relative h-48 overflow-hidden rounded-t-2xl">
+          <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1222] via-black/40 to-transparent" />
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all"
+            data-testid="button-demo-close"
+          >
+            <X className="size-4" />
+          </button>
+          <div className="absolute bottom-4 left-5 flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${card.gradient} text-white shadow-lg`}>
+              {card.icon}
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-xl">{card.title}</h3>
+              {card.badge && (
+                <Badge className="text-[10px] bg-white/15 text-white border-white/20 mt-1 no-default-hover-elevate no-default-active-elevate">
+                  {card.badge}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-5">
+          <p className="text-white/70 text-sm leading-relaxed">{demo.description}</p>
+
+          <div>
+            <h4 className="text-white/90 text-xs font-semibold uppercase tracking-wider mb-3">What's included</h4>
+            <div className="space-y-2">
+              {demo.features.map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03, duration: 0.25 }}
+                  className="flex items-start gap-2.5"
+                >
+                  <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 bg-gradient-to-br ${card.gradient}`}>
+                    <Check className="size-3 text-white" />
+                  </div>
+                  <span className="text-white/65 text-sm leading-snug">{feature}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2 pb-1 space-y-3">
+            <Button
+              onClick={onSignIn}
+              className={`w-full bg-gradient-to-r ${card.gradient} hover:opacity-90 text-white font-semibold h-11`}
+              data-testid="button-demo-signin"
+            >
+              <Lock className="size-4 mr-2" />
+              Sign In to Use {card.title}
+            </Button>
+            <button
+              onClick={onClose}
+              className="w-full text-center text-white/40 text-xs hover:text-white/60 transition-colors"
+              data-testid="button-demo-back"
+            >
+              Back to Explorer
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 function useStats() {
@@ -69,7 +308,7 @@ function useStats() {
   };
 }
 
-function ExploreCardComponent({ card, index, loggedIn }: { card: ExploreCard; index: number; loggedIn: boolean }) {
+function ExploreCardComponent({ card, index, loggedIn, onDemo }: { card: ExploreCard; index: number; loggedIn: boolean; onDemo: (card: ExploreCard) => void }) {
   const [, navigate] = useLocation();
   const soundFeedback = useSoundFeedback();
 
@@ -77,7 +316,7 @@ function ExploreCardComponent({ card, index, loggedIn }: { card: ExploreCard; in
     <TiltCard
       tiltAmount={6}
       glareEnabled
-      onClick={() => { soundFeedback("click"); navigate(loggedIn ? card.href : "/login"); }}
+      onClick={() => { soundFeedback("click"); if (loggedIn) navigate(card.href); else onDemo(card); }}
       className={`group rounded-2xl overflow-hidden cursor-pointer ${card.featured ? "sm:col-span-2 sm:row-span-2" : ""}`}
       style={{ minHeight: card.featured ? "280px" : "220px" }}
       data-testid={`card-explore-${card.title.toLowerCase().replace(/\s+/g, "-")}`}
@@ -139,6 +378,7 @@ export default function Explorer() {
   const { user, isLoading, logout } = useAuth();
   const [, navigate] = useLocation();
   const stats = useStats();
+  const [demoCard, setDemoCard] = useState<ExploreCard | null>(null);
 
   if (isLoading) {
     return (
@@ -338,7 +578,7 @@ export default function Explorer() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {cards.map((card, i) => (
-              <ExploreCardComponent key={card.title} card={card} index={i} loggedIn={loggedIn} />
+              <ExploreCardComponent key={card.title} card={card} index={i} loggedIn={loggedIn} onDemo={setDemoCard} />
             ))}
           </div>
 
@@ -379,6 +619,16 @@ export default function Explorer() {
           </motion.div>
         </main>
       </div>
+
+      <AnimatePresence>
+        {demoCard && (
+          <DemoModal
+            card={demoCard}
+            onClose={() => setDemoCard(null)}
+            onSignIn={() => { setDemoCard(null); navigate("/login"); }}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
