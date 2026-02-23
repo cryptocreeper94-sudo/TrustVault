@@ -2408,9 +2408,6 @@ function PasswordLogin() {
     }
   };
 
-  if (!showLoginForm && !claimMode) {
-    return <CinematicLanding onGetStarted={() => setShowLoginForm(true)} />;
-  }
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row">
