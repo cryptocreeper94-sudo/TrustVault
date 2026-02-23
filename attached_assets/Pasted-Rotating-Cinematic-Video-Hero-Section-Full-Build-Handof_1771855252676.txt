@@ -1,0 +1,302 @@
+Rotating Cinematic Video Hero Section — Full Build Handoff
+Overview
+This document describes how to build a full-screen rotating cinematic video hero section, as implemented in Verdara (App #28). The hero plays 6 short aerial flyover videos in sequence with smooth crossfade transitions, parallax scroll fade-out, clickable navigation dots, and animated overlay content. It works on desktop and mobile, including iOS Safari autoplay.
+
+Part 1: Creating the Videos
+Video Generation
+Videos are generated using the AI video generation tool (Veo). Each video should be a short cinematic aerial drone flyover clip.
+
+Prompt formula:
+
+Cinematic aerial drone flyover shot of [your scene description], smooth camera movement, golden hour lighting, 4K nature documentary style
+Example prompts used in Verdara:
+
+"Cinematic aerial drone flyover shot of misty Appalachian mountain ridges at sunrise, smooth camera movement, golden hour lighting, 4K nature documentary style"
+"Cinematic aerial drone flyover shot of dense forest canopy with autumn colors, smooth camera movement, golden hour lighting, 4K nature documentary style"
+"Cinematic aerial drone flyover shot of winding river through valley with wildflowers, smooth camera movement, golden hour lighting, 4K nature documentary style"
+"Cinematic aerial drone flyover shot of mountain ridge at sunset with dramatic clouds, smooth camera movement, golden hour lighting, 4K nature documentary style"
+"Cinematic aerial drone flyover shot of alpine meadow with wildflowers and distant peaks, smooth camera movement, golden hour lighting, 4K nature documentary style"
+"Cinematic aerial drone flyover shot of wilderness trail through old growth forest, smooth camera movement, golden hour lighting, 4K nature documentary style"
+For Trust Vault, adapt the prompts to match your app's subject matter. For example:
+
+"Cinematic aerial drone flyover shot of modern city skyline with glass buildings at golden hour..."
+"Cinematic aerial shot of secure vault corridor with dramatic lighting..."
+Video Specs
+Format: MP4
+File size: Keep each file under 600KB. The generated videos typically come in at 200-565KB each. This is critical for mobile performance — large videos will stall on cellular connections.
+Count: 6 videos gives a good rotation without excessive loading. You can do fewer (minimum 3 for variety) or more, but 6 is the sweet spot.
+Duration: Each clip is typically 4-8 seconds. Short clips keep the rotation feeling dynamic.
+File Storage
+Place the video files in your assets directory:
+
+client/src/assets/videos/
+├── hero-flyover-1.mp4
+├── hero-flyover-2.mp4
+├── hero-flyover-3.mp4
+├── hero-flyover-4.mp4
+├── hero-flyover-5.mp4
+└── hero-flyover-6.mp4
+Part 2: Importing the Videos (Vite)
+Vite handles asset imports and gives you the correct hashed URL at build time. Import each video file directly:
+
+import heroVideo1 from "../assets/videos/hero-flyover-1.mp4";
+import heroVideo2 from "../assets/videos/hero-flyover-2.mp4";
+import heroVideo3 from "../assets/videos/hero-flyover-3.mp4";
+import heroVideo4 from "../assets/videos/hero-flyover-4.mp4";
+import heroVideo5 from "../assets/videos/hero-flyover-5.mp4";
+import heroVideo6 from "../assets/videos/hero-flyover-6.mp4";
+const HERO_VIDEOS = [
+  { src: heroVideo1, label: "Scene One" },
+  { src: heroVideo2, label: "Scene Two" },
+  { src: heroVideo3, label: "Scene Three" },
+  { src: heroVideo4, label: "Scene Four" },
+  { src: heroVideo5, label: "Scene Five" },
+  { src: heroVideo6, label: "Scene Six" },
+];
+The label field is for accessibility and the navigation dots — name each one descriptively for your app.
+
+Part 3: How the Dual-Video Crossfade Works
+The core technique uses two <video> elements stacked on top of each other. At any moment:
+
+The current video is visible and playing (opacity 1)
+The next video is hidden and preloaded (opacity 0)
+When the current video ends:
+
+Both videos swap opacity over 700ms (CSS transition)
+After the transition completes, the indices advance — what was "next" becomes "current," and the next video in the array starts preloading
+The new current video auto-plays
+This creates a seamless crossfade with no flicker or loading gap.
+
+Part 4: State Management
+const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+const [nextVideoIndex, setNextVideoIndex] = useState(1);
+const [isVideoTransitioning, setIsVideoTransitioning] = useState(false);
+const [videoMuted, setVideoMuted] = useState(true);
+const currentVideoRef = useRef<HTMLVideoElement>(null);
+const nextVideoRef = useRef<HTMLVideoElement>(null);
+currentVideoIndex — Which video in HERO_VIDEOS is currently playing
+nextVideoIndex — Which video is preloaded and ready to crossfade in
+isVideoTransitioning — True during the 700ms crossfade window; flips opacity classes
+videoMuted — Must start as true (explained in mobile section below)
+Two refs for direct DOM access to the video elements for .play() and .load() calls
+Part 5: The Three useEffect Hooks
+These three effects handle the entire auto-rotation lifecycle:
+
+Effect 1: Listen for video end, trigger crossfade
+useEffect(() => {
+  const handleVideoEnd = () => {
+    setIsVideoTransitioning(true);
+    setTimeout(() => {
+      setCurrentVideoIndex(nextVideoIndex);
+      setNextVideoIndex((nextVideoIndex + 1) % HERO_VIDEOS.length);
+      setIsVideoTransitioning(false);
+    }, 400);
+  };
+  const video = currentVideoRef.current;
+  if (video) {
+    video.addEventListener('ended', handleVideoEnd);
+    return () => video.removeEventListener('ended', handleVideoEnd);
+  }
+}, [nextVideoIndex, videoMuted]);
+When the current video fires its ended event:
+
+Set transitioning to true (swaps opacity classes instantly)
+After 400ms, update the indices and set transitioning to false
+The 400ms overlap means both videos are partially visible during crossfade
+Effect 2: Preload the next video
+useEffect(() => {
+  if (nextVideoRef.current) {
+    nextVideoRef.current.load();
+  }
+}, [nextVideoIndex]);
+Whenever nextVideoIndex changes, call .load() on the next video element so it buffers while the current one plays.
+
+Effect 3: Auto-play after transition
+useEffect(() => {
+  if (currentVideoRef.current && !isVideoTransitioning) {
+    const video = currentVideoRef.current;
+    video.volume = 0;
+    video.play().catch(() => {});
+  }
+}, [currentVideoIndex, isVideoTransitioning, videoMuted]);
+When currentVideoIndex updates and the transition is complete, programmatically play the new current video. Setting volume = 0 is a belt-and-suspenders approach alongside the muted attribute. The .catch(() => {}) swallows any autoplay rejection errors gracefully.
+
+Part 6: Parallax Scroll Effect
+This makes the hero content fade out as the user scrolls down, creating a polished parallax feel:
+
+import { useScroll, useTransform, motion } from "framer-motion";
+const heroRef = useRef<HTMLDivElement>(null);
+const { scrollYProgress } = useScroll({
+  target: heroRef,
+  offset: ["start start", "end start"]
+});
+const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+Then apply style={{ opacity: heroOpacity }} to the content overlay motion.div. The videos themselves stay fully visible — only the text/buttons fade out.
+
+Part 7: The Full Hero JSX
+<section ref={heroRef} className="relative h-screen overflow-hidden" data-testid="landing-hero">
+  {/* Video layer */}
+  <div className="absolute inset-0 bg-black">
+    {/* Current video — visible */}
+    <video
+      ref={currentVideoRef}
+      key={`current-${currentVideoIndex}`}
+      autoPlay
+      muted={videoMuted}
+      playsInline
+      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+        isVideoTransitioning ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      <source src={HERO_VIDEOS[currentVideoIndex].src} type="video/mp4" />
+    </video>
+    {/* Next video — preloading, hidden until transition */}
+    <video
+      ref={nextVideoRef}
+      key={`next-${nextVideoIndex}`}
+      muted={videoMuted}
+      playsInline
+      preload="auto"
+      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+        isVideoTransitioning ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      <source src={HERO_VIDEOS[nextVideoIndex].src} type="video/mp4" />
+    </video>
+    {/* Gradient overlay for text readability */}
+    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black" />
+  </div>
+  {/* Navigation dots */}
+  <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+    {HERO_VIDEOS.map((v, idx) => (
+      <button
+        key={idx}
+        onClick={() => {
+          if (idx !== currentVideoIndex) {
+            setNextVideoIndex(idx);
+            setIsVideoTransitioning(true);
+            setTimeout(() => {
+              setCurrentVideoIndex(idx);
+              setNextVideoIndex((idx + 1) % HERO_VIDEOS.length);
+              setIsVideoTransitioning(false);
+            }, 700);
+          }
+        }}
+        className={currentVideoIndex === idx
+          ? 'w-8 h-2 bg-white rounded-full transition-all duration-300'
+          : 'w-2 h-2 bg-white/40 rounded-full hover:bg-white/60 transition-all duration-300'}
+        data-testid={`dot-hero-${idx}`}
+        aria-label={`Go to ${v.label}`}
+      />
+    ))}
+  </div>
+  {/* Content overlay with parallax fade */}
+  <motion.div
+    className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center"
+    style={{ opacity: heroOpacity }}
+  >
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, delay: 0.2 }}
+    >
+      {/* Your app branding, heading, subheading, and CTA buttons go here */}
+    </motion.div>
+  </motion.div>
+  {/* Bouncing scroll indicator */}
+  <motion.div
+    className="absolute bottom-8 left-1/2 -translate-x-1/2"
+    animate={{ y: [0, 8, 0] }}
+    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+  >
+    <ChevronRight className="w-6 h-6 text-white/40 rotate-90" />
+  </motion.div>
+</section>
+Key details in the JSX:
+key={current-${currentVideoIndex}} — Forces React to remount the video element when the index changes, ensuring the new source loads cleanly
+object-cover — Makes the video fill the entire section without letterboxing on any screen size
+transition-opacity duration-700 — The CSS transition that creates the crossfade effect
+bg-gradient-to-b from-black/60 via-black/40 to-black — Three-stop gradient ensures text is readable over any video frame
+Navigation dots: Active dot is wider (w-8) and solid white; inactive dots are small (w-2) and semi-transparent. Clicking a dot triggers the same crossfade transition cycle.
+Part 8: Mobile Compatibility — Non-Negotiable Requirements
+These are absolute requirements. If any are missing, videos will not autoplay on mobile:
+
+muted must be true on page load — iOS Safari and Chrome on Android both block autoplay of unmuted video. There is no workaround. The video must start muted.
+
+playsInline attribute is required — Without this, iOS Safari forces the video into fullscreen mode when it plays. Adding playsInline keeps it inline within the page layout.
+
+video.volume = 0 set programmatically — Belt-and-suspenders alongside the muted attribute. Some browsers check the volume property separately.
+
+.play().catch(() => {}) — Always catch the promise — The .play() method returns a promise. If autoplay is blocked for any reason, the promise rejects. If you don't catch it, you'll get uncaught promise errors in the console. The empty catch swallows it gracefully.
+
+Keep video files under 600KB each — Mobile networks (especially cellular) need fast loading. Large video files will cause buffering delays and the hero will show a black screen while waiting. The sweet spot is 200-500KB per clip.
+
+object-cover on the video element — Mobile screens have different aspect ratios than desktop. object-cover ensures the video fills the container and crops appropriately rather than showing black bars.
+
+Part 9: Animated Counter Component (Optional Enhancement)
+Verdara uses animated counters below the hero CTA that count up when they scroll into view:
+
+function AnimatedCounter({ target, label, suffix = "" }: {
+  target: number;
+  label: string;
+  suffix?: string;
+}) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          let start = 0;
+          const duration = 2000;
+          const step = (ts: number) => {
+            if (!start) start = ts;
+            const progress = Math.min((ts - start) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+            setCount(Math.floor(eased * target));
+            if (progress < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [target]);
+  return (
+    <div ref={ref} className="text-center px-2 flex flex-col items-center">
+      <div className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-400 whitespace-nowrap">
+        {count.toLocaleString()}{suffix}
+      </div>
+      <div className="text-[11px] sm:text-xs md:text-sm text-white/60 mt-1.5 whitespace-nowrap">
+        {label}
+      </div>
+    </div>
+  );
+}
+Uses IntersectionObserver so the count animation only fires when the element scrolls into view, and observer.disconnect() ensures it only runs once.
+
+Part 10: Required Dependencies
+framer-motion        — Parallax scroll (useScroll, useTransform), entry animations, bouncing indicator
+lucide-react         — Icons (ChevronRight, etc.)
+Plus your standard React 18 + Vite + Tailwind CSS setup.
+
+Part 11: Quick Adaptation Checklist for Trust Vault
+Generate 6 videos with prompts relevant to Trust Vault's theme
+Place them in client/src/assets/videos/
+Import them using Vite's asset import syntax
+Build the HERO_VIDEOS array with your labels
+Copy the state variables, three useEffects, and JSX exactly as shown
+Swap out the gradient overlay colors if you use a different palette (Verdara uses emerald green — Trust Vault may use different brand colors)
+Replace the content overlay with your own heading, tagline, and CTA buttons
+Test on iOS Safari and Chrome Android to confirm autoplay works
+Verify all video files are under 600KB
+That's the complete build specification. The Trust Vault agent should be able to replicate this system exactly from this handoff.
+
+
+Scroll to latest
+
+Make, test, iterate…
+
