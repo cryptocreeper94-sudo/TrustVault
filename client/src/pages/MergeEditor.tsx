@@ -127,7 +127,7 @@ export default function MergeEditor() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate("/dashboard");
+      navigate("/explore");
     }
   }, [authLoading, isAuthenticated, navigate]);
 
@@ -321,7 +321,7 @@ export default function MergeEditor() {
         });
 
         toast({ title: "Collage saved successfully" });
-        navigate("/dashboard");
+        navigate("/explore");
       } else if (mergeType === "audio-concat") {
         const audioCtx = new AudioContext();
         const buffers: AudioBuffer[] = [];
@@ -405,7 +405,7 @@ export default function MergeEditor() {
 
         audioCtx.close();
         toast({ title: "Audio merged successfully" });
-        navigate("/dashboard");
+        navigate("/explore");
       } else if (mergeType === "video-concat") {
         setVideoJobError(null);
         setVideoJobStatus("queued");
@@ -431,7 +431,7 @@ export default function MergeEditor() {
               if (videoPollRef.current) clearInterval(videoPollRef.current);
               queryClient.invalidateQueries({ queryKey: ["/api/media"] });
               toast({ title: "Videos merged successfully!" });
-              setTimeout(() => navigate("/dashboard"), 1500);
+              setTimeout(() => navigate("/explore"), 1500);
             } else if (jobData.status === "failed") {
               if (videoPollRef.current) clearInterval(videoPollRef.current);
               setVideoJobError(jobData.errorMessage || "Processing failed");
@@ -513,7 +513,7 @@ export default function MergeEditor() {
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/explore")}
                 data-testid="button-back"
               >
                 <ArrowLeft />
@@ -991,7 +991,7 @@ export default function MergeEditor() {
         <Button
           variant="outline"
           onClick={() => {
-            if (step === 0) navigate("/dashboard");
+            if (step === 0) navigate("/explore");
             else setStep(step - 1);
           }}
           disabled={processing || isUploading}

@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ConfettiProvider } from "@/components/Confetti";
 import Home from "@/pages/Home";
 import UserDashboard from "@/pages/UserDashboard";
+import Explorer from "@/pages/Explorer";
 import NotFound from "@/pages/not-found";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2 } from "lucide-react";
@@ -25,7 +26,7 @@ const Pricing = lazy(() => import("@/pages/Pricing"));
 const Invite = lazy(() => import("@/pages/Invite"));
 const Join = lazy(() => import("@/pages/Join"));
 const Admin = lazy(() => import("@/pages/Admin"));
-const CommandCenter = lazy(() => import("@/pages/CommandCenter"));
+const DeveloperExplorer = lazy(() => import("@/pages/DeveloperExplorer"));
 const Roadmap = lazy(() => import("@/pages/Roadmap"));
 const InviteMessage = lazy(() => import("@/pages/InviteMessage"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
@@ -165,7 +166,9 @@ function Router() {
         >
           <Switch>
             <Route path="/" component={Home} />
-            <Route path="/dashboard" component={UserDashboard} />
+            <Route path="/explore" component={Explorer} />
+            <Route path="/dashboard" component={Explorer} />
+            <Route path="/developer" component={DeveloperExplorer} />
             <Route path="/vault" component={Home} />
             <Route path="/editor/image/:id" component={ImageEditor} />
             <Route path="/editor/audio/:id" component={AudioEditor} />
@@ -179,7 +182,6 @@ function Router() {
             <Route path="/invite-message" component={InviteMessage} />
             <Route path="/join" component={Join} />
             <Route path="/admin" component={Admin} />
-            <Route path="/command-center" component={CommandCenter} />
             <Route path="/roadmap" component={Roadmap} />
             <Route path="/privacy" component={Privacy} />
             <Route path="/terms" component={Terms} />

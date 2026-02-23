@@ -1285,7 +1285,7 @@ export default function Home() {
   }
 
   if (currentPath === "/" && user && !user.mustReset) {
-    navigateHome("/dashboard");
+    navigateHome("/explore");
     return null;
   }
 
@@ -1383,8 +1383,8 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-40 glass-morphism safe-area-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 shrink-0">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="icon" className="text-muted-foreground" data-testid="button-back-dashboard">
+            <Link href="/explore">
+              <Button variant="ghost" size="icon" className="text-muted-foreground" data-testid="button-back-explore">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
@@ -1573,9 +1573,9 @@ export default function Home() {
                           className="w-full justify-start gap-3"
                           data-testid="nav-link-command-center"
                         >
-                          <Link href="/command-center">
+                          <Link href="/developer">
                             <LayoutGrid className="w-4 h-4" />
-                            Command Center
+                            Developer Portal
                           </Link>
                         </Button>
                         <Button
@@ -2351,7 +2351,7 @@ function PasswordLogin() {
       setErrorMsg("");
       try {
         await claimAccount({ name: name.trim(), password, email: claimEmail.trim() });
-        navigateAfterLogin("/dashboard");
+        navigateAfterLogin("/explore");
       } catch (err: any) {
         setShake(true);
         setTimeout(() => setShake(false), 600);
@@ -2366,7 +2366,7 @@ function PasswordLogin() {
       setErrorMsg("");
       try {
         await ecosystemLogin({ identifier: ecosystemIdentifier.trim(), credential: ecosystemCredential });
-        navigateAfterLogin("/dashboard");
+        navigateAfterLogin("/explore");
       } catch (err: any) {
         setShake(true);
         setTimeout(() => setShake(false), 600);
@@ -2381,7 +2381,7 @@ function PasswordLogin() {
       setErrorMsg("");
       try {
         await login({ name: "Jason", password: devPin, rememberMe: true });
-        navigateAfterLogin("/dashboard");
+        navigateAfterLogin("/explore");
       } catch (err: any) {
         setShake(true);
         setTimeout(() => setShake(false), 600);
@@ -2399,7 +2399,7 @@ function PasswordLogin() {
 
     try {
       await login({ name: multiUser ? name.trim() : undefined, password, rememberMe });
-      navigateAfterLogin("/dashboard");
+      navigateAfterLogin("/explore");
     } catch (err: any) {
       setShake(true);
       setTimeout(() => setShake(false), 600);

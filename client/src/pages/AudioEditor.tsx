@@ -258,7 +258,7 @@ export default function AudioEditor() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate("/dashboard");
+      navigate("/explore");
     }
   }, [authLoading, isAuthenticated, navigate]);
 
@@ -920,7 +920,7 @@ export default function AudioEditor() {
 
       soundFeedback("success");
       toast({ title: "Audio saved successfully" });
-      navigate("/dashboard");
+      navigate("/explore");
     } catch (err) {
       toast({
         title: "Failed to save audio",
@@ -980,7 +980,7 @@ export default function AudioEditor() {
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/explore")}
                 data-testid="button-back"
               >
                 <ArrowLeft />
