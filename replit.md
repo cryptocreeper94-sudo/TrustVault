@@ -60,7 +60,7 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
 - **WebSocket Chat Server**: `ws` library at `/ws/chat`, JWT-authenticated.
 - **File Storage Interaction**: Generates presigned URLs for client-side uploads to Replit Object Storage, stores metadata.
 - **Ecosystem API (TrustHome Connectivity)**: Inter-service API with HMAC authentication, tenant scoping, and webhooks.
-- **ORBIT Ecosystem Client**: Outbound integration to ORBIT Staffing OS Financial Hub, handles financial statements, transactions, and webhook reception.
+- **ORBIT Ecosystem Client**: Outbound integration to ORBIT Staffing OS Financial Hub, handles financial statements, transactions, and webhook reception. Automatically reports all Stripe subscription events (new, upgrade, downgrade, cancellation, payment failure) to ORBIT for bookkeeping under owner Jason Andrews.
 - **DarkWave Studio API**: External API layer for DarkWave Studios integration with JWT Bearer auth, CORS, and rate-limiting.
 - **Stripe Integration**: Subscription management with Checkout Sessions, Customer Portal, and webhook handling.
 - **Transactional Email System**: Resend-powered email notifications via Replit connector, using dark-themed HTML templates for various subscription events.

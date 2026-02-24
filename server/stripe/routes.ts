@@ -8,6 +8,56 @@ import {
   sendCancellationNotification,
   sendPaymentFailedNotification,
 } from "../services/emailService";
+import { orbitClient } from "../services/orbitClient";
+
+async function reportSubscriptionToOrbit(params: {
+  type: "new_subscription" | "subscription_upgrade" | "subscription_downgrade" | "subscription_canceled" | "payment_failed";
+  tier: string;
+  amount: number;
+  currency: string;
+  tenantName?: string;
+  subscriptionId?: string;
+  interval?: string;
+}) {
+  if (!orbitClient.isConfigured) return;
+  try {
+    const amountDollars = params.amount / 100;
+    const description = params.type === "new_subscription"
+      ? `TrustVault ${params.tier} subscription (${params.interval || "month"}) - ${params.tenantName || "subscriber"}`
+      : params.type === "subscription_canceled"
+      ? `TrustVault ${params.tier} subscription canceled - ${params.tenantName || "subscriber"}`
+      : params.type === "payment_failed"
+      ? `TrustVault ${params.tier} payment failed - ${params.tenantName || "subscriber"}`
+      : `TrustVault subscription changed to ${params.tier} (${params.interval || "month"}) - ${params.tenantName || "subscriber"}`;
+
+    await orbitClient.reportTransaction({
+      transactionId: `tv-${params.type}-${Date.now()}`,
+      amount: amountDollars,
+      currency: params.currency || "usd",
+      description,
+      category: "subscription_revenue",
+      timestamp: new Date().toISOString(),
+    });
+
+    await orbitClient.pushLog({
+      action: `trustvault.subscription.${params.type}`,
+      details: {
+        owner: "Jason Andrews",
+        app: "TrustVault (DW Media Studio)",
+        tier: params.tier,
+        amount: amountDollars,
+        currency: params.currency,
+        interval: params.interval,
+        tenantName: params.tenantName,
+        subscriptionId: params.subscriptionId,
+      },
+    });
+
+    console.log(`[ORBIT] Reported ${params.type}: $${amountDollars} ${params.tier} for ${params.tenantName || "subscriber"}`);
+  } catch (err: any) {
+    console.error(`[ORBIT] Failed to report ${params.type}:`, err.message);
+  }
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -310,6 +360,16 @@ export function registerStripeRoutes(app: Express) {
 
             console.log(`Subscription activated for tenant ${tenant.name}: ${tierInfo?.tier || "personal"}`);
 
+            reportSubscriptionToOrbit({
+              type: "new_subscription",
+              tier: tierInfo?.tier || "personal",
+              amount: subscription.items.data[0]?.price.unit_amount || 0,
+              currency: subscription.currency || "usd",
+              tenantName: tenant.name,
+              subscriptionId: subscription.id,
+              interval: tierInfo?.interval || "month",
+            });
+
             const checkoutEmail = session.customer_details?.email;
             const checkoutName = session.customer_details?.name;
             let custEmail = checkoutEmail || null;
@@ -386,6 +446,17 @@ export function registerStripeRoutes(app: Express) {
 
             const newTier = tierInfo?.tier || existing.tier as SubscriptionTier;
             if (newTier !== existing.tier) {
+              const isUpgrade = ["free", "personal", "pro", "studio"].indexOf(newTier) >
+                ["free", "personal", "pro", "studio"].indexOf(existing.tier as string);
+              reportSubscriptionToOrbit({
+                type: isUpgrade ? "subscription_upgrade" : "subscription_downgrade",
+                tier: newTier,
+                amount: subscription.items.data[0]?.price.unit_amount || 0,
+                currency: subscription.currency || "usd",
+                tenantName: existing.tenantId || undefined,
+                subscriptionId: subscription.id,
+                interval: tierInfo?.interval || "month",
+              });
               const { email: updEmail, name: updName } = await resolveCustomerEmail(subscription.customer as string);
               if (updEmail) {
                 const baseUrl = getBaseUrl(req);
@@ -424,6 +495,15 @@ export function registerStripeRoutes(app: Express) {
               await storage.updateTenant(existing.tenantId, { tier: "free" });
             }
 
+            reportSubscriptionToOrbit({
+              type: "subscription_canceled",
+              tier: existing.tier as string,
+              amount: 0,
+              currency: "usd",
+              tenantName: existing.tenantId || undefined,
+              subscriptionId: subscription.id,
+            });
+
             const { email: cancelEmail, name: cancelName } = await resolveCustomerEmail(subscription.customer as string);
             if (cancelEmail) {
               const baseUrl = getBaseUrl(req);
@@ -448,6 +528,14 @@ export function registerStripeRoutes(app: Express) {
             if (existing) {
               await storage.updateSubscription(existing.id, {
                 status: "past_due",
+              });
+
+              reportSubscriptionToOrbit({
+                type: "payment_failed",
+                tier: existing.tier as string,
+                amount: invoice.amount_due || 0,
+                currency: invoice.currency || "usd",
+                tenantName: existing.tenantId || undefined,
               });
 
               const { email: failEmail, name: failName } = await resolveCustomerEmail(invoice.customer as string);
