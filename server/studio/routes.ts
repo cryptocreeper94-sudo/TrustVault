@@ -10,6 +10,7 @@ const DARKWAVE_ORIGINS = [
   "https://darkwavestudios.replit.app",
   "https://darkwavestudios.com",
   "https://www.darkwavestudios.com",
+  "https://trustgolf.replit.app",
 ];
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;

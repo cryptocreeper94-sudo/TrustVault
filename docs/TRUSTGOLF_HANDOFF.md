@@ -370,7 +370,8 @@ app.post("/api/trustvault/webhook", (req, res) => {
 
 ## CORS
 
-Trust Golf's production URL must be added to TrustVault's CORS allowlist for browser-based API calls. Provide your production URL and we'll add it.
+Trust Golf's production URL has been added to TrustVault's CORS allowlist:
+- `https://trustgolf.replit.app`
 
 Server-to-server calls are not affected by CORS.
 
@@ -400,7 +401,7 @@ Server-to-server calls are not affected by CORS.
 5. **Upload media** — use the 3-step presigned URL flow (upload → PUT → confirm)
 6. **Embed editors** — call `/api/studio/editor/embed-token` and open the `embedUrl` in an iframe or redirect
 7. **Handle webhooks** — implement `POST /api/trustvault/webhook` for render callbacks
-8. **Provide your production URL** to TrustVault for CORS allowlist
+8. ~~**Provide your production URL** to TrustVault for CORS allowlist~~ **DONE** — `https://trustgolf.replit.app` added
 
 ---
 
@@ -429,11 +430,20 @@ If Trust Golf needs server-to-server access without a user context (e.g., backen
 - **Timestamp tolerance:** 5 minutes
 - **Additional Header:** `X-App-Name: trustgolf`
 
-To get provisioned with an API key + secret pair, contact TrustVault admin or call:
+Trust Golf has been pre-provisioned. Store these as environment variables in your app:
+
+| Secret Name | Value |
+|---|---|
+| `DW_MEDIA_API_KEY` | `dw_a2c03ec033fc85aa11d1b6ed558b2b1d` |
+| `DW_MEDIA_API_SECRET` | `83a81962529662b58e4306a1cb474e1c01a2a78ea150a61cda908d0b6ccab93e` |
+| `DW_MEDIA_BASE_URL` | `https://trustvault.replit.app` |
+
+**Tenant ID:** `trustgolf`
+
+Include in all HMAC requests:
 ```
-POST /api/ecosystem/provision
+X-App-Name: trustgolf
 ```
-(Requires vault admin session)
 
 ---
 
