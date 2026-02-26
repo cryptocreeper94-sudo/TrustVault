@@ -217,6 +217,14 @@ async function bootstrapEcosystemTenants() {
       webhookUrl: "https://trustgolf.replit.app/api/trustvault/webhook",
       capabilities: ["media_vault", "media_upload", "media_read", "media_delete", "photo_editing", "video_editing", "audio_editing"],
     },
+    {
+      tenantId: "trustbook",
+      appName: "TrustBook",
+      apiKey: "dw_8f408c9e34765316d7aa7623dbbf437f",
+      apiSecret: "f791fac3afd4087319505670280e52f4ce2e6fb0addb0b31271a76729b0f6891",
+      webhookUrl: "https://trustbook.replit.app/api/trustvault/webhook",
+      capabilities: ["media_vault", "media_upload", "media_read", "media_delete", "document_storage", "epub_storage"],
+    },
   ];
 
   for (const t of tenants) {

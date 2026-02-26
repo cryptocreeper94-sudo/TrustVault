@@ -13,6 +13,133 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
+function EpubReader({ url, title }: { url: string; title: string }) {
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const renditionRef = useRef<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState("");
+
+  useEffect(() => {
+    let book: any = null;
+
+    async function loadEpub() {
+      try {
+        const ePub = (await import("epubjs")).default;
+        book = ePub(url);
+        const rendition = book.renderTo(viewerRef.current!, {
+          width: "100%",
+          height: "100%",
+          spread: "none",
+          flow: "paginated",
+        });
+        renditionRef.current = rendition;
+
+        rendition.themes.default({
+          body: {
+            color: "#e5e5e5 !important",
+            background: "transparent !important",
+            "font-family": "Georgia, serif !important",
+            "font-size": "16px !important",
+            "line-height": "1.7 !important",
+            padding: "0 8px !important",
+          },
+          "p, div, span, li, td, th, h1, h2, h3, h4, h5, h6": {
+            color: "#e5e5e5 !important",
+          },
+          "a": { color: "#22d3ee !important" },
+          "img": { "max-width": "100% !important" },
+        });
+
+        rendition.on("relocated", (location: any) => {
+          const displayed = location?.start?.displayed;
+          if (displayed) {
+            setCurrentPage(`${displayed.page} / ${displayed.total}`);
+          }
+        });
+
+        await rendition.display();
+        setLoading(false);
+      } catch (e: any) {
+        console.error("ePub load error:", e);
+        setError(e.message || "Failed to load ePub");
+        setLoading(false);
+      }
+    }
+
+    loadEpub();
+
+    return () => {
+      if (book) {
+        try { book.destroy(); } catch {}
+      }
+    };
+  }, [url]);
+
+  const prevPage = useCallback(() => {
+    renditionRef.current?.prev();
+  }, []);
+
+  const nextPage = useCallback(() => {
+    renditionRef.current?.next();
+  }, []);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "ArrowLeft") prevPage();
+      if (e.key === "ArrowRight") nextPage();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [prevPage, nextPage]);
+
+  if (error) {
+    return (
+      <div className="text-center space-y-4 w-full" data-testid="epub-error">
+        <div className="w-20 h-20 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+          <span className="text-2xl">📕</span>
+        </div>
+        <p className="text-white/70 text-sm">Could not load this ePub file</p>
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" className="gap-2 border-white/20">
+            <Download className="w-4 h-4" />
+            Download Instead
+          </Button>
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full flex flex-col items-center gap-3" data-testid="epub-reader">
+      <div className="w-full max-w-2xl rounded-lg overflow-hidden bg-[#1a1a2e] border border-white/10 relative" style={{ height: "clamp(50vh, 65vh, 75vh)" }}>
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#1a1a2e] z-10">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-white/50">Loading book...</p>
+            </div>
+          </div>
+        )}
+        <div ref={viewerRef} className="w-full h-full" />
+      </div>
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="sm" onClick={prevPage} className="border-white/20 gap-1" data-testid="button-epub-prev">
+          <ChevronLeft className="w-4 h-4" /> Prev
+        </Button>
+        {currentPage && (
+          <span className="text-xs text-white/50 font-mono min-w-[5rem] text-center" data-testid="text-epub-page">
+            {currentPage}
+          </span>
+        )}
+        <Button variant="outline" size="sm" onClick={nextPage} className="border-white/20 gap-1" data-testid="button-epub-next">
+          Next <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 interface MediaViewerProps {
   item: MediaResponse | null;
   open: boolean;
@@ -388,7 +515,7 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
               )}
 
               {cat === "document" && (
-                <div className="relative z-10 flex flex-col items-center justify-center gap-6 p-12 w-full">
+                <div className="relative z-10 flex flex-col items-center justify-center gap-6 p-4 sm:p-12 w-full">
                   {item.contentType === "application/pdf" ? (
                     <iframe
                       src={mediaUrl}
@@ -396,6 +523,8 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
                       title={item.title}
                       data-testid="viewer-pdf"
                     />
+                  ) : (item.contentType === "application/epub+zip" || item.filename?.endsWith(".epub")) ? (
+                    <EpubReader url={mediaUrl} title={item.title} />
                   ) : (
                     <div className="text-center space-y-6">
                       <div className="w-24 h-24 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto">

@@ -409,12 +409,14 @@ export function detectCategory(contentType: string): MediaCategory {
   if (contentType.startsWith("image/")) return "image";
   if (
     contentType === "application/pdf" ||
+    contentType === "application/epub+zip" ||
     contentType.startsWith("text/") ||
     contentType.includes("document") ||
     contentType.includes("spreadsheet") ||
     contentType.includes("presentation") ||
     contentType.includes("msword") ||
-    contentType.includes("officedocument")
+    contentType.includes("officedocument") ||
+    contentType.includes("epub")
   ) return "document";
   return "other";
 }

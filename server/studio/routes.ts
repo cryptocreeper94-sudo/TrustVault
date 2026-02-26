@@ -11,6 +11,7 @@ const DARKWAVE_ORIGINS = [
   "https://darkwavestudios.com",
   "https://www.darkwavestudios.com",
   "https://trustgolf.replit.app",
+  "https://trustbook.replit.app",
 ];
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -131,7 +132,7 @@ export function registerStudioRoutes(app: Express): void {
       },
       fileLimits: {
         maxUploadSize: "500MB",
-        supportedTypes: ["image/*", "video/*", "audio/*", "application/pdf", "application/msword"],
+        supportedTypes: ["image/*", "video/*", "audio/*", "application/pdf", "application/msword", "application/epub+zip"],
       },
       webhooks: {
         renderComplete: {

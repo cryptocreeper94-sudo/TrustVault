@@ -28,7 +28,7 @@ const CATEGORY_CONFIG: Record<MediaCategory, { icon: any; color: string; label: 
   other: { icon: File, color: "text-muted-foreground", label: "File" },
 };
 
-const ALL_ACCEPT = "video/*,audio/*,image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.csv,.zip,.rar";
+const ALL_ACCEPT = "video/*,audio/*,image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.csv,.zip,.rar,.epub";
 
 type FileStatus = "pending" | "extracting" | "uploading" | "complete" | "error";
 
