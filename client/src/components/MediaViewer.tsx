@@ -6,7 +6,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   X, Loader2, Download, ExternalLink, Scissors, SlidersHorizontal, Crop,
   ChevronLeft, ChevronRight, Info, Tag, Shield, Calendar, HardDrive,
-  FileType, Clock,
+  FileType, Clock, ZoomIn, ZoomOut, Maximize,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,10 @@ function formatFileSize(bytes?: number | null): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 5;
+const ZOOM_STEP = 0.15;
+
 export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: MediaViewerProps) {
   const [, navigate] = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -37,13 +41,32 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0 });
+  const panOffset = useRef({ x: 0, y: 0 });
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const lastPinchDist = useRef<number | null>(null);
+
+  const resetZoom = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    panOffset.current = { x: 0, y: 0 };
+  }, []);
+
   useEffect(() => {
     if (!open) {
       videoRef.current?.pause();
       audioRef.current?.pause();
       setShowInfo(false);
+      resetZoom();
     }
-  }, [open]);
+  }, [open, resetZoom]);
+
+  useEffect(() => {
+    resetZoom();
+  }, [item?.id, resetZoom]);
 
   const currentIndex = items && item ? items.findIndex(i => i.id === item.id) : -1;
   const hasPrev = currentIndex > 0;
@@ -77,13 +100,126 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (zoom > 1) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
       if (dx < 0) goNext();
       else goPrev();
     }
-  }, [goNext, goPrev]);
+  }, [goNext, goPrev, zoom]);
+
+  const clampZoom = useCallback((z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z)), []);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    const cat = (item?.category as MediaCategory) || "other";
+    if (cat !== "image") return;
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    setZoom(prev => {
+      const next = clampZoom(prev + delta * prev);
+      if (next <= 1) {
+        setPan({ x: 0, y: 0 });
+        panOffset.current = { x: 0, y: 0 };
+      }
+      return next;
+    });
+  }, [item?.category, clampZoom]);
+
+  const handleImageDoubleClick = useCallback(() => {
+    if (zoom === 1) {
+      setZoom(2);
+    } else {
+      resetZoom();
+    }
+  }, [zoom, resetZoom]);
+
+  const handlePanMouseDown = useCallback((e: React.MouseEvent) => {
+    if (zoom <= 1) return;
+    e.preventDefault();
+    isPanning.current = true;
+    panStart.current = { x: e.clientX - panOffset.current.x, y: e.clientY - panOffset.current.y };
+  }, [zoom]);
+
+  const handlePanMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning.current || zoom <= 1) return;
+    const nx = e.clientX - panStart.current.x;
+    const ny = e.clientY - panStart.current.y;
+    panOffset.current = { x: nx, y: ny };
+    setPan({ x: nx, y: ny });
+  }, [zoom]);
+
+  const handlePanMouseUp = useCallback(() => {
+    isPanning.current = false;
+  }, []);
+
+  const handleImageTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.hypot(dx, dy);
+    } else if (e.touches.length === 1 && zoom > 1) {
+      isPanning.current = true;
+      panStart.current = { x: e.touches[0].clientX - panOffset.current.x, y: e.touches[0].clientY - panOffset.current.y };
+    }
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, [zoom]);
+
+  const handleImageTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      if (lastPinchDist.current !== null) {
+        const scale = dist / lastPinchDist.current;
+        setZoom(prev => {
+          const next = clampZoom(prev * scale);
+          if (next <= 1) {
+            setPan({ x: 0, y: 0 });
+            panOffset.current = { x: 0, y: 0 };
+          }
+          return next;
+        });
+      }
+      lastPinchDist.current = dist;
+    } else if (e.touches.length === 1 && isPanning.current && zoom > 1) {
+      const nx = e.touches[0].clientX - panStart.current.x;
+      const ny = e.touches[0].clientY - panStart.current.y;
+      panOffset.current = { x: nx, y: ny };
+      setPan({ x: nx, y: ny });
+    }
+  }, [zoom, clampZoom]);
+
+  const handleImageTouchEnd = useCallback((e: React.TouchEvent) => {
+    lastPinchDist.current = null;
+    isPanning.current = false;
+    if (zoom <= 1) {
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      const dy = e.changedTouches[0].clientY - touchStartY.current;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
+        if (dx < 0) goNext();
+        else goPrev();
+      }
+    }
+  }, [zoom, goNext, goPrev]);
+
+  const zoomIn = useCallback(() => {
+    setZoom(prev => clampZoom(prev + ZOOM_STEP * prev));
+  }, [clampZoom]);
+
+  const zoomOut = useCallback(() => {
+    setZoom(prev => {
+      const next = clampZoom(prev - ZOOM_STEP * prev);
+      if (next <= 1) {
+        setPan({ x: 0, y: 0 });
+        panOffset.current = { x: 0, y: 0 };
+      }
+      return next;
+    });
+  }, [clampZoom]);
 
   if (!item) return null;
 
@@ -133,6 +269,36 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
           {items && items.length > 1 && (
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm">
               <span className="text-[10px] text-white/50 font-medium">{currentIndex + 1} / {items.length}</span>
+            </div>
+          )}
+
+          {cat === "image" && (
+            <div className="absolute bottom-2 right-2 z-40 flex items-center gap-1 px-1 py-0.5 rounded-md bg-black/60 backdrop-blur-sm" data-testid="zoom-controls">
+              <button
+                onClick={zoomOut}
+                className="p-1 text-white/60 hover:text-white transition-colors"
+                data-testid="button-zoom-out"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-[11px] text-white/70 font-mono min-w-[3rem] text-center" data-testid="text-zoom-level">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={zoomIn}
+                className="p-1 text-white/60 hover:text-white transition-colors"
+                data-testid="button-zoom-in"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={resetZoom}
+                className="p-1 text-white/60 hover:text-white transition-colors"
+                title="Fit to view"
+                data-testid="button-zoom-fit"
+              >
+                <Maximize className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
@@ -188,12 +354,34 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
               )}
 
               {cat === "image" && (
-                <img
-                  src={mediaUrl}
-                  alt={item.title}
-                  className="max-w-full max-h-[85vh] object-contain relative z-10"
-                  data-testid="viewer-image"
-                />
+                <div
+                  ref={imageContainerRef}
+                  className="w-full h-full flex items-center justify-center relative z-10 overflow-hidden"
+                  style={{ cursor: zoom > 1 ? (isPanning.current ? "grabbing" : "grab") : "zoom-in" }}
+                  onWheel={handleWheel}
+                  onDoubleClick={handleImageDoubleClick}
+                  onMouseDown={handlePanMouseDown}
+                  onMouseMove={handlePanMouseMove}
+                  onMouseUp={handlePanMouseUp}
+                  onMouseLeave={handlePanMouseUp}
+                  onTouchStart={handleImageTouchStart}
+                  onTouchMove={handleImageTouchMove}
+                  onTouchEnd={handleImageTouchEnd}
+                  data-testid="viewer-image-container"
+                >
+                  <img
+                    src={mediaUrl}
+                    alt={item.title}
+                    className="max-w-full max-h-[85vh] object-contain select-none"
+                    style={{
+                      transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                      transformOrigin: "center center",
+                      transition: isPanning.current ? "none" : "transform 0.15s ease-out",
+                    }}
+                    draggable={false}
+                    data-testid="viewer-image"
+                  />
+                </div>
               )}
 
               {cat === "document" && (

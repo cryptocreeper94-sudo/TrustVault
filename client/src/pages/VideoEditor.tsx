@@ -31,6 +31,7 @@ import {
   SlidersHorizontal,
   ArrowLeft,
   Save,
+  ImageIcon,
   Loader2,
   Undo2,
   Redo2,
@@ -41,6 +42,10 @@ import {
   XCircle,
   ChevronDown,
   Keyboard,
+  Type,
+  Plus,
+  Trash2,
+  GripVertical,
 } from "lucide-react";
 
 interface VideoPreset {
@@ -78,7 +83,18 @@ const VIDEO_PRESETS: VideoPreset[] = [
   { id: "pastel-dream", name: "Pastel Dream", description: "Soft muted colors", brightness: 112, contrast: 85, saturation: 80, hue: 5, temperature: 8, vignette: 10 },
 ];
 
-type VideoTool = "trim" | "adjustments" | "capture";
+interface TextOverlay {
+  id: string;
+  text: string;
+  fontSize: number;
+  color: string;
+  x: number;
+  y: number;
+  startTime: number;
+  endTime: number;
+}
+
+type VideoTool = "trim" | "adjustments" | "capture" | "text";
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -130,6 +146,13 @@ export default function VideoEditor() {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
+  const [settingThumbnail, setSettingThumbnail] = useState(false);
+
+  const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
+  const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   const [history, setHistory] = useState<VideoEditorState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -138,6 +161,7 @@ export default function VideoEditor() {
 
   const essentialTools: { id: VideoTool; icon: typeof Scissors; label: string }[] = [
     { id: "trim", icon: Scissors, label: "Trim" },
+    { id: "text", icon: Type, label: "Text" },
   ];
 
   const advancedTools: { id: VideoTool; icon: typeof Scissors; label: string }[] = [
@@ -491,6 +515,12 @@ export default function VideoEditor() {
     toast({ title: `${preset.name} preset applied` });
   }, [brightness, contrast, saturation, hue, temperature, vignette, pushHistory, toast]);
 
+  const visibleOverlays = useMemo(() => {
+    return textOverlays.filter(
+      (o) => currentTime >= o.startTime && currentTime <= o.endTime
+    );
+  }, [textOverlays, currentTime]);
+
   const handleCaptureFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -524,10 +554,90 @@ export default function VideoEditor() {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    visibleOverlays.forEach((overlay) => {
+      ctx.save();
+      ctx.font = `bold ${overlay.fontSize * (canvas.width / 640)}px sans-serif`;
+      ctx.fillStyle = overlay.color;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      const tx = (overlay.x / 100) * canvas.width;
+      const ty = (overlay.y / 100) * canvas.height;
+      ctx.fillText(overlay.text, tx, ty);
+      ctx.restore();
+    });
     const dataUrl = canvas.toDataURL("image/png");
     setCapturedFrame(dataUrl);
     toast({ title: "Frame captured" });
-  }, [brightness, contrast, saturation, hue, temperature, vignette, toast]);
+  }, [brightness, contrast, saturation, hue, temperature, vignette, visibleOverlays, toast]);
+
+  const handleAddTextOverlay = useCallback(() => {
+    const newOverlay: TextOverlay = {
+      id: crypto.randomUUID(),
+      text: "Your Text",
+      fontSize: 32,
+      color: "#ffffff",
+      x: 50,
+      y: 50,
+      startTime: currentTime,
+      endTime: Math.min(currentTime + 5, duration || 5),
+    };
+    setTextOverlays((prev) => [...prev, newOverlay]);
+    setSelectedOverlayId(newOverlay.id);
+    setActiveTool("text");
+  }, [currentTime, duration]);
+
+  const handleUpdateOverlay = useCallback((id: string, updates: Partial<TextOverlay>) => {
+    setTextOverlays((prev) => prev.map((o) => (o.id === id ? { ...o, ...updates } : o)));
+  }, []);
+
+  const handleDeleteOverlay = useCallback((id: string) => {
+    setTextOverlays((prev) => prev.filter((o) => o.id !== id));
+    if (selectedOverlayId === id) setSelectedOverlayId(null);
+  }, [selectedOverlayId]);
+
+  const handleOverlayMouseDown = useCallback((e: React.MouseEvent, overlayId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setSelectedOverlayId(overlayId);
+    setDraggingOverlayId(overlayId);
+    const container = videoContainerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const overlay = textOverlays.find((o) => o.id === overlayId);
+    if (!overlay) return;
+    const overlayPixelX = (overlay.x / 100) * rect.width;
+    const overlayPixelY = (overlay.y / 100) * rect.height;
+    setDragOffset({
+      x: e.clientX - rect.left - overlayPixelX,
+      y: e.clientY - rect.top - overlayPixelY,
+    });
+  }, [textOverlays]);
+
+  useEffect(() => {
+    if (!draggingOverlayId) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const container = videoContainerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const x = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
+      const y = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
+      handleUpdateOverlay(draggingOverlayId, {
+        x: Math.max(0, Math.min(100, x)),
+        y: Math.max(0, Math.min(100, y)),
+      });
+    };
+    const handleMouseUp = () => setDraggingOverlayId(null);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [draggingOverlayId, dragOffset, handleUpdateOverlay]);
 
   const handleSaveFrame = async () => {
     if (!capturedFrame || !mediaItem) return;
@@ -563,6 +673,72 @@ export default function VideoEditor() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSetThumbnail = async () => {
+    if (!mediaItem) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    setSettingThumbnail(true);
+    try {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context unavailable");
+
+      ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)${hue !== 0 ? ` hue-rotate(${hue}deg)` : ""}`;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.filter = "none";
+      if (temperature !== 0) {
+        if (temperature > 0) {
+          ctx.fillStyle = `rgba(255,140,0,${temperature / 500})`;
+        } else {
+          ctx.fillStyle = `rgba(0,100,255,${Math.abs(temperature) / 500})`;
+        }
+        ctx.globalCompositeOperation = "overlay";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = "source-over";
+      }
+      if (vignette > 0) {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = Math.max(cx, cy);
+        const gradient = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
+        gradient.addColorStop(0, "rgba(0,0,0,0)");
+        gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100})`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const fileName = `thumb_${mediaItem.filename || "video"}.jpg`;
+      const file = new File([blob], fileName, { type: "image/jpeg" });
+
+      const uploadResult = await uploadFile(file);
+      if (!uploadResult) throw new Error("Upload failed");
+
+      await apiRequest("PATCH", `/api/media/${mediaItem.id}`, {
+        thumbnailUrl: uploadResult.objectPath,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/media", id] });
+
+      soundFeedback("success");
+      toast({ title: "Thumbnail updated", description: `Set from frame at ${formatTime(currentTime)}` });
+    } catch (err) {
+      toast({
+        title: "Failed to set thumbnail",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setSettingThumbnail(false);
     }
   };
 
@@ -829,7 +1005,7 @@ export default function VideoEditor() {
               <span className="text-sm text-muted-foreground">Loading video...</span>
             </div>
           ) : null}
-          <div className="relative inline-block" style={{ display: videoLoaded ? "block" : "none" }}>
+          <div ref={videoContainerRef} className="relative inline-block" style={{ display: videoLoaded ? "block" : "none" }}>
             <video
               ref={videoRef}
               className="max-w-full max-h-[35vh] sm:max-h-[50vh] rounded-md"
@@ -856,6 +1032,29 @@ export default function VideoEditor() {
                 }}
               />
             )}
+            {visibleOverlays.map((overlay) => (
+              <div
+                key={overlay.id}
+                className={`absolute select-none ${draggingOverlayId === overlay.id ? "cursor-grabbing" : "cursor-grab"} ${selectedOverlayId === overlay.id ? "ring-2 ring-primary ring-offset-1 ring-offset-transparent" : ""}`}
+                style={{
+                  left: `${overlay.x}%`,
+                  top: `${overlay.y}%`,
+                  transform: "translate(-50%, -50%)",
+                  fontSize: `${overlay.fontSize}px`,
+                  color: overlay.color,
+                  fontWeight: "bold",
+                  textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+                  whiteSpace: "nowrap",
+                  zIndex: 30,
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                }}
+                onMouseDown={(e) => handleOverlayMouseDown(e, overlay.id)}
+                data-testid={`text-overlay-${overlay.id}`}
+              >
+                {overlay.text}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -1270,6 +1469,125 @@ export default function VideoEditor() {
                   </div>
                 )}
 
+                {activeTool === "text" && (
+                  <div className="flex flex-col gap-3" data-testid="panel-text">
+                    <p className="text-xs text-white/50">Add text overlays to your video. Drag them on the preview to reposition. Set timing to control when they appear.</p>
+                    <Button onClick={handleAddTextOverlay} data-testid="button-add-text">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Text Overlay
+                    </Button>
+                    {textOverlays.length === 0 && (
+                      <p className="text-xs text-white/30 text-center py-4" data-testid="text-no-overlays">No text overlays yet. Click the button above to add one.</p>
+                    )}
+                    <div className="flex flex-col gap-2 max-h-[30vh] overflow-y-auto">
+                      {textOverlays.map((overlay, index) => {
+                        const isSelected = selectedOverlayId === overlay.id;
+                        return (
+                          <div
+                            key={overlay.id}
+                            className={`flex flex-col gap-2 p-3 rounded-md border ${isSelected ? "border-primary bg-primary/10" : "border-white/10 bg-white/5"}`}
+                            onClick={() => setSelectedOverlayId(overlay.id)}
+                            data-testid={`text-overlay-item-${index}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <GripVertical className="w-4 h-4 text-white/30 flex-shrink-0" />
+                                <span className="text-xs font-medium text-white truncate" data-testid={`text-overlay-label-${index}`}>
+                                  {overlay.text || `Layer ${index + 1}`}
+                                </span>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(e) => { e.stopPropagation(); handleDeleteOverlay(overlay.id); }}
+                                data-testid={`button-delete-overlay-${index}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            {isSelected && (
+                              <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-white/60">Text</label>
+                                  <Input
+                                    value={overlay.text}
+                                    onChange={(e) => handleUpdateOverlay(overlay.id, { text: e.target.value })}
+                                    className="text-xs"
+                                    data-testid={`input-overlay-text-${index}`}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-white/60">Size ({overlay.fontSize}px)</label>
+                                    <div className="w-24">
+                                      <Slider
+                                        min={12}
+                                        max={96}
+                                        step={1}
+                                        value={[overlay.fontSize]}
+                                        onValueChange={([v]) => handleUpdateOverlay(overlay.id, { fontSize: v })}
+                                        data-testid={`slider-overlay-size-${index}`}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-white/60">Color</label>
+                                    <input
+                                      type="color"
+                                      value={overlay.color}
+                                      onChange={(e) => handleUpdateOverlay(overlay.id, { color: e.target.value })}
+                                      className="w-8 h-8 rounded-md border border-white/10 cursor-pointer bg-transparent"
+                                      data-testid={`input-overlay-color-${index}`}
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-white/60">Position</label>
+                                    <Badge variant="secondary" className="text-xs" data-testid={`text-overlay-position-${index}`}>
+                                      {Math.round(overlay.x)}%, {Math.round(overlay.y)}%
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-white/60">Start Time</label>
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      min={0}
+                                      max={overlay.endTime - 0.1}
+                                      value={overlay.startTime.toFixed(1)}
+                                      onChange={(e) => handleUpdateOverlay(overlay.id, { startTime: Math.max(0, Math.min(parseFloat(e.target.value) || 0, overlay.endTime - 0.1)) })}
+                                      className="w-20 text-xs"
+                                      data-testid={`input-overlay-start-${index}`}
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-white/60">End Time</label>
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      min={overlay.startTime + 0.1}
+                                      max={duration}
+                                      value={overlay.endTime.toFixed(1)}
+                                      onChange={(e) => handleUpdateOverlay(overlay.id, { endTime: Math.max(overlay.startTime + 0.1, Math.min(parseFloat(e.target.value) || 0, duration)) })}
+                                      className="w-20 text-xs"
+                                      data-testid={`input-overlay-end-${index}`}
+                                    />
+                                  </div>
+                                  <Badge variant="secondary" className="text-xs">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {formatTime(overlay.endTime - overlay.startTime)}
+                                  </Badge>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {activeTool === "capture" && (
                   <div className="flex flex-col gap-3" data-testid="panel-capture">
                     <p className="text-xs text-white/50">Grab a still photo from any moment in your video. Pause at the perfect frame, then capture it.</p>
@@ -1285,7 +1603,7 @@ export default function VideoEditor() {
                         <Button
                           variant="outline"
                           onClick={handleSaveFrame}
-                          disabled={saving || isUploading}
+                          disabled={saving || isUploading || settingThumbnail}
                           data-testid="button-save-frame"
                         >
                           {saving ? (
@@ -1296,6 +1614,19 @@ export default function VideoEditor() {
                           Save Frame
                         </Button>
                       )}
+                      <Button
+                        variant="outline"
+                        onClick={handleSetThumbnail}
+                        disabled={saving || isUploading || settingThumbnail || !videoLoaded}
+                        data-testid="button-set-thumbnail"
+                      >
+                        {settingThumbnail ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                        )}
+                        Set as Thumbnail
+                      </Button>
                     </div>
                     {capturedFrame && (
                       <div className="flex items-start gap-3">

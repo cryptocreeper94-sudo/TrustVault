@@ -32,7 +32,7 @@ import {
   Grid, List, ChevronDown, ChevronRight, FolderOpen, FolderPlus,
   Check, CheckSquare, Square, ArrowUpDown, CalendarRange, X, Layers,
   UserPlus, BookOpen, Menu, ExternalLink, Globe, Zap, CreditCard, Mail, Fingerprint, MessageSquare, Monitor,
-  Wand2, Palette, Trophy, Briefcase,
+  Wand2, Palette, Trophy, Briefcase, Download,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -712,6 +712,281 @@ function ShareMediaDialog({
   );
 }
 
+type ExportFormat = "original" | "png" | "jpeg";
+type ExportSize = "original" | "1080p" | "720p" | "instagram" | "twitter" | "youtube";
+
+const SIZE_PRESETS: { value: ExportSize; label: string; width: number; height: number }[] = [
+  { value: "original", label: "Original", width: 0, height: 0 },
+  { value: "1080p", label: "1080p (1920x1080)", width: 1920, height: 1080 },
+  { value: "720p", label: "720p (1280x720)", width: 1280, height: 720 },
+  { value: "instagram", label: "Instagram Square (1080x1080)", width: 1080, height: 1080 },
+  { value: "twitter", label: "Twitter Header (1500x500)", width: 1500, height: 500 },
+  { value: "youtube", label: "YouTube Thumb (1280x720)", width: 1280, height: 720 },
+];
+
+function BatchExportDialog({
+  open,
+  onOpenChange,
+  selectedIds,
+  allItems,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedIds: Set<number>;
+  allItems: MediaResponse[];
+}) {
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("original");
+  const [exportSize, setExportSize] = useState<ExportSize>("original");
+  const [exporting, setExporting] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const { toast } = useToast();
+
+  const selectedItems = useMemo(
+    () => allItems.filter((item) => selectedIds.has(item.id)),
+    [allItems, selectedIds]
+  );
+
+  const imageCount = selectedItems.filter((i) => i.category === "image").length;
+  const otherCount = selectedItems.length - imageCount;
+
+  const resizeImage = (
+    blob: Blob,
+    targetW: number,
+    targetH: number,
+    format: "image/png" | "image/jpeg"
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext("2d")!;
+        const scale = Math.min(targetW / img.width, targetH / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        const x = (targetW - w) / 2;
+        const y = (targetH - h) / 2;
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, x, y, w, h);
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Canvas toBlob failed"))),
+          format,
+          0.92
+        );
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.crossOrigin = "anonymous";
+      img.src = URL.createObjectURL(blob);
+    });
+  };
+
+  const handleExport = async () => {
+    if (selectedItems.length === 0) return;
+    setExporting(true);
+    setProgress({ current: 0, total: selectedItems.length });
+
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      let done = 0;
+
+      for (const item of selectedItems) {
+        try {
+          const url = `/objects/${item.url}`;
+          const resp = await fetch(url);
+          if (!resp.ok) continue;
+          let blob = await resp.blob();
+          const isImage = item.category === "image";
+
+          if (isImage && (exportFormat !== "original" || exportSize !== "original")) {
+            const sizePreset = SIZE_PRESETS.find((s) => s.value === exportSize);
+            const mimeType =
+              exportFormat === "jpeg"
+                ? "image/jpeg"
+                : exportFormat === "png"
+                ? "image/png"
+                : blob.type.startsWith("image/")
+                ? (blob.type as "image/png" | "image/jpeg")
+                : "image/png";
+
+            if (exportSize !== "original" && sizePreset && sizePreset.width > 0) {
+              blob = await resizeImage(blob, sizePreset.width, sizePreset.height, mimeType);
+            } else if (exportFormat !== "original") {
+              blob = await new Promise<Blob>((resolve, reject) => {
+                const convertImg = new Image();
+                convertImg.onload = () => {
+                  const cvs = document.createElement("canvas");
+                  cvs.width = convertImg.width;
+                  cvs.height = convertImg.height;
+                  const c = cvs.getContext("2d")!;
+                  c.drawImage(convertImg, 0, 0);
+                  cvs.toBlob(
+                    (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
+                    mimeType,
+                    0.92
+                  );
+                };
+                convertImg.onerror = () => reject(new Error("Failed to load"));
+                convertImg.crossOrigin = "anonymous";
+                convertImg.src = URL.createObjectURL(blob);
+              });
+            }
+          }
+
+          let filename = item.filename || item.title || `file-${item.id}`;
+          if (isImage && exportFormat !== "original") {
+            const ext = exportFormat === "jpeg" ? ".jpg" : ".png";
+            filename = filename.replace(/\.[^.]+$/, "") + ext;
+          }
+
+          zip.file(filename, blob);
+        } catch (e) {
+          console.error(`Failed to process ${item.title}:`, e);
+        }
+        done++;
+        setProgress({ current: done, total: selectedItems.length });
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(zipBlob);
+      a.download = `trustvault-export-${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+
+      toast({
+        title: "Export Complete",
+        description: `Downloaded ${selectedItems.length} items as zip.`,
+      });
+      onOpenChange(false);
+    } catch (err) {
+      console.error("Export failed:", err);
+      toast({
+        title: "Export Failed",
+        description: "Something went wrong during export.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+      setProgress({ current: 0, total: 0 });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md bg-background border-white/10 text-foreground">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display font-bold flex items-center gap-2">
+            <Download className="w-5 h-5 text-primary" />
+            Batch Export
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          <p className="text-sm text-muted-foreground" data-testid="text-export-count">
+            {selectedItems.length} item{selectedItems.length !== 1 ? "s" : ""} selected
+            {imageCount > 0 && ` (${imageCount} image${imageCount !== 1 ? "s" : ""})`}
+            {otherCount > 0 && ` (${otherCount} other)`}
+          </p>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Format
+            </Label>
+            <Select
+              value={exportFormat}
+              onValueChange={(v) => setExportFormat(v as ExportFormat)}
+            >
+              <SelectTrigger
+                className="bg-white/5 border-white/10"
+                data-testid="select-export-format"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="original">Original Format</SelectItem>
+                <SelectItem value="png">PNG</SelectItem>
+                <SelectItem value="jpeg">JPEG</SelectItem>
+              </SelectContent>
+            </Select>
+            {imageCount === 0 && exportFormat !== "original" && (
+              <p className="text-xs text-muted-foreground">
+                Format conversion only applies to images. Other files will be exported as-is.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Size Preset
+            </Label>
+            <Select
+              value={exportSize}
+              onValueChange={(v) => setExportSize(v as ExportSize)}
+            >
+              <SelectTrigger
+                className="bg-white/5 border-white/10"
+                data-testid="select-export-size"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SIZE_PRESETS.map((preset) => (
+                  <SelectItem key={preset.value} value={preset.value}>
+                    {preset.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {imageCount === 0 && exportSize !== "original" && (
+              <p className="text-xs text-muted-foreground">
+                Size presets only apply to images. Other files will be exported at original size.
+              </p>
+            )}
+          </div>
+
+          {exporting && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Processing...</span>
+                <span>
+                  {progress.current}/{progress.total}
+                </span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300"
+                  style={{
+                    width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
+                  }}
+                  data-testid="progress-export"
+                />
+              </div>
+            </div>
+          )}
+
+          <Button
+            data-testid="button-start-export"
+            onClick={handleExport}
+            disabled={selectedItems.length === 0 || exporting}
+            className="w-full bg-primary text-white"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            {exporting ? "Exporting..." : `Export ${selectedItems.length} Item${selectedItems.length !== 1 ? "s" : ""}`}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function BulkActionBar({
   selectedIds,
   allItems,
@@ -742,6 +1017,7 @@ function BulkActionBar({
   const [showCollectionPopover, setShowCollectionPopover] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [aiProgress, setAiProgress] = useState<{ current: number; total: number; type: string } | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const ids = Array.from(selectedIds);
   const count = ids.length;
@@ -1048,6 +1324,22 @@ function BulkActionBar({
               </div>
             )}
 
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowExportDialog(true)}
+                  disabled={count === 0}
+                  data-testid="button-bulk-export"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Export
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export selected items as zip</TooltipContent>
+            </Tooltip>
+
             {activeCollectionId && (
               <Button
                 variant="outline"
@@ -1098,6 +1390,13 @@ function BulkActionBar({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BatchExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        selectedIds={selectedIds}
+        allItems={allItems}
+      />
     </>
   );
 }

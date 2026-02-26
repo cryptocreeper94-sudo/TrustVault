@@ -47,10 +47,24 @@ import {
   ImageOff,
   Mic,
   MicOff,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Pipette,
+  Stamp,
+  Droplets,
+  Layers,
+  EyeOff,
+  ArrowUp,
+  ArrowDown,
+  Clock,
+  ChevronRight,
 } from "lucide-react";
 import { InfoBubble } from "@/components/InfoBubble";
 
-type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers";
+type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers" | "eyedropper" | "watermark" | "layers";
+
+type WatermarkPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center" | "tiled";
 
 interface CropRect {
   x: number;
@@ -113,6 +127,13 @@ interface EditorState {
   textLayers: TextLayer[];
   stickerLayers: StickerLayer[];
 }
+
+interface HistoryEntry {
+  state: EditorState;
+  label: string;
+}
+
+const MAX_HISTORY_ENTRIES = 30;
 
 const FILTER_PRESETS: FilterPreset[] = [
   { name: "None", id: "none", filter: "none" },
@@ -416,7 +437,7 @@ export default function ImageEditor() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
-    if (activeTool && ["resize", "text", "draw", "stickers"].includes(activeTool)) {
+    if (activeTool && ["resize", "text", "draw", "stickers", "eyedropper", "watermark", "layers"].includes(activeTool)) {
       setShowAdvanced(true);
     }
   }, [activeTool]);
@@ -471,10 +492,30 @@ export default function ImageEditor() {
   const [stickerColor, setStickerColor] = useState("#ffffff");
   const [stickerSize, setStickerSize] = useState(60);
 
-  const [history, setHistory] = useState<EditorState[]>([]);
+  const [sampledColor, setSampledColor] = useState<string | null>(null);
+
+  const [watermarkText, setWatermarkText] = useState("TrustVault");
+  const [watermarkFontSize, setWatermarkFontSize] = useState(24);
+  const [watermarkColor, setWatermarkColor] = useState("#ffffff");
+  const [watermarkOpacity, setWatermarkOpacity] = useState(30);
+  const [watermarkPosition, setWatermarkPosition] = useState<WatermarkPosition>("bottom-right");
+
+  const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({
+    baseImage: true,
+    drawing: true,
+  });
+
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const historyIndexRef = useRef(-1);
   const [showOriginal, setShowOriginal] = useState(false);
+
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
 
   const { data: mediaItem, isLoading: mediaLoading } = useQuery<MediaResponse>({
     queryKey: ["/api/media", id],
@@ -555,34 +596,39 @@ export default function ImageEditor() {
     const filterStr = buildFilterString(adjustments, filterPreset?.filter || "none");
     ctx.filter = filterStr;
 
-    ctx.save();
-    ctx.translate(cw / 2, ch / 2);
-    if (flipH) ctx.scale(-1, 1);
-    if (flipV) ctx.scale(1, -1);
-    ctx.rotate((rotation * Math.PI) / 180);
+    if (layerVisibility.baseImage !== false) {
+      ctx.save();
+      ctx.translate(cw / 2, ch / 2);
+      if (flipH) ctx.scale(-1, 1);
+      if (flipV) ctx.scale(1, -1);
+      ctx.rotate((rotation * Math.PI) / 180);
 
-    const drawW = resizeWidth > 0 && resizeHeight > 0
-      ? (rotation === 90 || rotation === 270 ? resizeHeight : resizeWidth)
-      : imgW;
-    const drawH = resizeWidth > 0 && resizeHeight > 0
-      ? (rotation === 90 || rotation === 270 ? resizeWidth : resizeHeight)
-      : imgH;
+      const drawW = resizeWidth > 0 && resizeHeight > 0
+        ? (rotation === 90 || rotation === 270 ? resizeHeight : resizeWidth)
+        : imgW;
+      const drawH = resizeWidth > 0 && resizeHeight > 0
+        ? (rotation === 90 || rotation === 270 ? resizeWidth : resizeHeight)
+        : imgH;
 
-    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-    ctx.restore();
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+      ctx.restore();
 
-    ctx.filter = "none";
+      ctx.filter = "none";
 
-    applyTemperature(ctx, cw, ch, adjustments.temperature);
-    applyVignette(ctx, cw, ch, adjustments.vignette);
-    applySharpen(ctx, canvas, adjustments.sharpen);
+      applyTemperature(ctx, cw, ch, adjustments.temperature);
+      applyVignette(ctx, cw, ch, adjustments.vignette);
+      applySharpen(ctx, canvas, adjustments.sharpen);
+    } else {
+      ctx.filter = "none";
+    }
 
     ensureDrawingLayer(cw, ch);
-    if (drawingLayerRef.current) {
+    if (drawingLayerRef.current && layerVisibility.drawing !== false) {
       ctx.drawImage(drawingLayerRef.current, 0, 0);
     }
 
     for (const tl of textLayers) {
+      if (layerVisibility[tl.id] === false) continue;
       ctx.save();
       ctx.font = `${tl.bold ? "bold " : ""}${tl.fontSize}px "${tl.fontFamily}"`;
       ctx.fillStyle = tl.color;
@@ -600,6 +646,7 @@ export default function ImageEditor() {
     }
 
     for (const sl of stickerLayers) {
+      if (layerVisibility[sl.id] === false) continue;
       drawStickerShape(ctx, sl.type, sl.x, sl.y, sl.size, sl.color, sl.rotation);
       if (stickerLayers.indexOf(sl) === activeStickerIndex) {
         ctx.save();
@@ -611,7 +658,70 @@ export default function ImageEditor() {
         ctx.restore();
       }
     }
-  }, [currentSourceImage, rotation, flipH, flipV, adjustments, activeFilter, resizeWidth, resizeHeight, textLayers, activeTextId, stickerLayers, activeStickerIndex, ensureDrawingLayer]);
+
+    if (watermarkText.trim() && watermarkOpacity > 0 && activeTool === "watermark") {
+      ctx.save();
+      const hexToRgb = (hex: string) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b };
+      };
+      const rgb = hexToRgb(watermarkColor);
+      ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${watermarkOpacity / 100})`;
+      ctx.font = `${watermarkFontSize}px Arial`;
+      ctx.textBaseline = "top";
+
+      const padding = watermarkFontSize;
+
+      if (watermarkPosition === "tiled") {
+        const metrics = ctx.measureText(watermarkText);
+        const textW = metrics.width;
+        const textH = watermarkFontSize;
+        const gapX = textW + padding;
+        const gapY = textH + padding * 2;
+        ctx.save();
+        ctx.translate(cw / 2, ch / 2);
+        ctx.rotate(-Math.PI / 6);
+        const diagonal = Math.sqrt(cw * cw + ch * ch);
+        for (let y = -diagonal; y < diagonal; y += gapY) {
+          for (let x = -diagonal; x < diagonal; x += gapX) {
+            ctx.fillText(watermarkText, x, y);
+          }
+        }
+        ctx.restore();
+      } else {
+        const metrics = ctx.measureText(watermarkText);
+        const textW = metrics.width;
+        let wx = 0;
+        let wy = 0;
+        switch (watermarkPosition) {
+          case "top-left":
+            wx = padding;
+            wy = padding;
+            break;
+          case "top-right":
+            wx = cw - textW - padding;
+            wy = padding;
+            break;
+          case "bottom-left":
+            wx = padding;
+            wy = ch - watermarkFontSize - padding;
+            break;
+          case "bottom-right":
+            wx = cw - textW - padding;
+            wy = ch - watermarkFontSize - padding;
+            break;
+          case "center":
+            wx = (cw - textW) / 2;
+            wy = (ch - watermarkFontSize) / 2;
+            break;
+        }
+        ctx.fillText(watermarkText, wx, wy);
+      }
+      ctx.restore();
+    }
+  }, [currentSourceImage, rotation, flipH, flipV, adjustments, activeFilter, resizeWidth, resizeHeight, textLayers, activeTextId, stickerLayers, activeStickerIndex, ensureDrawingLayer, watermarkText, watermarkFontSize, watermarkColor, watermarkOpacity, watermarkPosition, activeTool, layerVisibility]);
 
   useEffect(() => {
     if (!mediaItem?.url) return;
@@ -632,7 +742,7 @@ export default function ImageEditor() {
         textLayers: [],
         stickerLayers: [],
       };
-      setHistory([initialState]);
+      setHistory([{ state: initialState, label: "Original Image" }]);
       setHistoryIndex(0);
       historyIndexRef.current = 0;
     };
@@ -704,7 +814,7 @@ export default function ImageEditor() {
     }
   };
 
-  const pushHistory = useCallback(() => {
+  const pushHistory = useCallback((label: string = "Edit") => {
     const state: EditorState = {
       adjustments: { ...adjustments },
       activeFilter,
@@ -717,10 +827,15 @@ export default function ImageEditor() {
     const idx = historyIndexRef.current;
     setHistory((prev) => {
       const truncated = prev.slice(0, idx + 1);
-      return [...truncated, state];
+      const newHistory = [...truncated, { state, label }];
+      if (newHistory.length > MAX_HISTORY_ENTRIES) {
+        return newHistory.slice(newHistory.length - MAX_HISTORY_ENTRIES);
+      }
+      return newHistory;
     });
-    historyIndexRef.current = idx + 1;
-    setHistoryIndex(idx + 1);
+    const newIdx = Math.min(idx + 1, MAX_HISTORY_ENTRIES - 1);
+    historyIndexRef.current = newIdx;
+    setHistoryIndex(newIdx);
   }, [adjustments, activeFilter, rotation, flipH, flipV, textLayers, stickerLayers]);
 
   const restoreImageState = useCallback((s: EditorState) => {
@@ -736,9 +851,9 @@ export default function ImageEditor() {
   const handleUndo = useCallback(() => {
     if (historyIndexRef.current <= 0) return;
     const newIdx = historyIndexRef.current - 1;
-    const prevState = history[newIdx];
-    if (!prevState) return;
-    restoreImageState(prevState);
+    const entry = history[newIdx];
+    if (!entry) return;
+    restoreImageState(entry.state);
     historyIndexRef.current = newIdx;
     setHistoryIndex(newIdx);
   }, [history, restoreImageState]);
@@ -746,15 +861,24 @@ export default function ImageEditor() {
   const handleRedo = useCallback(() => {
     if (historyIndexRef.current >= history.length - 1) return;
     const newIdx = historyIndexRef.current + 1;
-    const nextState = history[newIdx];
-    if (!nextState) return;
-    restoreImageState(nextState);
+    const entry = history[newIdx];
+    if (!entry) return;
+    restoreImageState(entry.state);
     historyIndexRef.current = newIdx;
     setHistoryIndex(newIdx);
   }, [history, restoreImageState]);
 
+  const jumpToHistory = useCallback((index: number) => {
+    if (index < 0 || index >= history.length || index === historyIndexRef.current) return;
+    const entry = history[index];
+    if (!entry) return;
+    restoreImageState(entry.state);
+    historyIndexRef.current = index;
+    setHistoryIndex(index);
+  }, [history, restoreImageState]);
+
   const applyStylePreset = useCallback((preset: StylePreset) => {
-    pushHistory();
+    pushHistory(`Applied ${preset.name} Preset`);
     const startAdj = { ...adjustments };
     const target = preset.adjustments;
     setActiveFilter(preset.filter);
@@ -781,13 +905,13 @@ export default function ImageEditor() {
     toast({ title: `${preset.name} preset applied` });
   }, [adjustments, pushHistory, toast]);
 
-  const handleRotateCW = () => { pushHistory(); setRotation((r) => (r + 90) % 360); };
-  const handleRotateCCW = () => { pushHistory(); setRotation((r) => (r + 270) % 360); };
-  const handleFlipH = () => { pushHistory(); setFlipH((f) => !f); };
-  const handleFlipV = () => { pushHistory(); setFlipV((f) => !f); };
+  const handleRotateCW = () => { pushHistory("Rotated Right"); setRotation((r) => (r + 90) % 360); };
+  const handleRotateCCW = () => { pushHistory("Rotated Left"); setRotation((r) => (r + 270) % 360); };
+  const handleFlipH = () => { pushHistory("Flipped Horizontal"); setFlipH((f) => !f); };
+  const handleFlipV = () => { pushHistory("Flipped Vertical"); setFlipV((f) => !f); };
 
   const handleReset = () => {
-    pushHistory();
+    pushHistory("Reset to Original");
     setRotation(0);
     setFlipH(false);
     setFlipV(false);
@@ -837,7 +961,7 @@ export default function ImageEditor() {
 
   const handleAiEnhance = async () => {
     if (!mediaItem) return;
-    pushHistory();
+    pushHistory("AI Auto-Enhance");
     setIsAiEnhancing(true);
     setAiExplanation(null);
     try {
@@ -930,7 +1054,7 @@ export default function ImageEditor() {
         const data = await resp.json();
 
         if (data.actions && data.actions.length > 0) {
-          pushHistory();
+          pushHistory("Voice Command");
           for (const action of data.actions) {
             switch (action.type) {
               case "brightness":
@@ -999,7 +1123,7 @@ export default function ImageEditor() {
 
   const handleRemoveBackground = async () => {
     if (!mediaItem || !canvasRef.current || !originalImageRef.current) return;
-    pushHistory();
+    pushHistory("Removed Background");
     setIsRemovingBg(true);
     try {
       const imageUrl = `/objects/${mediaItem.url}`;
@@ -1074,7 +1198,7 @@ export default function ImageEditor() {
       toast({ title: "Select Area First", description: "Use the Crop tool to select the area you want to erase, then use Smart Erase.", variant: "destructive" });
       return;
     }
-    pushHistory();
+    pushHistory("Smart Erase");
     setIsSmartErasing(true);
     try {
       const canvas = canvasRef.current;
@@ -1130,7 +1254,7 @@ export default function ImageEditor() {
 
   const handleMagicFill = async (targetRatio: string) => {
     if (!mediaItem || !canvasRef.current || !originalImageRef.current) return;
-    pushHistory();
+    pushHistory(`Magic Fill ${targetRatio}`);
     setIsMagicFilling(true);
     setMagicFillRatio(targetRatio);
     try {
@@ -1243,6 +1367,20 @@ export default function ImageEditor() {
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getCanvasMousePos(e);
+
+    if (activeTool === "eyedropper") {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const pixel = ctx.getImageData(Math.round(pos.x), Math.round(pos.y), 1, 1).data;
+      const hex = "#" + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, "0")).join("");
+      setSampledColor(hex);
+      setBrushColor(hex);
+      setTextColor(hex);
+      toast({ title: "Color Picked", description: hex.toUpperCase() });
+      return;
+    }
 
     if (activeTool === "crop" && isCropping) {
       setCropStart(pos);
@@ -1389,10 +1527,24 @@ export default function ImageEditor() {
   };
 
   const handleCanvasTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (activeTool === "draw" || activeTool === "crop" || activeTool === "text" || activeTool === "stickers") {
+    if (activeTool === "draw" || activeTool === "crop" || activeTool === "text" || activeTool === "stickers" || activeTool === "eyedropper") {
       e.preventDefault();
     }
     const pos = getCanvasTouchPos(e);
+
+    if (activeTool === "eyedropper") {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const pixel = ctx.getImageData(Math.round(pos.x), Math.round(pos.y), 1, 1).data;
+      const hex = "#" + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, "0")).join("");
+      setSampledColor(hex);
+      setBrushColor(hex);
+      setTextColor(hex);
+      toast({ title: "Color Picked", description: hex.toUpperCase() });
+      return;
+    }
 
     if (activeTool === "crop" && isCropping) {
       setCropStart(pos);
@@ -1513,7 +1665,7 @@ export default function ImageEditor() {
 
   const addTextLayer = () => {
     if (!newTextInput.trim()) return;
-    pushHistory();
+    pushHistory("Added Text");
     const canvas = canvasRef.current;
     const centerX = canvas ? canvas.width / 2 - 50 : 100;
     const centerY = canvas ? canvas.height / 2 : 100;
@@ -1533,13 +1685,13 @@ export default function ImageEditor() {
   };
 
   const removeTextLayer = (id: string) => {
-    pushHistory();
+    pushHistory("Removed Text");
     setTextLayers((prev) => prev.filter((tl) => tl.id !== id));
     if (activeTextId === id) setActiveTextId(null);
   };
 
   const addSticker = (type: string) => {
-    pushHistory();
+    pushHistory(`Added ${type} Sticker`);
     const canvas = canvasRef.current;
     const centerX = canvas ? canvas.width / 2 : 100;
     const centerY = canvas ? canvas.height / 2 : 100;
@@ -1557,7 +1709,7 @@ export default function ImageEditor() {
   };
 
   const removeSticker = (index: number) => {
-    pushHistory();
+    pushHistory("Removed Sticker");
     setStickerLayers((prev) => prev.filter((_, i) => i !== index));
     if (activeStickerIndex === index) setActiveStickerIndex(null);
     else if (activeStickerIndex !== null && activeStickerIndex > index) {
@@ -1673,9 +1825,77 @@ export default function ImageEditor() {
     return { maxWidth: "100%", maxHeight: "100%" };
   }, []);
 
+  const MIN_ZOOM = 0.1;
+  const MAX_ZOOM = 5;
+
+  const handleZoomWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoomLevel((prev) => {
+      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev + delta * prev));
+      if (next <= 1) {
+        setPanOffset({ x: 0, y: 0 });
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.addEventListener("wheel", handleZoomWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleZoomWheel);
+  }, [handleZoomWheel]);
+
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel((prev) => Math.min(MAX_ZOOM, prev + 0.25));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel((prev) => {
+      const next = Math.max(MIN_ZOOM, prev - 0.25);
+      if (next <= 1) setPanOffset({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
+  const handleZoomFit = useCallback(() => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  const canPan = zoomLevel > 1;
+
+  const handlePanMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!canPan) return;
+    if (activeTool && activeTool !== "rotate" && activeTool !== "resize" && activeTool !== "filters" && activeTool !== "adjustments") return;
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  }, [canPan, activeTool, panOffset]);
+
+  const handlePanMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning) return;
+    setPanOffset({
+      x: e.clientX - panStart.x,
+      y: e.clientY - panStart.y,
+    });
+  }, [isPanning, panStart]);
+
+  const handlePanMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
   const getCanvasCursor = () => {
+    if (isPanning) return "grabbing";
+    if (canPan && (!activeTool || activeTool === "rotate" || activeTool === "resize" || activeTool === "filters" || activeTool === "adjustments")) return "grab";
     if (isCropping) return "crosshair";
     if (activeTool === "draw") return "crosshair";
+    if (activeTool === "eyedropper") return "crosshair";
     if (activeTool === "text") return "text";
     if (activeTool === "stickers") return "pointer";
     return "default";
@@ -1693,6 +1913,9 @@ export default function ImageEditor() {
     { id: "text", icon: Type, label: "Text" },
     { id: "draw", icon: Pencil, label: "Draw" },
     { id: "stickers", icon: Sparkles, label: "Stickers" },
+    { id: "eyedropper", icon: Pipette, label: "Pick Color" },
+    { id: "watermark", icon: Droplets, label: "Watermark" },
+    { id: "layers", icon: Layers, label: "Layers" },
   ];
 
   const soundFeedback = useSoundFeedback();
@@ -1768,6 +1991,19 @@ export default function ImageEditor() {
               </Button>
             </TooltipTrigger>
             <TooltipContent>Redo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant={showHistoryPanel ? "default" : "ghost"}
+                onClick={() => setShowHistoryPanel(!showHistoryPanel)}
+                data-testid="button-history-panel"
+              >
+                <Clock />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>History</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1914,22 +2150,40 @@ export default function ImageEditor() {
         </div>
 
         <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
-          <div className="flex-1 flex items-center justify-center p-2 sm:p-4 overflow-hidden relative" ref={containerRef} data-testid="editor-canvas-area">
+          <div
+            className="flex-1 flex items-center justify-center p-2 sm:p-4 overflow-hidden relative"
+            ref={containerRef}
+            data-testid="editor-canvas-area"
+            onMouseDown={handlePanMouseDown}
+            onMouseMove={(e) => { handlePanMouseMove(e); }}
+            onMouseUp={handlePanMouseUp}
+            onMouseLeave={handlePanMouseUp}
+          >
             {!imageLoaded ? (
               <div className="flex flex-col items-center gap-3" data-testid="canvas-loading">
                 <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Loading image...</span>
               </div>
             ) : (
-              <div className="relative inline-block" style={{ maxWidth: "100%", maxHeight: "100%" }}>
+              <div
+                ref={canvasWrapperRef}
+                className="relative inline-block"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  transform: `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`,
+                  transformOrigin: "center center",
+                  transition: isPanning ? "none" : "transform 0.15s ease-out",
+                }}
+              >
                 <canvas
                   ref={canvasRef}
                   className="block rounded-md"
                   style={{ maxWidth: "100%", maxHeight: "calc(100vh - 200px)", objectFit: "contain", cursor: getCanvasCursor() }}
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
+                  onMouseDown={(e) => { if (!isPanning) handleCanvasMouseDown(e); }}
+                  onMouseMove={(e) => { if (!isPanning) handleCanvasMouseMove(e); }}
+                  onMouseUp={(e) => { if (!isPanning) handleCanvasMouseUp(); }}
+                  onMouseLeave={() => { if (!isPanning) handleCanvasMouseUp(); }}
                   onTouchStart={handleCanvasTouchStart}
                   onTouchMove={handleCanvasTouchMove}
                   onTouchEnd={handleCanvasTouchEnd}
@@ -1962,6 +2216,53 @@ export default function ImageEditor() {
                 )}
               </div>
             )}
+
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 glass-morphism rounded-md px-2 py-1 z-50" data-testid="zoom-controls">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomOut}
+                    disabled={zoomLevel <= MIN_ZOOM}
+                    data-testid="button-zoom-out"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Zoom Out</TooltipContent>
+              </Tooltip>
+              <span className="text-xs font-medium min-w-[3rem] text-center select-none" data-testid="text-zoom-level">
+                {Math.round(zoomLevel * 100)}%
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomIn}
+                    disabled={zoomLevel >= MAX_ZOOM}
+                    data-testid="button-zoom-in"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Zoom In</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomFit}
+                    data-testid="button-zoom-fit"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Fit to View</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           {activeTool ? (
@@ -2097,7 +2398,7 @@ export default function ImageEditor() {
                   {FILTER_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
-                      onClick={() => { pushHistory(); setActiveFilter(preset.id); }}
+                      onClick={() => { pushHistory(`Applied ${preset.name} Filter`); setActiveFilter(preset.id); }}
                       className={`flex flex-col items-center gap-1.5 p-2 rounded-md transition-colors ${
                         activeFilter === preset.id
                           ? "bg-primary/20 ring-2 ring-primary"
@@ -2243,7 +2544,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.brightness]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, brightness: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Brightness")}
                     data-testid="slider-brightness"
                   />
                 </div>
@@ -2261,7 +2562,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.contrast]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, contrast: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Contrast")}
                     data-testid="slider-contrast"
                   />
                 </div>
@@ -2279,7 +2580,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.saturation]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, saturation: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Saturation")}
                     data-testid="slider-saturation"
                   />
                 </div>
@@ -2297,7 +2598,7 @@ export default function ImageEditor() {
                     step={0.1}
                     value={[adjustments.blur]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, blur: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Blur")}
                     data-testid="slider-blur"
                   />
                 </div>
@@ -2315,7 +2616,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.hue]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, hue: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Hue")}
                     data-testid="slider-hue"
                   />
                 </div>
@@ -2335,7 +2636,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.temperature]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, temperature: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Temperature")}
                     data-testid="slider-temperature"
                   />
                 </div>
@@ -2353,7 +2654,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.vignette]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, vignette: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Vignette")}
                     data-testid="slider-vignette"
                   />
                 </div>
@@ -2371,7 +2672,7 @@ export default function ImageEditor() {
                     step={1}
                     value={[adjustments.sharpen]}
                     onValueChange={([v]) => setAdjustments((a) => ({ ...a, sharpen: v }))}
-                    onValueCommit={() => pushHistory()}
+                    onValueCommit={() => pushHistory("Adjusted Sharpness")}
                     data-testid="slider-sharpen"
                   />
                 </div>
@@ -2563,6 +2864,224 @@ export default function ImageEditor() {
               </div>
             )}
 
+            {activeTool === "eyedropper" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Eyedropper</h3>
+                  <InfoBubble text="Click anywhere on the canvas to sample a pixel color. The sampled color becomes your active drawing and text color." />
+                </div>
+                <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Click on any part of your image to pick its color. The color will be used for drawing and text tools.
+                  </p>
+                </div>
+                {sampledColor && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-12 h-12 rounded-md border border-border shrink-0"
+                        style={{ backgroundColor: sampledColor }}
+                        data-testid="eyedropper-swatch"
+                      />
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <span className="text-sm font-mono font-medium" data-testid="text-sampled-color">{sampledColor.toUpperCase()}</span>
+                        <span className="text-[11px] text-muted-foreground">Active color</span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(sampledColor.toUpperCase());
+                        toast({ title: "Copied", description: sampledColor.toUpperCase() });
+                      }}
+                      data-testid="button-copy-color"
+                    >
+                      Copy Hex
+                    </Button>
+                  </div>
+                )}
+                {!sampledColor && (
+                  <p className="text-xs text-muted-foreground italic" data-testid="text-eyedropper-hint">Click on the canvas to pick a color</p>
+                )}
+              </div>
+            )}
+
+            {activeTool === "watermark" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Watermark</h3>
+                  <InfoBubble text="Add a semi-transparent text watermark to your image. Choose position, opacity, and style. Use 'Tiled' to cover the entire image for copyright protection." />
+                </div>
+                <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Add a text watermark to protect your image. Adjust opacity and position, then apply.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Watermark Text</label>
+                    <Input
+                      value={watermarkText}
+                      onChange={(e) => setWatermarkText(e.target.value)}
+                      placeholder="Your watermark text..."
+                      data-testid="input-watermark-text"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-muted-foreground">Font Size</label>
+                      <Badge variant="secondary" className="text-xs" data-testid="text-watermark-font-size">{watermarkFontSize}px</Badge>
+                    </div>
+                    <Slider
+                      min={10}
+                      max={120}
+                      step={1}
+                      value={[watermarkFontSize]}
+                      onValueChange={([v]) => setWatermarkFontSize(v)}
+                      data-testid="slider-watermark-font-size"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Color</label>
+                    <Input
+                      type="color"
+                      value={watermarkColor}
+                      onChange={(e) => setWatermarkColor(e.target.value)}
+                      className="h-9 cursor-pointer"
+                      data-testid="input-watermark-color"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-muted-foreground">Opacity</label>
+                      <Badge variant="secondary" className="text-xs" data-testid="text-watermark-opacity">{watermarkOpacity}%</Badge>
+                    </div>
+                    <Slider
+                      min={5}
+                      max={100}
+                      step={1}
+                      value={[watermarkOpacity]}
+                      onValueChange={([v]) => setWatermarkOpacity(v)}
+                      data-testid="slider-watermark-opacity"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Position</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([
+                        { value: "top-left" as WatermarkPosition, label: "Top Left" },
+                        { value: "top-right" as WatermarkPosition, label: "Top Right" },
+                        { value: "center" as WatermarkPosition, label: "Center" },
+                        { value: "bottom-left" as WatermarkPosition, label: "Bottom Left" },
+                        { value: "bottom-right" as WatermarkPosition, label: "Bottom Right" },
+                        { value: "tiled" as WatermarkPosition, label: "Tiled" },
+                      ]).map((pos) => (
+                        <Button
+                          key={pos.value}
+                          size="sm"
+                          variant={watermarkPosition === pos.value ? "default" : "outline"}
+                          onClick={() => setWatermarkPosition(pos.value)}
+                          className="text-[10px]"
+                          data-testid={`button-watermark-pos-${pos.value}`}
+                        >
+                          {pos.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!watermarkText.trim()) return;
+                      pushHistory("Applied Watermark");
+                      const canvas = canvasRef.current;
+                      if (!canvas) return;
+                      const ctx = canvas.getContext("2d");
+                      if (!ctx) return;
+                      const cw = canvas.width;
+                      const ch = canvas.height;
+
+                      const hexToRgb = (hex: string) => {
+                        const r = parseInt(hex.slice(1, 3), 16);
+                        const g = parseInt(hex.slice(3, 5), 16);
+                        const b = parseInt(hex.slice(5, 7), 16);
+                        return { r, g, b };
+                      };
+
+                      drawCanvas();
+
+                      const rgb = hexToRgb(watermarkColor);
+                      ctx.save();
+                      ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${watermarkOpacity / 100})`;
+                      ctx.font = `${watermarkFontSize}px Arial`;
+                      ctx.textBaseline = "top";
+                      const wPadding = watermarkFontSize;
+
+                      if (watermarkPosition === "tiled") {
+                        const wMetrics = ctx.measureText(watermarkText);
+                        const wtW = wMetrics.width;
+                        const wtH = watermarkFontSize;
+                        const gX = wtW + wPadding;
+                        const gY = wtH + wPadding * 2;
+                        ctx.save();
+                        ctx.translate(cw / 2, ch / 2);
+                        ctx.rotate(-Math.PI / 6);
+                        const diag = Math.sqrt(cw * cw + ch * ch);
+                        for (let ty = -diag; ty < diag; ty += gY) {
+                          for (let tx = -diag; tx < diag; tx += gX) {
+                            ctx.fillText(watermarkText, tx, ty);
+                          }
+                        }
+                        ctx.restore();
+                      } else {
+                        const wMetrics = ctx.measureText(watermarkText);
+                        const wtW = wMetrics.width;
+                        let wmx = 0;
+                        let wmy = 0;
+                        switch (watermarkPosition) {
+                          case "top-left": wmx = wPadding; wmy = wPadding; break;
+                          case "top-right": wmx = cw - wtW - wPadding; wmy = wPadding; break;
+                          case "bottom-left": wmx = wPadding; wmy = ch - watermarkFontSize - wPadding; break;
+                          case "bottom-right": wmx = cw - wtW - wPadding; wmy = ch - watermarkFontSize - wPadding; break;
+                          case "center": wmx = (cw - wtW) / 2; wmy = (ch - watermarkFontSize) / 2; break;
+                        }
+                        ctx.fillText(watermarkText, wmx, wmy);
+                      }
+                      ctx.restore();
+
+                      ensureDrawingLayer(cw, ch);
+                      const dl = drawingLayerRef.current;
+                      if (dl) {
+                        const dlCtx = dl.getContext("2d");
+                        if (dlCtx) {
+                          dlCtx.clearRect(0, 0, cw, ch);
+                        }
+                      }
+
+                      const burnImg = new window.Image();
+                      burnImg.onload = () => {
+                        const burned = croppedImage || burnImg;
+                        setCroppedImage(burned);
+                      };
+                      canvas.toBlob((blob) => {
+                        if (blob) {
+                          burnImg.src = URL.createObjectURL(blob);
+                        }
+                      });
+
+                      toast({ title: "Watermark Applied", description: `Watermark "${watermarkText}" burned into image.` });
+                    }}
+                    disabled={!watermarkText.trim()}
+                    data-testid="button-apply-watermark"
+                  >
+                    <Stamp className="w-4 h-4 mr-1" />
+                    Apply Watermark
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {activeTool === "stickers" && (
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-1">
@@ -2656,6 +3175,221 @@ export default function ImageEditor() {
                 )}
               </div>
             )}
+
+            {activeTool === "layers" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-1">
+                  <h3 className="text-sm font-semibold" data-testid="text-panel-title">Layers</h3>
+                  <InfoBubble text="View and manage all elements in your image. Toggle visibility, reorder layers, select for editing, or delete them." />
+                </div>
+                <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Manage all elements on your canvas. Toggle visibility, reorder, or remove layers.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {[...stickerLayers].reverse().map((sl, revIdx) => {
+                    const idx = stickerLayers.length - 1 - revIdx;
+                    const isVisible = layerVisibility[sl.id] !== false;
+                    return (
+                      <div
+                        key={sl.id}
+                        className={`flex items-center gap-2 p-2 rounded-md text-xs cursor-pointer ${
+                          activeStickerIndex === idx ? "bg-primary/20 ring-1 ring-primary" : "hover-elevate"
+                        }`}
+                        onClick={() => {
+                          setActiveStickerIndex(idx);
+                          setActiveTextId(null);
+                        }}
+                        data-testid={`layer-sticker-${sl.id}`}
+                      >
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLayerVisibility((prev) => ({ ...prev, [sl.id]: !isVisible }));
+                          }}
+                          data-testid={`button-layer-visibility-${sl.id}`}
+                        >
+                          {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-muted-foreground/50" />}
+                        </Button>
+                        <Badge variant="outline" className="text-[10px] shrink-0">Sticker</Badge>
+                        <span className="truncate flex-1">{sl.type}</span>
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={idx >= stickerLayers.length - 1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStickerLayers((prev) => {
+                                const arr = [...prev];
+                                [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                                return arr;
+                              });
+                              if (activeStickerIndex === idx) setActiveStickerIndex(idx + 1);
+                            }}
+                            data-testid={`button-layer-up-${sl.id}`}
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={idx <= 0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStickerLayers((prev) => {
+                                const arr = [...prev];
+                                [arr[idx], arr[idx - 1]] = [arr[idx - 1], arr[idx]];
+                                return arr;
+                              });
+                              if (activeStickerIndex === idx) setActiveStickerIndex(idx - 1);
+                            }}
+                            data-testid={`button-layer-down-${sl.id}`}
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSticker(idx);
+                            }}
+                            data-testid={`button-layer-delete-${sl.id}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {[...textLayers].reverse().map((tl, revIdx) => {
+                    const idx = textLayers.length - 1 - revIdx;
+                    const isVisible = layerVisibility[tl.id] !== false;
+                    return (
+                      <div
+                        key={tl.id}
+                        className={`flex items-center gap-2 p-2 rounded-md text-xs cursor-pointer ${
+                          activeTextId === tl.id ? "bg-primary/20 ring-1 ring-primary" : "hover-elevate"
+                        }`}
+                        onClick={() => {
+                          setActiveTextId(tl.id);
+                          setActiveStickerIndex(null);
+                        }}
+                        data-testid={`layer-text-${tl.id}`}
+                      >
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLayerVisibility((prev) => ({ ...prev, [tl.id]: !isVisible }));
+                          }}
+                          data-testid={`button-layer-visibility-${tl.id}`}
+                        >
+                          {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-muted-foreground/50" />}
+                        </Button>
+                        <Badge variant="outline" className="text-[10px] shrink-0">Text</Badge>
+                        <span className="truncate flex-1">{tl.text}</span>
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={idx >= textLayers.length - 1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTextLayers((prev) => {
+                                const arr = [...prev];
+                                [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                                return arr;
+                              });
+                            }}
+                            data-testid={`button-layer-up-${tl.id}`}
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={idx <= 0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTextLayers((prev) => {
+                                const arr = [...prev];
+                                [arr[idx], arr[idx - 1]] = [arr[idx - 1], arr[idx]];
+                                return arr;
+                              });
+                            }}
+                            data-testid={`button-layer-down-${tl.id}`}
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeTextLayer(tl.id);
+                            }}
+                            data-testid={`button-layer-delete-${tl.id}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div
+                    className={`flex items-center gap-2 p-2 rounded-md text-xs cursor-pointer hover-elevate`}
+                    data-testid="layer-drawing"
+                  >
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLayerVisibility((prev) => ({ ...prev, drawing: prev.drawing !== false ? false : true }));
+                      }}
+                      data-testid="button-layer-visibility-drawing"
+                    >
+                      {layerVisibility.drawing !== false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-muted-foreground/50" />}
+                    </Button>
+                    <Badge variant="outline" className="text-[10px] shrink-0">Draw</Badge>
+                    <span className="truncate flex-1">Drawing Layer</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-2 p-2 rounded-md text-xs cursor-pointer hover-elevate`}
+                    data-testid="layer-base-image"
+                  >
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLayerVisibility((prev) => ({ ...prev, baseImage: prev.baseImage !== false ? false : true }));
+                      }}
+                      data-testid="button-layer-visibility-base"
+                    >
+                      {layerVisibility.baseImage !== false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-muted-foreground/50" />}
+                    </Button>
+                    <Badge variant="outline" className="text-[10px] shrink-0">Image</Badge>
+                    <span className="truncate flex-1">Base Image</span>
+                  </div>
+                </div>
+
+                {textLayers.length === 0 && stickerLayers.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic" data-testid="text-layers-empty">
+                    No text or sticker layers yet. Add some using the Text or Stickers tools.
+                  </p>
+                )}
+              </div>
+            )}
             </div>
           ) : imageLoaded ? (
             <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l glass-morphism p-3 sm:p-4 z-40 overflow-y-auto max-h-[40vh] sm:max-h-none" data-testid="editor-hint">
@@ -2704,6 +3438,48 @@ export default function ImageEditor() {
               </div>
             </div>
           ) : null}
+
+          {showHistoryPanel && (
+            <div className="w-full sm:w-56 border-t sm:border-t-0 sm:border-l glass-morphism overflow-y-auto z-40 max-h-[35vh] sm:max-h-none" data-testid="history-panel">
+              <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/5 sticky top-0 glass-morphism z-10">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <h3 className="text-xs font-semibold" data-testid="text-history-title">History</h3>
+                </div>
+                <Badge variant="secondary" data-testid="text-history-count">
+                  {historyIndex + 1}/{history.length}
+                </Badge>
+              </div>
+              <div className="flex flex-col py-1">
+                {history.map((entry, idx) => {
+                  const isCurrent = idx === historyIndex;
+                  const isFuture = idx > historyIndex;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => jumpToHistory(idx)}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${
+                        isCurrent
+                          ? "bg-primary/15 text-foreground font-medium"
+                          : isFuture
+                          ? "text-muted-foreground/40"
+                          : "text-muted-foreground hover-elevate"
+                      }`}
+                      data-testid={`button-history-entry-${idx}`}
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        isCurrent ? "bg-primary" : isFuture ? "bg-muted-foreground/20" : "bg-muted-foreground/40"
+                      }`} />
+                      <span className="truncate">{entry.label}</span>
+                      {isCurrent && (
+                        <ChevronRight className="w-3 h-3 ml-auto shrink-0 text-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
