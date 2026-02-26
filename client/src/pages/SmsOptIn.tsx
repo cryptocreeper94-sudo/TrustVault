@@ -230,7 +230,7 @@ export default function SmsOptIn() {
                     <p><strong>Message Frequency:</strong> Varies; typically 2-5 messages per month</p>
                     <p><strong>Message & Data Rates:</strong> Standard message and data rates may apply</p>
                     <p><strong>Opt-Out:</strong> Text STOP to cancel at any time</p>
-                    <p><strong>Help:</strong> Text HELP or email support@darkwavestudios.io</p>
+                    <p><strong>Help:</strong> Text HELP or email Team@dwsc.io</p>
                     <p><strong>Carrier Support:</strong> Compatible with all major US carriers</p>
                   </div>
                 </div>

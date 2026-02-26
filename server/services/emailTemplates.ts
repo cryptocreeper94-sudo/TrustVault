@@ -83,7 +83,7 @@ function baseLayout(content: string, preheaderText: string): string {
                       <tr>
                         <td style="padding: 0 12px;"><a href="https://darkwavestudios.io" style="color:${TEXT_SECONDARY}; font-size:12px; font-weight:500;">DarkWave Studios</a></td>
                         <td style="color:${CARD_BORDER}; font-size:12px;">|</td>
-                        <td style="padding: 0 12px;"><a href="#" style="color:${TEXT_SECONDARY}; font-size:12px; font-weight:500;">Support</a></td>
+                        <td style="padding: 0 12px;"><a href="mailto:Team@dwsc.io" style="color:${TEXT_SECONDARY}; font-size:12px; font-weight:500;">Support</a></td>
                         <td style="color:${CARD_BORDER}; font-size:12px;">|</td>
                         <td style="padding: 0 12px;"><a href="#" style="color:${TEXT_SECONDARY}; font-size:12px; font-weight:500;">Terms</a></td>
                         <td style="color:${CARD_BORDER}; font-size:12px;">|</td>
@@ -280,7 +280,7 @@ export function buildPurchaseConfirmationEmail(data: PurchaseEmailData): { subje
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td style="font-size: 13px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
-                                <strong style="color: ${TEXT_PRIMARY};">Need help?</strong> Our support team is available to assist with setup, media uploads, or any subscription questions. Reply to this email or visit our support center.
+                                <strong style="color: ${TEXT_PRIMARY};">Need help?</strong> Our support team is available to assist with setup, media uploads, or any subscription questions. Email us at <a href="mailto:Team@dwsc.io" style="color: ${ACCENT}; text-decoration: none;">Team@dwsc.io</a>.
                               </td>
                             </tr>
                           </table>
