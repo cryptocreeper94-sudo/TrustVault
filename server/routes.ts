@@ -1613,6 +1613,8 @@ export async function registerRoutes(
       const schema = z.object({
         mediaIds: z.array(z.number()).min(2),
         title: z.string().optional(),
+        transition: z.enum(["none", "fade", "wipeleft", "wiperight", "wipeup", "wipedown", "slideleft", "slideright", "slideup", "slidedown", "circlecrop", "radial", "smoothleft", "smoothright", "smoothup", "smoothdown", "dissolve"]).optional(),
+        transitionDuration: z.number().min(0.2).max(3).optional(),
       });
       const input = schema.parse(req.body);
 

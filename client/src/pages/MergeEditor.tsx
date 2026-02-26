@@ -36,6 +36,27 @@ import {
 type MergeType = "image-collage" | "audio-concat" | "video-concat";
 type CollageLayout = "2x2" | "3x3" | "2x1" | "1x2" | "auto";
 type BgColor = "black" | "white" | "transparent";
+type VideoTransition = "none" | "fade" | "wipeleft" | "wiperight" | "wipeup" | "wipedown" | "slideleft" | "slideright" | "slideup" | "slidedown" | "circlecrop" | "radial" | "smoothleft" | "smoothright" | "smoothup" | "smoothdown" | "dissolve";
+
+const TRANSITION_OPTIONS: { value: VideoTransition; label: string; icon: string }[] = [
+  { value: "none", label: "Hard Cut", icon: "✂️" },
+  { value: "fade", label: "Fade", icon: "🌅" },
+  { value: "dissolve", label: "Dissolve", icon: "💫" },
+  { value: "wipeleft", label: "Wipe Left", icon: "◀" },
+  { value: "wiperight", label: "Wipe Right", icon: "▶" },
+  { value: "wipeup", label: "Wipe Up", icon: "▲" },
+  { value: "wipedown", label: "Wipe Down", icon: "▼" },
+  { value: "slideleft", label: "Slide Left", icon: "⬅" },
+  { value: "slideright", label: "Slide Right", icon: "➡" },
+  { value: "slideup", label: "Slide Up", icon: "⬆" },
+  { value: "slidedown", label: "Slide Down", icon: "⬇" },
+  { value: "circlecrop", label: "Circle", icon: "⭕" },
+  { value: "radial", label: "Radial", icon: "🌀" },
+  { value: "smoothleft", label: "Smooth Left", icon: "↩" },
+  { value: "smoothright", label: "Smooth Right", icon: "↪" },
+  { value: "smoothup", label: "Smooth Up", icon: "⤴" },
+  { value: "smoothdown", label: "Smooth Down", icon: "⤵" },
+];
 
 const STEPS = ["Select Type", "Select Items", "Configure", "Process"];
 
@@ -122,6 +143,8 @@ export default function MergeEditor() {
   const [collageGap, setCollageGap] = useState(4);
   const [collageBg, setCollageBg] = useState<BgColor>("black");
   const [crossfade, setCrossfade] = useState(0);
+  const [videoTransition, setVideoTransition] = useState<VideoTransition>("fade");
+  const [transitionDuration, setTransitionDuration] = useState(0.5);
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -414,6 +437,8 @@ export default function MergeEditor() {
         const res = await apiRequest("POST", "/api/video/merge", {
           mediaIds: selectedItems.map((i) => i.id),
           title: `Merged Video (${selectedItems.length} clips)`,
+          transition: videoTransition,
+          transitionDuration: videoTransition !== "none" ? transitionDuration : undefined,
         });
         const job = await res.json();
         setVideoJobId(job.id);
@@ -905,42 +930,106 @@ export default function MergeEditor() {
             <div className="space-y-6" data-testid="step-configure-video">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-display font-bold mb-2" data-testid="text-step-title">
-                  Video Compilation Preview
+                  Configure Video Merge
                 </h2>
                 <p className="text-muted-foreground">
-                  Total duration: {formatDuration(totalDuration)}
+                  Total duration: {formatDuration(totalDuration)} &middot; {selectedItems.length} clips
                 </p>
               </div>
 
-              <div className="max-w-2xl mx-auto space-y-2">
-                {selectedItems.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10"
-                    data-testid={`video-item-${item.id}`}
-                  >
-                    <span className="text-sm font-mono text-muted-foreground w-6 shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="w-16 h-10 rounded bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
-                      {item.thumbnailUrl ? (
-                        <img
-                          src={`/objects/${item.thumbnailUrl}`}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Film className="w-5 h-5 text-blue-400" />
+              <div className="flex flex-col lg:flex-row gap-6 max-w-4xl mx-auto">
+                <div className="lg:w-80 shrink-0 space-y-6">
+                  <div>
+                    <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground block mb-3">
+                      Transition Effect
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5 max-h-[340px] overflow-y-auto pr-1">
+                      {TRANSITION_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setVideoTransition(opt.value)}
+                          className={`flex flex-col items-center gap-1 p-2 rounded-lg border text-center transition-all ${
+                            videoTransition === opt.value
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20 hover:bg-white/10"
+                          }`}
+                          data-testid={`button-transition-${opt.value}`}
+                        >
+                          <span className="text-lg leading-none">{opt.icon}</span>
+                          <span className="text-[10px] font-medium leading-tight">{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {videoTransition !== "none" && (
+                    <div>
+                      <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground block mb-2">
+                        Duration: {transitionDuration.toFixed(1)}s
+                      </label>
+                      <Slider
+                        value={[transitionDuration]}
+                        onValueChange={([v]) => setTransitionDuration(v)}
+                        min={0.2}
+                        max={3}
+                        step={0.1}
+                        data-testid="slider-transition-duration"
+                      />
+                      <div className="flex justify-between mt-1">
+                        <span className="text-[10px] text-muted-foreground">Quick (0.2s)</span>
+                        <span className="text-[10px] text-muted-foreground">Slow (3s)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 space-y-1">
+                  <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground block mb-2">
+                    Clip Order & Transitions
+                  </label>
+                  {selectedItems.map((item, idx) => (
+                    <div key={item.id}>
+                      <div
+                        className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10"
+                        data-testid={`video-item-${item.id}`}
+                      >
+                        <span className="text-sm font-mono text-muted-foreground w-6 shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="w-16 h-10 rounded bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
+                          {item.thumbnailUrl ? (
+                            <img
+                              src={`/objects/${item.thumbnailUrl}`}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Film className="w-5 h-5 text-blue-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.title}</p>
+                        </div>
+                        <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate text-xs font-mono">
+                          {item.durationSeconds ? formatDuration(item.durationSeconds) : "--:--"}
+                        </Badge>
+                      </div>
+                      {idx < selectedItems.length - 1 && (
+                        <div className="flex items-center justify-center py-1.5" data-testid={`transition-indicator-${idx}`}>
+                          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                            <span className="text-xs">
+                              {TRANSITION_OPTIONS.find(t => t.value === videoTransition)?.icon}
+                            </span>
+                            <span className="text-[10px] font-medium text-primary">
+                              {TRANSITION_OPTIONS.find(t => t.value === videoTransition)?.label}
+                              {videoTransition !== "none" && ` (${transitionDuration.toFixed(1)}s)`}
+                            </span>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.title}</p>
-                    </div>
-                    <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate text-xs font-mono">
-                      {item.durationSeconds ? formatDuration(item.durationSeconds) : "--:--"}
-                    </Badge>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}

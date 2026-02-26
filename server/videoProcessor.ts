@@ -16,9 +16,13 @@ interface TrimInput {
   title?: string;
 }
 
+type VideoTransition = "none" | "fade" | "wipeleft" | "wiperight" | "wipeup" | "wipedown" | "slideleft" | "slideright" | "slideup" | "slidedown" | "circlecrop" | "radial" | "smoothleft" | "smoothright" | "smoothup" | "smoothdown" | "dissolve";
+
 interface MergeInput {
   mediaIds: number[];
   title?: string;
+  transition?: VideoTransition;
+  transitionDuration?: number;
 }
 
 function parseObjectPath(objectPath: string): { bucketName: string; objectName: string } {
@@ -249,19 +253,99 @@ export async function processMergeJob(jobId: number) {
 
     await storage.updateProcessingJob(jobId, { status: "processing", progress: 60 });
 
-    const concatListPath = path.join(tmpDir, "concat.txt");
-    const concatContent = normalizedPaths.map(p => `file '${p}'`).join("\n");
-    await fs.writeFile(concatListPath, concatContent);
-
+    const transition = input.transition || "none";
+    const transitionDuration = Math.min(Math.max(input.transitionDuration || 0.5, 0.2), 3);
     const outputPath = path.join(tmpDir, "merged.mp4");
-    await runFFmpeg([
-      "-y",
-      "-f", "concat", "-safe", "0",
-      "-i", concatListPath,
-      "-c", "copy",
-      "-movflags", "+faststart",
-      outputPath,
-    ]);
+
+    if (transition === "none" || normalizedPaths.length < 2) {
+      const concatListPath = path.join(tmpDir, "concat.txt");
+      const concatContent = normalizedPaths.map(p => `file '${p}'`).join("\n");
+      await fs.writeFile(concatListPath, concatContent);
+
+      await runFFmpeg([
+        "-y",
+        "-f", "concat", "-safe", "0",
+        "-i", concatListPath,
+        "-c", "copy",
+        "-movflags", "+faststart",
+        outputPath,
+      ]);
+    } else {
+      const durations: number[] = [];
+      for (const np of normalizedPaths) {
+        const probe = await runFFprobe(np).catch(() => ({ duration: 5 }));
+        durations.push(probe.duration);
+      }
+
+      const minClipDuration = Math.min(...durations);
+      const safeTDuration = Math.min(transitionDuration, minClipDuration * 0.4, 3);
+      const effectiveTD = Math.max(0.2, safeTDuration);
+
+      const inputs: string[] = [];
+      normalizedPaths.forEach(p => { inputs.push("-i", p); });
+
+      const filterParts: string[] = [];
+      const n = normalizedPaths.length;
+
+      let prevLabel = "[0:v]";
+      for (let i = 1; i < n; i++) {
+        const offset = durations.slice(0, i).reduce((s, d) => s + d, 0) - (effectiveTD * i);
+        const safeOffset = Math.max(0, offset);
+        const outLabel = i < n - 1 ? `[v${i}]` : `[vout]`;
+        filterParts.push(`${prevLabel}[${i}:v]xfade=transition=${transition}:duration=${effectiveTD}:offset=${safeOffset.toFixed(3)}${outLabel}`);
+        prevLabel = outLabel;
+      }
+
+      let prevALabel = "[0:a]";
+      for (let i = 1; i < n; i++) {
+        const outLabel = i < n - 1 ? `[a${i}]` : `[aout]`;
+        filterParts.push(`${prevALabel}[${i}:a]acrossfade=d=${effectiveTD}:c1=tri:c2=tri${outLabel}`);
+        prevALabel = outLabel;
+      }
+
+      const filterComplex = filterParts.join(";");
+
+      try {
+        await runFFmpeg([
+          "-y",
+          ...inputs,
+          "-filter_complex", filterComplex,
+          "-map", "[vout]",
+          "-map", "[aout]",
+          "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+          "-c:a", "aac", "-b:a", "128k",
+          "-movflags", "+faststart",
+          outputPath,
+        ]);
+      } catch {
+        console.log(`[VideoProcessor] Audio crossfade failed, retrying video-only transition`);
+        const videoOnlyParts: string[] = [];
+        let vPrev = "[0:v]";
+        for (let i = 1; i < n; i++) {
+          const offset = durations.slice(0, i).reduce((s, d) => s + d, 0) - (effectiveTD * i);
+          const safeOffset = Math.max(0, offset);
+          const outLabel = i < n - 1 ? `[v${i}]` : `[vout]`;
+          videoOnlyParts.push(`${vPrev}[${i}:v]xfade=transition=${transition}:duration=${effectiveTD}:offset=${safeOffset.toFixed(3)}${outLabel}`);
+          vPrev = outLabel;
+        }
+
+        const aInputs: string[] = [];
+        for (let i = 0; i < n; i++) aInputs.push(`[${i}:a]`);
+        videoOnlyParts.push(`${aInputs.join("")}concat=n=${n}:v=0:a=1[aout]`);
+
+        await runFFmpeg([
+          "-y",
+          ...inputs,
+          "-filter_complex", videoOnlyParts.join(";"),
+          "-map", "[vout]",
+          "-map", "[aout]",
+          "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+          "-c:a", "aac", "-b:a", "128k",
+          "-movflags", "+faststart",
+          outputPath,
+        ]);
+      }
+    }
 
     await storage.updateProcessingJob(jobId, { status: "uploading", progress: 85 });
 

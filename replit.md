@@ -26,7 +26,7 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
 - **File Upload**: Uppy library with AWS S3 plugin for presigned URL uploads.
 - **PWA**: Implemented with manifest and service worker for offline capabilities.
 - **Media Editors**: Dedicated pages for image (crop, rotate, filters, color grading, text, drawing, stickers), audio (trim, fade, EQ, reverb, noise gate), and video (trim, color grading, frame capture) editing.
-- **Media Merge/Combine**: Guided workflows for collages, audio concatenation, and video concatenation.
+- **Media Merge/Combine**: Guided workflows for collages, audio concatenation (with crossfade), and video concatenation with 17 transition effects (fade, dissolve, wipe, slide, circle, radial, smooth — all with configurable duration via FFmpeg xfade).
 - **Smart Browsing & Organization**: Collections, timeline view, various sorting, date range filtering, bulk actions.
 - **AI-Driven Blog System**: Full blog platform with public and admin interfaces, AI content generation via OpenAI.
 - **Stripe Subscription System**: Pricing page with 4 tiers, Stripe Checkout, Customer Portal, webhook handling.
