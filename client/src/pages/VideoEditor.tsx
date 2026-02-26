@@ -83,15 +83,78 @@ const VIDEO_PRESETS: VideoPreset[] = [
   { id: "pastel-dream", name: "Pastel Dream", description: "Soft muted colors", brightness: 112, contrast: 85, saturation: 80, hue: 5, temperature: 8, vignette: 10 },
 ];
 
+type TextAnimation = "none" | "fade-in" | "typewriter" | "slide-up" | "slide-down" | "scale-in" | "bounce";
+
+const TEXT_ANIMATIONS: { id: TextAnimation; label: string }[] = [
+  { id: "none", label: "None" },
+  { id: "fade-in", label: "Fade In" },
+  { id: "typewriter", label: "Typewriter" },
+  { id: "slide-up", label: "Slide Up" },
+  { id: "slide-down", label: "Slide Down" },
+  { id: "scale-in", label: "Scale In" },
+  { id: "bounce", label: "Bounce" },
+];
+
 interface TextOverlay {
   id: string;
   text: string;
+  fontFamily: string;
   fontSize: number;
   color: string;
   x: number;
   y: number;
   startTime: number;
   endTime: number;
+  animation: TextAnimation;
+}
+
+const GOOGLE_FONTS = [
+  { name: "Roboto", category: "sans-serif" },
+  { name: "Open Sans", category: "sans-serif" },
+  { name: "Lato", category: "sans-serif" },
+  { name: "Montserrat", category: "sans-serif" },
+  { name: "Poppins", category: "sans-serif" },
+  { name: "Inter", category: "sans-serif" },
+  { name: "Raleway", category: "sans-serif" },
+  { name: "Nunito", category: "sans-serif" },
+  { name: "Playfair Display", category: "serif" },
+  { name: "Merriweather", category: "serif" },
+  { name: "Lora", category: "serif" },
+  { name: "Crimson Text", category: "serif" },
+  { name: "EB Garamond", category: "serif" },
+  { name: "Libre Baskerville", category: "serif" },
+  { name: "Oswald", category: "display" },
+  { name: "Bebas Neue", category: "display" },
+  { name: "Anton", category: "display" },
+  { name: "Righteous", category: "display" },
+  { name: "Fredoka One", category: "display" },
+  { name: "Lobster", category: "display" },
+  { name: "Pacifico", category: "handwriting" },
+  { name: "Dancing Script", category: "handwriting" },
+  { name: "Caveat", category: "handwriting" },
+  { name: "Sacramento", category: "handwriting" },
+  { name: "Great Vibes", category: "handwriting" },
+];
+
+const loadedFontsSet = new Set<string>();
+function loadGoogleFont(fontName: string) {
+  if (loadedFontsSet.has(fontName)) return;
+  loadedFontsSet.add(fontName);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@400;700&display=swap`;
+  document.head.appendChild(link);
+}
+
+function preloadAllGoogleFonts() {
+  const families = GOOGLE_FONTS.map((f) => `family=${encodeURIComponent(f.name)}:wght@400;700`).join("&");
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+  if (!document.querySelector(`link[href="${link.href}"]`)) {
+    document.head.appendChild(link);
+    GOOGLE_FONTS.forEach((f) => loadedFontsSet.add(f.name));
+  }
 }
 
 type VideoTool = "trim" | "adjustments" | "capture" | "text";
@@ -153,6 +216,7 @@ export default function VideoEditor() {
   const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const [animationKeys, setAnimationKeys] = useState<Record<string, number>>({});
 
   const [history, setHistory] = useState<VideoEditorState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -187,6 +251,10 @@ export default function VideoEditor() {
     },
     enabled: !!id && isAuthenticated,
   });
+
+  useEffect(() => {
+    preloadAllGoogleFonts();
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -521,6 +589,39 @@ export default function VideoEditor() {
     );
   }, [textOverlays, currentTime]);
 
+  const prevVisibleIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const currentIds = new Set(visibleOverlays.map((o) => o.id));
+    const newlyVisible: string[] = [];
+    currentIds.forEach((id) => {
+      if (!prevVisibleIdsRef.current.has(id)) {
+        newlyVisible.push(id);
+      }
+    });
+    if (newlyVisible.length > 0) {
+      setAnimationKeys((prev) => {
+        const next = { ...prev };
+        newlyVisible.forEach((id) => {
+          next[id] = (prev[id] || 0) + 1;
+        });
+        return next;
+      });
+    }
+    prevVisibleIdsRef.current = currentIds;
+  }, [visibleOverlays]);
+
+  const getAnimationClass = useCallback((animation: TextAnimation): string => {
+    switch (animation) {
+      case "fade-in": return "tv-anim-fade-in";
+      case "typewriter": return "tv-anim-typewriter";
+      case "slide-up": return "tv-anim-slide-up";
+      case "slide-down": return "tv-anim-slide-down";
+      case "scale-in": return "tv-anim-scale-in";
+      case "bounce": return "tv-anim-bounce";
+      default: return "";
+    }
+  }, []);
+
   const handleCaptureFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -556,7 +657,7 @@ export default function VideoEditor() {
     }
     visibleOverlays.forEach((overlay) => {
       ctx.save();
-      ctx.font = `bold ${overlay.fontSize * (canvas.width / 640)}px sans-serif`;
+      ctx.font = `bold ${overlay.fontSize * (canvas.width / 640)}px "${overlay.fontFamily}", sans-serif`;
       ctx.fillStyle = overlay.color;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -578,12 +679,14 @@ export default function VideoEditor() {
     const newOverlay: TextOverlay = {
       id: crypto.randomUUID(),
       text: "Your Text",
+      fontFamily: "Roboto",
       fontSize: 32,
       color: "#ffffff",
       x: 50,
       y: 50,
       startTime: currentTime,
       endTime: Math.min(currentTime + 5, duration || 5),
+      animation: "none",
     };
     setTextOverlays((prev) => [...prev, newOverlay]);
     setSelectedOverlayId(newOverlay.id);
@@ -1032,29 +1135,38 @@ export default function VideoEditor() {
                 }}
               />
             )}
-            {visibleOverlays.map((overlay) => (
-              <div
-                key={overlay.id}
-                className={`absolute select-none ${draggingOverlayId === overlay.id ? "cursor-grabbing" : "cursor-grab"} ${selectedOverlayId === overlay.id ? "ring-2 ring-primary ring-offset-1 ring-offset-transparent" : ""}`}
-                style={{
-                  left: `${overlay.x}%`,
-                  top: `${overlay.y}%`,
-                  transform: "translate(-50%, -50%)",
-                  fontSize: `${overlay.fontSize}px`,
-                  color: overlay.color,
-                  fontWeight: "bold",
-                  textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
-                  whiteSpace: "nowrap",
-                  zIndex: 30,
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                }}
-                onMouseDown={(e) => handleOverlayMouseDown(e, overlay.id)}
-                data-testid={`text-overlay-${overlay.id}`}
-              >
-                {overlay.text}
-              </div>
-            ))}
+            {visibleOverlays.map((overlay) => {
+              const animClass = getAnimationClass(overlay.animation);
+              const animKey = animationKeys[overlay.id] || 0;
+              return (
+                <div
+                  key={`${overlay.id}-${animKey}`}
+                  className={`absolute select-none ${animClass} ${draggingOverlayId === overlay.id ? "cursor-grabbing" : "cursor-grab"} ${selectedOverlayId === overlay.id ? "ring-2 ring-primary ring-offset-1 ring-offset-transparent" : ""}`}
+                  style={{
+                    left: `${overlay.x}%`,
+                    top: `${overlay.y}%`,
+                    transform: "translate(-50%, -50%)",
+                    fontFamily: `"${overlay.fontFamily}", sans-serif`,
+                    fontSize: `${overlay.fontSize}px`,
+                    color: overlay.color,
+                    fontWeight: "bold",
+                    textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+                    whiteSpace: "nowrap",
+                    zIndex: 30,
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                  }}
+                  onMouseDown={(e) => handleOverlayMouseDown(e, overlay.id)}
+                  data-testid={`text-overlay-${overlay.id}`}
+                >
+                  {overlay.animation === "typewriter" ? (
+                    <span className="tv-typewriter-text" style={{ "--tw-char-count": overlay.text.length } as React.CSSProperties}>
+                      {overlay.text}
+                    </span>
+                  ) : overlay.text}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -1516,6 +1628,24 @@ export default function VideoEditor() {
                                     data-testid={`input-overlay-text-${index}`}
                                   />
                                 </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-white/60">Font</label>
+                                  <select
+                                    value={overlay.fontFamily}
+                                    onChange={(e) => {
+                                      handleUpdateOverlay(overlay.id, { fontFamily: e.target.value });
+                                      loadGoogleFont(e.target.value);
+                                    }}
+                                    className="flex w-full rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white"
+                                    data-testid={`select-overlay-font-${index}`}
+                                  >
+                                    {GOOGLE_FONTS.map((f) => (
+                                      <option key={f.name} value={f.name} style={{ fontFamily: `"${f.name}", ${f.category}` }}>
+                                        {f.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
                                 <div className="flex items-center gap-3 flex-wrap">
                                   <div className="flex flex-col gap-1">
                                     <label className="text-xs text-white/60">Size ({overlay.fontSize}px)</label>
@@ -1545,6 +1675,25 @@ export default function VideoEditor() {
                                     <Badge variant="secondary" className="text-xs" data-testid={`text-overlay-position-${index}`}>
                                       {Math.round(overlay.x)}%, {Math.round(overlay.y)}%
                                     </Badge>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-white/60">Animation</label>
+                                  <div className="flex flex-wrap gap-1" data-testid={`animation-picker-${index}`}>
+                                    {TEXT_ANIMATIONS.map((anim) => (
+                                      <button
+                                        key={anim.id}
+                                        onClick={(e) => { e.stopPropagation(); handleUpdateOverlay(overlay.id, { animation: anim.id }); }}
+                                        className={`px-2 py-1 rounded-md text-[11px] border transition-colors ${
+                                          overlay.animation === anim.id
+                                            ? "border-primary bg-primary/20 text-white"
+                                            : "border-white/10 bg-white/5 text-white/60 hover-elevate"
+                                        }`}
+                                        data-testid={`button-anim-${anim.id}-${index}`}
+                                      >
+                                        {anim.label}
+                                      </button>
+                                    ))}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3 flex-wrap">

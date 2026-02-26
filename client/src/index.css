@@ -306,6 +306,55 @@
   animation: fab-pulse 2.5s ease-in-out infinite;
 }
 
+@keyframes tv-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes tv-slide-up {
+  from { opacity: 0; transform: translate(-50%, -30%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+@keyframes tv-slide-down {
+  from { opacity: 0; transform: translate(-50%, -70%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+@keyframes tv-scale-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes tv-bounce {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  70% { transform: translate(-50%, -50%) scale(0.9); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes tv-typewriter-reveal {
+  from { max-width: 0; }
+  to { max-width: 100%; }
+}
+
+.tv-anim-fade-in {
+  animation: tv-fade-in 0.6s ease-out both;
+}
+.tv-anim-slide-up {
+  animation: tv-slide-up 0.5s ease-out both;
+}
+.tv-anim-slide-down {
+  animation: tv-slide-down 0.5s ease-out both;
+}
+.tv-anim-scale-in {
+  animation: tv-scale-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+.tv-anim-bounce {
+  animation: tv-bounce 0.7s ease-out both;
+}
+.tv-anim-typewriter .tv-typewriter-text {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: tv-typewriter-reveal 1s steps(var(--tw-char-count, 20), end) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shimmer {
     animation: none;

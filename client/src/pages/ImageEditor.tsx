@@ -193,7 +193,152 @@ const STYLE_PRESETS: StylePreset[] = [
   },
 ];
 
-const FONT_FAMILIES = ["Arial", "Helvetica", "Georgia", "Times New Roman", "Courier New", "Verdana"];
+const GOOGLE_FONTS = [
+  { name: "Roboto", category: "sans-serif" },
+  { name: "Open Sans", category: "sans-serif" },
+  { name: "Lato", category: "sans-serif" },
+  { name: "Montserrat", category: "sans-serif" },
+  { name: "Poppins", category: "sans-serif" },
+  { name: "Inter", category: "sans-serif" },
+  { name: "Raleway", category: "sans-serif" },
+  { name: "Nunito", category: "sans-serif" },
+  { name: "Playfair Display", category: "serif" },
+  { name: "Merriweather", category: "serif" },
+  { name: "Lora", category: "serif" },
+  { name: "Crimson Text", category: "serif" },
+  { name: "EB Garamond", category: "serif" },
+  { name: "Libre Baskerville", category: "serif" },
+  { name: "Oswald", category: "display" },
+  { name: "Bebas Neue", category: "display" },
+  { name: "Anton", category: "display" },
+  { name: "Righteous", category: "display" },
+  { name: "Fredoka One", category: "display" },
+  { name: "Lobster", category: "display" },
+  { name: "Pacifico", category: "handwriting" },
+  { name: "Dancing Script", category: "handwriting" },
+  { name: "Caveat", category: "handwriting" },
+  { name: "Sacramento", category: "handwriting" },
+  { name: "Great Vibes", category: "handwriting" },
+];
+
+const FONT_FAMILIES = GOOGLE_FONTS.map((f) => f.name);
+
+interface GradientPreset {
+  id: string;
+  name: string;
+  css: string;
+  stops: Array<{ offset: number; color: string }>;
+}
+
+interface PatternPreset {
+  id: string;
+  name: string;
+  css: string;
+}
+
+const GRADIENT_PRESETS: GradientPreset[] = [
+  { id: "dark-to-light", name: "Dark to Light", css: "linear-gradient(135deg, #1a1a2e, #3a3a5c, #7a7aaa)", stops: [{ offset: 0, color: "#1a1a2e" }, { offset: 0.5, color: "#3a3a5c" }, { offset: 1, color: "#7a7aaa" }] },
+  { id: "sunset", name: "Sunset", css: "linear-gradient(135deg, #f12711, #f5af19)", stops: [{ offset: 0, color: "#f12711" }, { offset: 1, color: "#f5af19" }] },
+  { id: "ocean", name: "Ocean", css: "linear-gradient(135deg, #2193b0, #6dd5ed)", stops: [{ offset: 0, color: "#2193b0" }, { offset: 1, color: "#6dd5ed" }] },
+  { id: "forest", name: "Forest", css: "linear-gradient(135deg, #134e5e, #71b280)", stops: [{ offset: 0, color: "#134e5e" }, { offset: 1, color: "#71b280" }] },
+  { id: "neon", name: "Neon", css: "linear-gradient(135deg, #b721ff, #21d4fd)", stops: [{ offset: 0, color: "#b721ff" }, { offset: 1, color: "#21d4fd" }] },
+  { id: "midnight", name: "Midnight", css: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)", stops: [{ offset: 0, color: "#0f0c29" }, { offset: 0.5, color: "#302b63" }, { offset: 1, color: "#24243e" }] },
+  { id: "rose", name: "Rose", css: "linear-gradient(135deg, #ee9ca7, #ffdde1)", stops: [{ offset: 0, color: "#ee9ca7" }, { offset: 1, color: "#ffdde1" }] },
+  { id: "monochrome", name: "Monochrome", css: "linear-gradient(135deg, #232526, #414345)", stops: [{ offset: 0, color: "#232526" }, { offset: 1, color: "#414345" }] },
+];
+
+const PATTERN_PRESETS: PatternPreset[] = [
+  { id: "dots", name: "Dots", css: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)" },
+  { id: "grid", name: "Grid", css: "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)" },
+  { id: "diagonal", name: "Diagonal Lines", css: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px)" },
+  { id: "noise", name: "Noise", css: "" },
+];
+
+function drawGradientOnCanvas(ctx: CanvasRenderingContext2D, w: number, h: number, preset: GradientPreset) {
+  const gradient = ctx.createLinearGradient(0, 0, w, h);
+  for (const stop of preset.stops) {
+    gradient.addColorStop(stop.offset, stop.color);
+  }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function drawPatternOnCanvas(ctx: CanvasRenderingContext2D, w: number, h: number, patternId: string) {
+  ctx.save();
+  const spacing = 20;
+  switch (patternId) {
+    case "dots":
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      for (let y = spacing / 2; y < h; y += spacing) {
+        for (let x = spacing / 2; x < w; x += spacing) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      break;
+    case "grid":
+      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+      break;
+    case "diagonal":
+      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      ctx.lineWidth = 1;
+      for (let i = -h; i < w + h; i += 12) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i + h, h);
+        ctx.stroke();
+      }
+      break;
+    case "noise": {
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 20;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise));
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise));
+      }
+      ctx.putImageData(imgData, 0, 0);
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+const loadedFontsSet = new Set<string>();
+function loadGoogleFont(fontName: string) {
+  if (loadedFontsSet.has(fontName)) return;
+  loadedFontsSet.add(fontName);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@400;700&display=swap`;
+  document.head.appendChild(link);
+}
+
+function preloadAllGoogleFonts() {
+  const families = GOOGLE_FONTS.map((f) => `family=${encodeURIComponent(f.name)}:wght@400;700`).join("&");
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+  if (!document.querySelector(`link[href="${link.href}"]`)) {
+    document.head.appendChild(link);
+    GOOGLE_FONTS.forEach((f) => loadedFontsSet.add(f.name));
+  }
+}
 
 const BRUSH_PRESET_COLORS = [
   { name: "White", value: "#ffffff" },
@@ -450,6 +595,8 @@ export default function ImageEditor() {
   const [isSmartErasing, setIsSmartErasing] = useState(false);
   const [isMagicFilling, setIsMagicFilling] = useState(false);
   const [magicFillRatio, setMagicFillRatio] = useState<string | null>(null);
+  const [canvasGradient, setCanvasGradient] = useState<string | null>(null);
+  const [canvasPattern, setCanvasPattern] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -475,7 +622,7 @@ export default function ImageEditor() {
   const [isDraggingText, setIsDraggingText] = useState(false);
   const [textDragOffset, setTextDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [newTextInput, setNewTextInput] = useState("");
-  const [textFontFamily, setTextFontFamily] = useState("Arial");
+  const [textFontFamily, setTextFontFamily] = useState("Roboto");
   const [textFontSize, setTextFontSize] = useState(32);
   const [textColor, setTextColor] = useState("#ffffff");
   const [textBold, setTextBold] = useState(false);
@@ -527,6 +674,10 @@ export default function ImageEditor() {
     },
     enabled: !!id && isAuthenticated,
   });
+
+  useEffect(() => {
+    preloadAllGoogleFonts();
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -1276,32 +1427,41 @@ export default function ImageEditor() {
         newHeight = Math.round(img.naturalWidth / targetAspect);
       }
 
-      const imageUrl = `/objects/${mediaItem.url}`;
-      const resp = await fetch("/api/ai/style-analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl }),
-      });
-
-      let fillColor = "#1a1a2e";
-      let secondaryColor = "#16213e";
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.style?.colorPalette?.length > 0) {
-          fillColor = data.style.colorPalette[0];
-          secondaryColor = data.style.colorPalette.length > 1 ? data.style.colorPalette[1] : fillColor;
-        }
-      }
-
       canvas.width = newWidth;
       canvas.height = newHeight;
 
-      const gradient = ctx.createLinearGradient(0, 0, newWidth, newHeight);
-      gradient.addColorStop(0, fillColor);
-      gradient.addColorStop(0.5, secondaryColor);
-      gradient.addColorStop(1, fillColor);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, newWidth, newHeight);
+      const selectedGradientPreset = canvasGradient ? GRADIENT_PRESETS.find(g => g.id === canvasGradient) : null;
+
+      if (selectedGradientPreset) {
+        drawGradientOnCanvas(ctx, newWidth, newHeight, selectedGradientPreset);
+        if (canvasPattern) {
+          drawPatternOnCanvas(ctx, newWidth, newHeight, canvasPattern);
+        }
+      } else {
+        const imageUrl = `/objects/${mediaItem.url}`;
+        const resp = await fetch("/api/ai/style-analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl }),
+        });
+
+        let fillColor = "#1a1a2e";
+        let secondaryColor = "#16213e";
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.style?.colorPalette?.length > 0) {
+            fillColor = data.style.colorPalette[0];
+            secondaryColor = data.style.colorPalette.length > 1 ? data.style.colorPalette[1] : fillColor;
+          }
+        }
+
+        const gradient = ctx.createLinearGradient(0, 0, newWidth, newHeight);
+        gradient.addColorStop(0, fillColor);
+        gradient.addColorStop(0.5, secondaryColor);
+        gradient.addColorStop(1, fillColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, newWidth, newHeight);
+      }
 
       const offsetX = Math.round((newWidth - img.naturalWidth) / 2);
       const offsetY = Math.round((newHeight - img.naturalHeight) / 2);
@@ -2533,6 +2693,77 @@ export default function ImageEditor() {
                     ))}
                   </div>
                 </div>
+                <div className="border-t border-white/5 pt-3 mt-1">
+                  <div className="flex items-center gap-1 mb-2">
+                    <Palette className="w-3.5 h-3.5 text-muted-foreground" />
+                    <label className="text-xs text-muted-foreground font-medium">Canvas Background</label>
+                    <InfoBubble text="Choose a gradient or pattern background for Magic Fill and canvas extensions. When set, Magic Fill uses your chosen background instead of AI-detected colors." />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/50 mb-2">Gradient</p>
+                  <div className="grid grid-cols-4 gap-1.5 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => { setCanvasGradient(null); setCanvasPattern(null); }}
+                      className={`w-full aspect-square rounded-md border-2 transition-all ${
+                        !canvasGradient ? "border-primary ring-1 ring-primary/30" : "border-transparent"
+                      } bg-muted/30 flex items-center justify-center`}
+                      data-testid="button-gradient-none"
+                    >
+                      <X className="w-3 h-3 text-muted-foreground/50" />
+                    </button>
+                    {GRADIENT_PRESETS.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => setCanvasGradient(g.id)}
+                        className={`w-full aspect-square rounded-md border-2 transition-all ${
+                          canvasGradient === g.id ? "border-primary ring-1 ring-primary/30" : "border-transparent"
+                        }`}
+                        style={{ background: g.css }}
+                        title={g.name}
+                        data-testid={`button-gradient-${g.id}`}
+                      />
+                    ))}
+                  </div>
+                  {canvasGradient && (
+                    <>
+                      <p className="text-[10px] text-muted-foreground/50 mb-2">Pattern Overlay</p>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCanvasPattern(null)}
+                          className={`w-full aspect-square rounded-md border-2 transition-all ${
+                            !canvasPattern ? "border-primary ring-1 ring-primary/30" : "border-transparent"
+                          } bg-muted/30 flex items-center justify-center`}
+                          data-testid="button-pattern-none"
+                        >
+                          <X className="w-3 h-3 text-muted-foreground/50" />
+                        </button>
+                        {PATTERN_PRESETS.map((p) => {
+                          const gradientPreset = GRADIENT_PRESETS.find(g => g.id === canvasGradient);
+                          const bgStyle = gradientPreset
+                            ? `${gradientPreset.css}`
+                            : "#1a1a2e";
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setCanvasPattern(p.id)}
+                              className={`w-full aspect-square rounded-md border-2 transition-all ${
+                                canvasPattern === p.id ? "border-primary ring-1 ring-primary/30" : "border-transparent"
+                              } relative overflow-hidden`}
+                              style={{ background: bgStyle }}
+                              title={p.name}
+                              data-testid={`button-pattern-${p.id}`}
+                            >
+                              <span className="text-[8px] text-white/70 font-medium">{p.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
@@ -2707,12 +2938,17 @@ export default function ImageEditor() {
                     <label className="text-xs text-muted-foreground">Font Family</label>
                     <select
                       value={textFontFamily}
-                      onChange={(e) => setTextFontFamily(e.target.value)}
+                      onChange={(e) => {
+                        setTextFontFamily(e.target.value);
+                        loadGoogleFont(e.target.value);
+                      }}
                       className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       data-testid="select-text-font"
                     >
-                      {FONT_FAMILIES.map((f) => (
-                        <option key={f} value={f}>{f}</option>
+                      {GOOGLE_FONTS.map((f) => (
+                        <option key={f.name} value={f.name} style={{ fontFamily: `"${f.name}", ${f.category}` }}>
+                          {f.name}
+                        </option>
                       ))}
                     </select>
                   </div>

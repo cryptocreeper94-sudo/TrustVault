@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowLeft, Download, Loader2, ImageIcon, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, Loader2, ImageIcon, Check, Sparkles, Palette, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +69,26 @@ const PLATFORMS: PlatformSpec[] = [
   },
 ];
 
+interface GradientPreset {
+  id: string;
+  name: string;
+  css: string;
+  stops: Array<{ offset: number; color: string }>;
+}
+
+const GRADIENT_PRESETS: GradientPreset[] = [
+  { id: "dark-to-light", name: "Dark to Light", css: "linear-gradient(135deg, #1a1a2e, #3a3a5c, #7a7aaa)", stops: [{ offset: 0, color: "#1a1a2e" }, { offset: 0.5, color: "#3a3a5c" }, { offset: 1, color: "#7a7aaa" }] },
+  { id: "sunset", name: "Sunset", css: "linear-gradient(135deg, #f12711, #f5af19)", stops: [{ offset: 0, color: "#f12711" }, { offset: 1, color: "#f5af19" }] },
+  { id: "ocean", name: "Ocean", css: "linear-gradient(135deg, #2193b0, #6dd5ed)", stops: [{ offset: 0, color: "#2193b0" }, { offset: 1, color: "#6dd5ed" }] },
+  { id: "forest", name: "Forest", css: "linear-gradient(135deg, #134e5e, #71b280)", stops: [{ offset: 0, color: "#134e5e" }, { offset: 1, color: "#71b280" }] },
+  { id: "neon", name: "Neon", css: "linear-gradient(135deg, #b721ff, #21d4fd)", stops: [{ offset: 0, color: "#b721ff" }, { offset: 1, color: "#21d4fd" }] },
+  { id: "midnight", name: "Midnight", css: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)", stops: [{ offset: 0, color: "#0f0c29" }, { offset: 0.5, color: "#302b63" }, { offset: 1, color: "#24243e" }] },
+  { id: "rose", name: "Rose", css: "linear-gradient(135deg, #ee9ca7, #ffdde1)", stops: [{ offset: 0, color: "#ee9ca7" }, { offset: 1, color: "#ffdde1" }] },
+  { id: "monochrome", name: "Monochrome", css: "linear-gradient(135deg, #232526, #414345)", stops: [{ offset: 0, color: "#232526" }, { offset: 1, color: "#414345" }] },
+];
+
+type FitMode = "crop" | "letterbox";
+
 function centerCropToCanvas(
   img: HTMLImageElement,
   targetW: number,
@@ -107,6 +127,54 @@ function centerCropToCanvas(
   });
 }
 
+function letterboxToCanvas(
+  img: HTMLImageElement,
+  targetW: number,
+  targetH: number,
+  gradient: GradientPreset
+): Promise<string> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext("2d")!;
+
+    const grad = ctx.createLinearGradient(0, 0, targetW, targetH);
+    for (const stop of gradient.stops) {
+      grad.addColorStop(stop.offset, stop.color);
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, targetW, targetH);
+
+    const imgW = img.naturalWidth;
+    const imgH = img.naturalHeight;
+    const targetAspect = targetW / targetH;
+    const imgAspect = imgW / imgH;
+
+    let drawW: number;
+    let drawH: number;
+
+    if (imgAspect > targetAspect) {
+      drawW = targetW;
+      drawH = targetW / imgAspect;
+    } else {
+      drawH = targetH;
+      drawW = targetH * imgAspect;
+    }
+
+    const offsetX = (targetW - drawW) / 2;
+    const offsetY = (targetH - drawH) / 2;
+
+    ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(URL.createObjectURL(blob));
+      }
+    }, "image/png");
+  });
+}
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -126,6 +194,8 @@ export default function SocialMediaKit() {
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const [fitMode, setFitMode] = useState<FitMode>("crop");
+  const [selectedGradientId, setSelectedGradientId] = useState<string>("midnight");
 
   const { data: mediaItems, isLoading } = useQuery<MediaItem[]>({
     queryKey: ["/api/media"],
@@ -157,7 +227,13 @@ export default function SocialMediaKit() {
 
       const results: Record<string, string> = {};
       for (const platform of PLATFORMS) {
-        const blobUrl = await centerCropToCanvas(img, platform.width, platform.height);
+        let blobUrl: string;
+        if (fitMode === "letterbox") {
+          const gradientPreset = GRADIENT_PRESETS.find(g => g.id === selectedGradientId) || GRADIENT_PRESETS[5];
+          blobUrl = await letterboxToCanvas(img, platform.width, platform.height, gradientPreset);
+        } else {
+          blobUrl = await centerCropToCanvas(img, platform.width, platform.height);
+        }
         results[platform.id] = blobUrl;
       }
 
@@ -168,7 +244,7 @@ export default function SocialMediaKit() {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedItem, toast]);
+  }, [selectedItem, toast, fitMode, selectedGradientId]);
 
   const handleDownload = useCallback((platformId: string, platformName: string) => {
     const url = generatedImages[platformId];
@@ -296,6 +372,66 @@ export default function SocialMediaKit() {
               transition={{ duration: 0.4 }}
               className="space-y-4"
             >
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" data-testid="badge-step-fit">Fit Mode</Badge>
+                <h2 className="text-lg font-semibold" data-testid="text-fit-title">Resize Method</h2>
+                <InfoBubble text="Choose how your image fits each platform. Crop fills the frame but may cut edges. Letterbox preserves the full image with a gradient background." side="right" />
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <Button
+                  variant={fitMode === "crop" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFitMode("crop")}
+                  data-testid="button-fit-crop"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Center Crop
+                </Button>
+                <Button
+                  variant={fitMode === "letterbox" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFitMode("letterbox")}
+                  data-testid="button-fit-letterbox"
+                >
+                  <Palette className="w-4 h-4 mr-2" />
+                  Letterbox with Gradient
+                </Button>
+              </div>
+
+              <AnimatePresence>
+                {fitMode === "letterbox" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <p className="text-xs text-muted-foreground mb-2">Choose gradient background</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                      {GRADIENT_PRESETS.map((g) => (
+                        <button
+                          key={g.id}
+                          type="button"
+                          onClick={() => setSelectedGradientId(g.id)}
+                          className={`aspect-square rounded-md border-2 transition-all ${
+                            selectedGradientId === g.id
+                              ? "border-primary ring-2 ring-primary/30"
+                              : "border-transparent"
+                          }`}
+                          style={{ background: g.css }}
+                          title={g.name}
+                          data-testid={`button-smk-gradient-${g.id}`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1.5">
+                      Selected: {GRADIENT_PRESETS.find(g => g.id === selectedGradientId)?.name}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="flex items-center gap-2">
                 <Badge variant="outline" data-testid="badge-step-2">Step 2</Badge>
                 <h2 className="text-lg font-semibold" data-testid="text-step-2-title">Generate Kit</h2>

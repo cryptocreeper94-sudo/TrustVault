@@ -25,7 +25,7 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
 - **Styling**: Tailwind CSS, dark-mode-first, custom fonts.
 - **File Upload**: Uppy library with AWS S3 plugin for presigned URL uploads.
 - **PWA**: Implemented with manifest and service worker for offline capabilities.
-- **Media Editors**: Dedicated pages for image (crop, rotate, filters, color grading, text, drawing, stickers, eyedropper color picker, watermark tool, layer panel, visual history panel, zoom/pan canvas), audio (trim, fade, EQ, reverb, noise gate), and video (trim, color grading, frame capture, text overlays, custom thumbnail selection) editing.
+- **Media Editors**: Dedicated pages for image (crop, rotate, filters, color grading, text with 25 Google Fonts, drawing, stickers, eyedropper color picker, watermark tool, layer panel, visual history panel, zoom/pan canvas, gradient/pattern canvas backgrounds), audio (trim, fade, EQ, reverb, noise gate), and video (trim, color grading, frame capture, text overlays with 25 Google Fonts and 7 animation effects, custom thumbnail selection) editing.
 - **Media Viewer**: Zoom support with scroll-wheel zoom, pinch-to-zoom, double-click toggle, and pan when zoomed.
 - **Batch Export**: Bulk export with format conversion (Original/PNG/JPEG), size presets (1080p, 720p, Instagram, Twitter, YouTube), client-side canvas resize, and JSZip download.
 - **Media Merge/Combine**: Guided workflows for collages, audio concatenation (with crossfade), and video concatenation with 17 transition effects (fade, dissolve, wipe, slide, circle, radial, smooth — all with configurable duration via FFmpeg xfade).
