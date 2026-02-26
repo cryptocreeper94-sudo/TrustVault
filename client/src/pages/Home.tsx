@@ -1973,6 +1973,12 @@ export default function Home() {
                       </Button>
                     </div>
                     <div className="space-y-1 pt-2 border-t border-border/50">
+                      <Button asChild variant="ghost" size="sm" data-testid="link-ecosystem-menu">
+                        <Link href="/ecosystem" className="gap-2 justify-start text-muted-foreground">
+                          <Shield className="w-3.5 h-3.5 text-cyan-400" />
+                          Trust Layer
+                        </Link>
+                      </Button>
                       <Button asChild variant="ghost" size="sm" data-testid="link-privacy-menu">
                         <Link href="/privacy" className="gap-2 justify-start text-muted-foreground">
                           <Shield className="w-3.5 h-3.5" />

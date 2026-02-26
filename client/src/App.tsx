@@ -38,6 +38,7 @@ const BeatSyncVideo = lazy(() => import("@/pages/BeatSyncVideo"));
 const ThumbnailRanker = lazy(() => import("@/pages/ThumbnailRanker"));
 const PortfolioGenerator = lazy(() => import("@/pages/PortfolioGenerator"));
 const StyleDNA = lazy(() => import("@/pages/StyleDNA"));
+const Ecosystem = lazy(() => import("@/pages/Ecosystem"));
 const SignalChatPanel = lazy(() => import("@/components/SignalChatPanel").then(m => ({ default: m.SignalChatPanel })));
 
 function LazyFallback() {
@@ -193,6 +194,7 @@ function Router() {
             <Route path="/thumbnail-ranker" component={ThumbnailRanker} />
             <Route path="/portfolio-generator" component={PortfolioGenerator} />
             <Route path="/style-dna" component={StyleDNA} />
+            <Route path="/ecosystem" component={Ecosystem} />
             <Route component={NotFound} />
           </Switch>
         </motion.div>
