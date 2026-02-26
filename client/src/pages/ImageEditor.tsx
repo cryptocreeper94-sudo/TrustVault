@@ -2262,6 +2262,9 @@ export default function ImageEditor() {
                 </TooltipTrigger>
                 <TooltipContent>Fit to View</TooltipContent>
               </Tooltip>
+              {zoomLevel === 1 && (
+                <span className="text-[10px] text-muted-foreground/40 ml-1 hidden sm:inline whitespace-nowrap">Scroll to zoom · Drag to pan</span>
+              )}
             </div>
           </div>
 

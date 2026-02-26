@@ -886,6 +886,9 @@ function BatchExportDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
+          <p className="text-xs text-muted-foreground/70 mb-1" data-testid="text-export-hint">
+            Download selected files as a zip. Images can be resized and converted to different formats. Other media types export in their original format.
+          </p>
           <p className="text-sm text-muted-foreground" data-testid="text-export-count">
             {selectedItems.length} item{selectedItems.length !== 1 ? "s" : ""} selected
             {imageCount > 0 && ` (${imageCount} image${imageCount !== 1 ? "s" : ""})`}

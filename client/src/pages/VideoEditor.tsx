@@ -1614,19 +1614,22 @@ export default function VideoEditor() {
                           Save Frame
                         </Button>
                       )}
-                      <Button
-                        variant="outline"
-                        onClick={handleSetThumbnail}
-                        disabled={saving || isUploading || settingThumbnail || !videoLoaded}
-                        data-testid="button-set-thumbnail"
-                      >
-                        {settingThumbnail ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
-                          <ImageIcon className="w-4 h-4 mr-2" />
-                        )}
-                        Set as Thumbnail
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          onClick={handleSetThumbnail}
+                          disabled={saving || isUploading || settingThumbnail || !videoLoaded}
+                          data-testid="button-set-thumbnail"
+                        >
+                          {settingThumbnail ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <ImageIcon className="w-4 h-4 mr-2" />
+                          )}
+                          Set as Thumbnail
+                        </Button>
+                        <InfoBubble text="Uses the current frame as this video's thumbnail in your vault. Seek to the perfect moment, then click to set it." />
+                      </div>
                     </div>
                     {capturedFrame && (
                       <div className="flex items-start gap-3">

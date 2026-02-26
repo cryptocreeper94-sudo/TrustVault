@@ -299,6 +299,9 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
               >
                 <Maximize className="w-3.5 h-3.5" />
               </button>
+              {zoom === 1 && (
+                <span className="text-[9px] text-white/30 ml-1 hidden sm:inline">Scroll to zoom</span>
+              )}
             </div>
           )}
 
