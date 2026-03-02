@@ -10,6 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { InfoBubble } from "@/components/InfoBubble";
 import type { MediaItem } from "@shared/schema";
+import { getMediaUrl } from "@/lib/utils";
 
 type VizStyle = "waveform" | "bars" | "circle" | "particles" | "galaxy";
 type ColorThemeName = "neon" | "fire" | "ocean" | "midnight" | "sunset";
@@ -109,7 +110,7 @@ export default function AudioVisualizer() {
         await audioContextRef.current.resume();
       }
 
-      const response = await fetch(`/objects/${media.url}`);
+      const response = await fetch(getMediaUrl(media.url));
       if (!response.ok) throw new Error("Failed to load audio file");
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);

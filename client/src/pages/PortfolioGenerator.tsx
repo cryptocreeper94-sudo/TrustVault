@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { InfoBubble } from "@/components/InfoBubble";
 import type { MediaItem } from "@shared/schema";
+import { getMediaUrl } from "@/lib/utils";
 
 type PortfolioStyle = "minimal" | "magazine" | "gallery" | "mosaic";
 
@@ -70,7 +71,7 @@ export default function PortfolioGenerator() {
       const batches = batchArray(imageItems, 6);
 
       for (const batch of batches) {
-        const imageUrls = batch.map((item) => `/objects/${item.url}`);
+        const imageUrls = batch.map((item) => getMediaUrl(item.url));
         const mediaIds = batch.map((m) => m.id);
 
         try {
@@ -128,7 +129,7 @@ export default function PortfolioGenerator() {
     if (!win) return;
 
     const images = selectedImages.map((s) => ({
-      url: `/objects/${s.media.url}`,
+      url: getMediaUrl(s.media.url),
       title: s.media.title || "",
     }));
 
@@ -433,7 +434,7 @@ export default function PortfolioGenerator() {
                         data-testid={`portfolio-image-${item.media.id}`}
                       >
                         <img
-                          src={`/objects/${item.media.url}`}
+                          src={getMediaUrl(item.media.url)}
                           alt={item.media.title || "Portfolio image"}
                           className="w-full h-full object-cover rounded-md transition-transform duration-500 group-hover:scale-[1.03]"
                           loading="lazy"
@@ -460,7 +461,7 @@ export default function PortfolioGenerator() {
                           data-testid={`portfolio-image-${item.media.id}`}
                         >
                           <img
-                            src={`/objects/${item.media.url}`}
+                            src={getMediaUrl(item.media.url)}
                             alt={item.media.title || "Portfolio image"}
                             className="w-full h-full object-cover rounded-md transition-transform duration-500 group-hover:scale-[1.03]"
                             loading="lazy"
@@ -486,7 +487,7 @@ export default function PortfolioGenerator() {
                         data-testid={`portfolio-image-${item.media.id}`}
                       >
                         <img
-                          src={`/objects/${item.media.url}`}
+                          src={getMediaUrl(item.media.url)}
                           alt={item.media.title || "Portfolio image"}
                           className="w-full rounded-md transition-transform duration-500 group-hover:scale-[1.01]"
                           loading="lazy"
@@ -513,7 +514,7 @@ export default function PortfolioGenerator() {
                         data-testid={`portfolio-image-${item.media.id}`}
                       >
                         <img
-                          src={`/objects/${item.media.url}`}
+                          src={getMediaUrl(item.media.url)}
                           alt={item.media.title || "Portfolio image"}
                           className="w-full rounded-md transition-transform duration-500 group-hover:scale-[1.02]"
                           loading="lazy"

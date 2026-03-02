@@ -61,6 +61,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { InfoBubble } from "@/components/InfoBubble";
+import { getMediaUrl } from "@/lib/utils";
 
 type EditorTool = "crop" | "rotate" | "resize" | "filters" | "adjustments" | "text" | "draw" | "stickers" | "eyedropper" | "watermark" | "layers";
 
@@ -900,7 +901,7 @@ export default function ImageEditor() {
     img.onerror = () => {
       toast({ title: "Failed to load image", variant: "destructive" });
     };
-    img.src = `/objects/${mediaItem.url}`;
+    img.src = getMediaUrl(mediaItem.url);
   }, [mediaItem?.url, toast]);
 
   useEffect(() => {
@@ -1116,7 +1117,7 @@ export default function ImageEditor() {
     setIsAiEnhancing(true);
     setAiExplanation(null);
     try {
-      const imageUrl = `/objects/${mediaItem.url}`;
+      const imageUrl = getMediaUrl(mediaItem.url);
       const resp = await fetch("/api/ai/enhance-suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1277,7 +1278,7 @@ export default function ImageEditor() {
     pushHistory("Removed Background");
     setIsRemovingBg(true);
     try {
-      const imageUrl = `/objects/${mediaItem.url}`;
+      const imageUrl = getMediaUrl(mediaItem.url);
       const resp = await fetch("/api/ai/remove-background", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1354,7 +1355,7 @@ export default function ImageEditor() {
     try {
       const canvas = canvasRef.current;
       const eraseRect = { ...cropRect };
-      const imageUrl = `/objects/${mediaItem.url}`;
+      const imageUrl = getMediaUrl(mediaItem.url);
       const region = {
         x: eraseRect.x / canvas.width,
         y: eraseRect.y / canvas.height,
@@ -1438,7 +1439,7 @@ export default function ImageEditor() {
           drawPatternOnCanvas(ctx, newWidth, newHeight, canvasPattern);
         }
       } else {
-        const imageUrl = `/objects/${mediaItem.url}`;
+        const imageUrl = getMediaUrl(mediaItem.url);
         const resp = await fetch("/api/ai/style-analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

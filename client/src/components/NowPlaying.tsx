@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import type { MediaResponse } from "@shared/routes";
+import { getMediaUrl } from "@/lib/utils";
 
 interface NowPlayingProps {
   item: MediaResponse;
@@ -50,7 +51,7 @@ export function NowPlaying({ item, playlist = [], open, onClose, onTrackChange }
   const [isShuffle, setIsShuffle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const mediaUrl = `/objects/${item.url}`;
+  const mediaUrl = getMediaUrl(item.url);
 
   const initAudioContext = useCallback(() => {
     if (audioContextRef.current || !audioRef.current) return;

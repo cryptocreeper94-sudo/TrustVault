@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { type MediaCategory, TIER_LIMITS, type SubscriptionTier } from "@shared/schema";
 import { type MediaResponse } from "@shared/routes";
 import { format } from "date-fns";
+import { getMediaUrl } from "@/lib/utils";
 
 const CATEGORY_ICONS: Record<string, any> = {
   video: Film,
@@ -253,7 +254,7 @@ export function RecentCarousel({ onPlay }: { onPlay: (item: MediaResponse) => vo
               <div className={`aspect-[4/3] relative ${GRADIENT_MAP[cat] || "premium-gradient-other"} overflow-hidden`}>
                 {hasVisual ? (
                   <img
-                    src={`/objects/${cat === "image" ? item.url : item.thumbnailUrl}`}
+                    src={getMediaUrl(cat === "image" ? item.url : item.thumbnailUrl || item.url)}
                     alt={item.title}
                     className="absolute inset-0 w-full h-full object-cover"
                     loading="lazy"

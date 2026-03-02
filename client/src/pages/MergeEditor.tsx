@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+import { getMediaUrl } from "@/lib/utils";
 
 type MergeType = "image-collage" | "audio-concat" | "video-concat";
 type CollageLayout = "2x2" | "3x3" | "2x1" | "1x2" | "auto";
@@ -292,7 +293,7 @@ export default function MergeEditor() {
       img.onerror = () => {
         loaded++;
       };
-      img.src = `/objects/${item.url}`;
+      img.src = getMediaUrl(item.url);
     });
   }, [selectedItems, collageLayout, collageGap, collageBg, mergeType]);
 
@@ -350,7 +351,7 @@ export default function MergeEditor() {
         const buffers: AudioBuffer[] = [];
 
         for (const item of selectedItems) {
-          const response = await fetch(`/objects/${item.url}`);
+          const response = await fetch(getMediaUrl(item.url));
           const arrayBuf = await response.arrayBuffer();
           const decoded = await audioCtx.decodeAudioData(arrayBuf);
           buffers.push(decoded);
@@ -700,14 +701,14 @@ export default function MergeEditor() {
                           <div className="aspect-square bg-white/5 flex items-center justify-center overflow-hidden">
                             {item.category === "image" ? (
                               <img
-                                src={`/objects/${item.url}`}
+                                src={getMediaUrl(item.url)}
                                 alt={item.title}
                                 className="w-full h-full object-cover"
                                 loading="lazy"
                               />
                             ) : item.thumbnailUrl ? (
                               <img
-                                src={`/objects/${item.thumbnailUrl}`}
+                                src={getMediaUrl(item.thumbnailUrl)}
                                 alt={item.title}
                                 className="w-full h-full object-cover"
                                 loading="lazy"
@@ -999,7 +1000,7 @@ export default function MergeEditor() {
                         <div className="w-16 h-10 rounded bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
                           {item.thumbnailUrl ? (
                             <img
-                              src={`/objects/${item.thumbnailUrl}`}
+                              src={getMediaUrl(item.thumbnailUrl)}
                               alt=""
                               className="w-full h-full object-cover"
                             />

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { InfoBubble } from "@/components/InfoBubble";
 import type { MediaItem } from "@shared/schema";
+import { getMediaUrl } from "@/lib/utils";
 
 interface RankingResult {
   mediaId: number;
@@ -143,7 +144,7 @@ export default function ThumbnailRanker() {
 
     try {
       const selectedMedia = imageItems.filter((item) => selectedIds.has(item.id));
-      const imageUrls = selectedMedia.map((item) => `/objects/${item.url}`);
+      const imageUrls = selectedMedia.map((item) => getMediaUrl(item.url));
 
       const response = await fetch("/api/ai/thumbnail-rank", {
         method: "POST",
@@ -233,7 +234,7 @@ export default function ThumbnailRanker() {
                         data-testid={`button-select-image-${item.id}`}
                       >
                         <img
-                          src={`/objects/${item.url}`}
+                          src={getMediaUrl(item.url)}
                           alt={item.title || "Image"}
                           className="w-full h-full object-cover rounded-md"
                           loading="lazy"

@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { getMediaUrl } from "@/lib/utils";
 
 const CATEGORY_ICONS: Record<MediaCategory, any> = {
   video: Film,
@@ -361,14 +362,14 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
         >
           {cat === "image" ? (
             <img
-              src={`/objects/${item.url}`}
+              src={getMediaUrl(item.url)}
               alt={item.title}
               className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
             />
           ) : (cat === "video" || cat === "audio") && item.thumbnailUrl ? (
             <img
-              src={`/objects/${item.thumbnailUrl}`}
+              src={getMediaUrl(item.thumbnailUrl)}
               alt={item.title}
               className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
@@ -469,8 +470,9 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
                       e.stopPropagation();
                       haptic("tap");
                       const link = document.createElement("a");
-                      link.href = `/objects/${item.url}`;
-                      link.download = item.filename || item.title;
+                      const fn = item.filename || item.title;
+                      link.href = `${getMediaUrl(item.url)}?download=1&filename=${encodeURIComponent(fn)}`;
+                      link.download = fn;
                       link.click();
                     }}
                     data-testid={`button-download-${item.id}`}
@@ -621,8 +623,9 @@ function MediaCard({ item, onPlay, onEdit, onShare, onAddToPlaylist, index, feat
       )}
       <ContextMenuItem onClick={() => {
         const link = document.createElement("a");
-        link.href = `/objects/${item.url}`;
-        link.download = item.filename || item.title;
+        const fn = item.filename || item.title;
+        link.href = `${getMediaUrl(item.url)}?download=1&filename=${encodeURIComponent(fn)}`;
+        link.download = fn;
         link.click();
       }} data-testid={`context-download-${item.id}`}>
         <Download className="w-4 h-4 mr-2" />

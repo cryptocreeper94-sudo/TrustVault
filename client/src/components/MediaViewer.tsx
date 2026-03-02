@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
+import { getMediaUrl } from "@/lib/utils";
 
 function EpubReader({ url, title }: { url: string; title: string }) {
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -351,7 +352,7 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
   if (!item) return null;
 
   const cat = (item.category as MediaCategory) || "other";
-  const mediaUrl = `/objects/${item.url}`;
+  const mediaUrl = getMediaUrl(item.url);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -558,7 +559,7 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
                     <h3 className="text-xl font-display font-bold text-white">{item.title}</h3>
                     <p className="text-white/50 text-sm">{item.filename}</p>
                   </div>
-                  <a href={mediaUrl} download={item.filename}>
+                  <a href={`${mediaUrl}?download=1&filename=${encodeURIComponent(item.filename)}`} download={item.filename}>
                     <Button variant="outline" className="gap-2 border-white/20">
                       <Download className="w-4 h-4" />
                       Download
@@ -602,8 +603,9 @@ export function MediaViewer({ item, open, onOpenChange, items, onNavigate }: Med
                 className="gap-1.5 border-white/20 text-white/80"
                 onClick={() => {
                   const link = document.createElement("a");
-                  link.href = `/objects/${item.url}`;
-                  link.download = item.filename || item.title;
+                  const fn = item.filename || item.title;
+                  link.href = `${getMediaUrl(item.url)}?download=1&filename=${encodeURIComponent(fn)}`;
+                  link.download = fn;
                   link.click();
                 }}
                 data-testid="button-viewer-download"

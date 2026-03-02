@@ -55,19 +55,14 @@ export function registerObjectStorageRoutes(app: Express): void {
   app.get(/^\/objects\/(.*)/, async (req, res) => {
     try {
       const objectPath = req.params[0];
-      // Ensure objectPath starts with /objects/ if the service expects it, 
-      // or handle the raw path from the wildcard.
-      // The original code passed `req.path` which was the full path.
-      // objectStorageService.getObjectEntityFile expects a path starting with /objects/
-      
-      // req.path includes the prefix, e.g. /objects/uploads/uuid
-      // But we can construct it or just use req.path (which is valid for express)
-      
-      // Re-construct the full path if needed, or just use req.path.
-      // getObjectEntityFile expects "/objects/..."
-      
       const fullPath = "/objects/" + objectPath;
       const objectFile = await objectStorageService.getObjectEntityFile(fullPath);
+
+      if (req.query.download === "1") {
+        const filename = (req.query.filename as string) || objectPath.split("/").pop() || "download";
+        res.set("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+      }
+
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error serving object:", error);

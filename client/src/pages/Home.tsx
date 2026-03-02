@@ -85,6 +85,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { NotificationCenter, addNotification } from "@/components/NotificationCenter";
 import { GlobalDropZone } from "@/components/GlobalDropZone";
 import { CinematicLanding } from "@/components/CinematicLanding";
+import { getMediaUrl } from "@/lib/utils";
 
 function getGreeting(): string {
   const now = new Date();
@@ -358,7 +359,7 @@ function CollectionCard({
       >
         <div className="w-16 h-16 rounded-xl premium-gradient-collection flex items-center justify-center overflow-hidden shadow-lg">
           {collection.coverUrl ? (
-            <img src={`/objects/${collection.coverUrl}`} alt="" className="w-full h-full object-cover" />
+            <img src={getMediaUrl(collection.coverUrl)} alt="" className="w-full h-full object-cover" />
           ) : (
             <FolderOpen className="w-7 h-7 text-white drop-shadow-lg" />
           )}
@@ -794,7 +795,7 @@ function BatchExportDialog({
 
       for (const item of selectedItems) {
         try {
-          const url = `/objects/${item.url}`;
+          const url = getMediaUrl(item.url);
           const resp = await fetch(url);
           if (!resp.ok) continue;
           let blob = await resp.blob();

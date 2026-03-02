@@ -38,6 +38,7 @@ import {
   Wand2,
   Keyboard,
 } from "lucide-react";
+import { getMediaUrl } from "@/lib/utils";
 
 type AudioTool = "trim" | "fade" | "volume" | "effects" | "presets";
 
@@ -267,7 +268,7 @@ export default function AudioEditor() {
     const ctx = new AudioContext();
     audioContextRef.current = ctx;
 
-    fetch(`/objects/${mediaItem.url}`)
+    fetch(getMediaUrl(mediaItem.url))
       .then((res) => res.arrayBuffer())
       .then((data) => ctx.decodeAudioData(data))
       .then((decoded) => {
@@ -739,7 +740,7 @@ export default function AudioEditor() {
     const ctx = audioContextRef.current;
     if (!ctx) return;
 
-    fetch(`/objects/${mediaItem.url}`)
+    fetch(getMediaUrl(mediaItem.url))
       .then((res) => res.arrayBuffer())
       .then((data) => ctx.decodeAudioData(data))
       .then((decoded) => {

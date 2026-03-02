@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { type VideoResponse } from "@shared/routes";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, Loader2 } from "lucide-react";
+import { getMediaUrl } from "@/lib/utils";
 
 interface VideoPlayerModalProps {
   video: VideoResponse | null;
@@ -39,7 +40,7 @@ export function VideoPlayerModal({ video, open, onOpenChange }: VideoPlayerModal
 
           <video
             ref={videoRef}
-            src={`/objects/${video.url}`} // Using the proxy route from routes.ts
+            src={getMediaUrl(video.url)} // Using the proxy route from routes.ts
             className="w-full h-full object-contain relative z-10"
             controls
             autoPlay

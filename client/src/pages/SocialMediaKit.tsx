@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { InfoBubble } from "@/components/InfoBubble";
 import { SiInstagram, SiLinkedin, SiYoutube } from "react-icons/si";
 import type { MediaItem } from "@shared/schema";
+import { getMediaUrl } from "@/lib/utils";
 
 interface PlatformSpec {
   id: string;
@@ -221,7 +222,7 @@ export default function SocialMediaKit() {
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
         img.onerror = () => reject(new Error("Failed to load image"));
-        img.src = `/objects/${selectedItem.url}`;
+        img.src = getMediaUrl(selectedItem.url);
       });
       imgRef.current = img;
 
@@ -339,7 +340,7 @@ export default function SocialMediaKit() {
                     data-testid={`button-select-image-${item.id}`}
                   >
                     <img
-                      src={item.thumbnailUrl ? `/objects/${item.thumbnailUrl}` : `/objects/${item.url}`}
+                      src={item.thumbnailUrl ? getMediaUrl(item.thumbnailUrl) : getMediaUrl(item.url)}
                       alt={item.title}
                       className="w-full h-full object-cover"
                       loading="lazy"

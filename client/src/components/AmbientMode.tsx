@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Pause, Play, Clock, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MediaResponse } from "@shared/routes";
+import { getMediaUrl } from "@/lib/utils";
 
 function AmbientProgress({ isPaused, intervalSec, slideKey }: { isPaused: boolean; intervalSec: number; slideKey: number }) {
   const [progress, setProgress] = useState(0);
@@ -145,10 +146,10 @@ export function AmbientMode({ items, open, onClose }: AmbientModeProps) {
             <>
               <div
                 className="absolute inset-0 bg-cover bg-center blur-3xl opacity-30 scale-110"
-                style={{ backgroundImage: `url(/objects/${currentItem.url})` }}
+                style={{ backgroundImage: `url(${getMediaUrl(currentItem.url)})` }}
               />
               <img
-                src={`/objects/${currentItem.url}`}
+                src={getMediaUrl(currentItem.url)}
                 alt={currentItem.title}
                 className="absolute inset-0 w-full h-full object-contain z-10"
                 data-testid="ambient-image"

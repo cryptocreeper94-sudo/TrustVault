@@ -47,6 +47,7 @@ import {
   Trash2,
   GripVertical,
 } from "lucide-react";
+import { getMediaUrl } from "@/lib/utils";
 
 interface VideoPreset {
   name: string;
@@ -266,7 +267,7 @@ export default function VideoEditor() {
     const video = videoRef.current;
     if (!video || !mediaItem?.url) return;
 
-    video.src = `/objects/${mediaItem.url}`;
+    video.src = getMediaUrl(mediaItem.url);
     video.load();
 
     const onLoaded = () => {
