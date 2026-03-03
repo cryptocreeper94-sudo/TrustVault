@@ -52,6 +52,8 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
 - **Developer Explorer**: Admin-only portal at `/developer` with cinematic rotating video hero (same 6 videos as Explorer) and photorealistic card grid for platform management (User Management, Blockchain, API Keys, Revenue, Ecosystem, Invites, System Activity, Settings). Cross-navigates to/from User Explorer. Replaces the old Command Center.
 - **Founder Mission Statement**: Jason's creator statement in hamburger menu emphasizing affordable professional tools and TrustLayer foundation.
 - **Signal Chat**: Real-time, ecosystem-wide chat system at `/chat` with JWT-authenticated SSO, channel-based messaging, WebSockets, typing indicators, and presence tracking.
+- **Hallmark System**: Trust Layer ecosystem audit trail with SHA-256 hashed hallmarks (prefix TV, genesis TV-00000001), trust stamps for auth/subscription events, public verification endpoint, genesis badge in hamburger menu.
+- **Affiliate Program**: Universal referral system at `/affiliate` with 5 commission tiers (Base 10% → Diamond 20%), referral link tracking via `/ref/:hash`, deduplication, payout requests, cross-platform links, and "Share & Earn" dashboard.
 
 ### Backend (Express + Node.js)
 - **Runtime**: Node.js with TypeScript.

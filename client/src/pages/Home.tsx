@@ -76,6 +76,7 @@ import { format, parseISO } from "date-fns";
 import type { CollectionWithCount } from "@shared/schema";
 import { OnboardingGuide, useOnboarding } from "@/components/OnboardingGuide";
 import { TrustLayerBadge } from "@/components/TrustLayerBadge";
+import { GenesisHallmarkBadge } from "@/components/GenesisHallmark";
 import { VaultStats, StorageUsage, RecentCarousel } from "@/components/VaultDashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import trustlayerEmblem from "@assets/images/trustvault-emblem.png";
@@ -1458,6 +1459,11 @@ export default function Home() {
     enabled: !!user,
   });
 
+  const { data: affiliateData } = useQuery<{ pendingEarnings: string; tier: string; tierLabel: string; totalReferrals: number }>({
+    queryKey: ["/api/affiliate/dashboard"],
+    enabled: !!user,
+  });
+
   const collections = collectionsData || [];
   const sharedCollections = sharedCollectionsData || [];
   const activeCollection = activeCollectionId
@@ -1803,6 +1809,12 @@ export default function Home() {
                         Community Voice
                       </Button>
                     </a>
+                    <Button asChild variant="ghost" className="w-full justify-start gap-3" data-testid="nav-link-affiliate">
+                      <Link href="/affiliate">
+                        <Share2 className="w-4 h-4" />
+                        Share & Earn
+                      </Link>
+                    </Button>
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-3"
@@ -1936,6 +1948,10 @@ export default function Home() {
 
                   <div className="pt-6">
                     <Separator className="mb-4" />
+
+                    <div className="mb-3">
+                      <GenesisHallmarkBadge />
+                    </div>
 
                     <div className="rounded-lg theme-gradient p-3 mb-3">
                       <div className="flex items-center gap-2.5 mb-2">
@@ -2174,6 +2190,22 @@ export default function Home() {
           <>
             <StorageUsage />
             <VaultStats />
+            {affiliateData && parseFloat(affiliateData.pendingEarnings || "0") > 0 && (
+              <Link href="/affiliate">
+                <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-3 cursor-pointer hover-elevate" data-testid="card-share-earn-home">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
+                      <Share2 className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Share & Earn</p>
+                      <p className="text-xs text-muted-foreground">{affiliateData.pendingEarnings} SIG pending &middot; {affiliateData.tierLabel} tier</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </div>
+              </Link>
+            )}
             <RecentCarousel onPlay={handlePlay} />
           </>
         )}

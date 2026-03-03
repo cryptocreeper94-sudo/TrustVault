@@ -312,6 +312,18 @@ export async function registerRoutes(
     console.error("[Bootstrap] Failed to seed ecosystem members:", err);
   });
 
+  import("./hallmark").then(({ seedGenesisHallmark }) => {
+    seedGenesisHallmark().catch((err) => {
+      console.error("[Hallmark] Failed to seed genesis:", err);
+    });
+  });
+
+  import("./affiliate").then(({ backfillUniqueHashes }) => {
+    backfillUniqueHashes().catch((err) => {
+      console.error("[Affiliate] Failed to backfill hashes:", err);
+    });
+  });
+
   app.post("/api/client-error", (req, res) => {
     const { message, stack, componentStack } = req.body || {};
     console.error("[CLIENT ERROR]", message);
@@ -457,6 +469,11 @@ export async function registerRoutes(
         req.session.cookie.maxAge = null as any;
         req.session.cookie.expires = false as any;
       }
+
+      try {
+        const { createTrustStamp } = await import("./hallmark");
+        await createTrustStamp({ userId: auth.id, category: "auth-login", data: { device: req.headers["user-agent"] || "unknown" } });
+      } catch {}
 
       return res.json({ name: auth.name, mustReset: auth.mustReset, tenantId: tenant.id, isAdmin: auth.isAdmin ?? false });
     } catch (err) {
@@ -921,6 +938,16 @@ export async function registerRoutes(
       await storage.updatePinAuthTenantId(newUser.id, tenant.id);
 
       await storage.markWhitelistUsed(entry.id);
+
+      try {
+        const { ensureUniqueHash, convertReferral } = await import("./affiliate");
+        await ensureUniqueHash(newUser.id);
+        const { createTrustStamp } = await import("./hallmark");
+        await createTrustStamp({ userId: newUser.id, category: "auth-register", data: { email: email?.trim(), username: name.trim() } });
+        if (req.body.referralHash) {
+          await convertReferral(newUser.id, req.body.referralHash);
+        }
+      } catch {}
 
       req.session.authenticated = true;
       req.session.name = name.trim();
@@ -1765,6 +1792,89 @@ export async function registerRoutes(
       res.json({ messages });
     } catch (err) {
       res.status(401).json({ message: "Unauthorized" });
+    }
+  });
+
+  // --- Hallmark System Routes ---
+
+  app.get("/api/hallmark/genesis", async (_req, res) => {
+    try {
+      const { getGenesisHallmark } = await import("./hallmark");
+      const genesis = await getGenesisHallmark();
+      if (!genesis) return res.status(404).json({ error: "Genesis hallmark not found" });
+      res.json(genesis);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to get genesis hallmark" });
+    }
+  });
+
+  app.get("/api/hallmark/:id/verify", async (req, res) => {
+    try {
+      const { verifyHallmark } = await import("./hallmark");
+      const result = await verifyHallmark(req.params.id);
+      if (!result.verified) return res.status(404).json(result);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
+  // --- Affiliate System Routes ---
+
+  app.get("/api/affiliate/dashboard", isAuthenticated, async (req, res) => {
+    try {
+      const { getAffiliateDashboard } = await import("./affiliate");
+      const pinAuthId = req.session.pinAuthId!;
+      const dashboard = await getAffiliateDashboard(pinAuthId);
+      res.json(dashboard);
+    } catch (err) {
+      console.error("[Affiliate] Dashboard error:", err);
+      res.status(500).json({ error: "Failed to load affiliate dashboard" });
+    }
+  });
+
+  app.get("/api/affiliate/link", isAuthenticated, async (req, res) => {
+    try {
+      const { ensureUniqueHash } = await import("./affiliate");
+      const pinAuthId = req.session.pinAuthId!;
+      const hash = await ensureUniqueHash(pinAuthId);
+      res.json({
+        uniqueHash: hash,
+        referralLink: `https://trustvault.tlid.io/ref/${hash}`,
+        crossPlatformLinks: {
+          trusthub: `https://trusthub.tlid.io/ref/${hash}`,
+          trustvault: `https://trustvault.tlid.io/ref/${hash}`,
+          thevoid: `https://thevoid.tlid.io/ref/${hash}`,
+          tradeworks: `https://tradeworks.tlid.io/ref/${hash}`,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to get referral link" });
+    }
+  });
+
+  app.post("/api/affiliate/track", async (req, res) => {
+    try {
+      const { referralHash, platform } = req.body;
+      if (!referralHash) return res.status(400).json({ error: "Missing referralHash" });
+      const { trackReferral } = await import("./affiliate");
+      const referral = await trackReferral(referralHash, platform || "trustvault");
+      if (!referral) return res.status(404).json({ error: "Referrer not found" });
+      res.json({ success: true, referralId: referral.id });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to track referral" });
+    }
+  });
+
+  app.post("/api/affiliate/request-payout", isAuthenticated, async (req, res) => {
+    try {
+      const { requestPayout } = await import("./affiliate");
+      const pinAuthId = req.session.pinAuthId!;
+      const result = await requestPayout(pinAuthId);
+      if (!result.success) return res.status(400).json(result);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to request payout" });
     }
   });
 

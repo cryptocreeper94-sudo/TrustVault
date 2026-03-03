@@ -113,12 +113,15 @@ export default function Join() {
       }
       setIsSubmitting(true);
       try {
+        const storedRef = localStorage.getItem("tv_referral_hash");
         await apiRequest("POST", "/api/join", {
           inviteCode: inviteCode.trim(),
           name: name.trim(),
           password,
           email: email.trim() || undefined,
+          referralHash: storedRef || undefined,
         });
+        if (storedRef) localStorage.removeItem("tv_referral_hash");
         toast({ title: "Welcome!", description: "Your vault is ready." });
         navigate("/");
       } catch (err: any) {

@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { Component, type ErrorInfo, type ReactNode, lazy, Suspense } from "react";
+import { Component, type ErrorInfo, type ReactNode, lazy, Suspense, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
@@ -39,6 +39,7 @@ const ThumbnailRanker = lazy(() => import("@/pages/ThumbnailRanker"));
 const PortfolioGenerator = lazy(() => import("@/pages/PortfolioGenerator"));
 const StyleDNA = lazy(() => import("@/pages/StyleDNA"));
 const Ecosystem = lazy(() => import("@/pages/Ecosystem"));
+const Affiliate = lazy(() => import("@/pages/Affiliate"));
 const SignalChatPanel = lazy(() => import("@/components/SignalChatPanel").then(m => ({ default: m.SignalChatPanel })));
 
 function LazyFallback() {
@@ -152,6 +153,27 @@ class ErrorBoundary extends Component<
   }
 }
 
+function ReferralRedirect({ params }: { params: { hash: string } }) {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    const hash = params.hash;
+    if (hash) {
+      localStorage.setItem("tv_referral_hash", hash);
+      fetch("/api/affiliate/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referralHash: hash, platform: "trustvault" }),
+      }).catch(() => {});
+    }
+    navigate("/login");
+  }, [params.hash, navigate]);
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+    </div>
+  );
+}
+
 function Router() {
   const [location] = useLocation();
   return (
@@ -195,6 +217,8 @@ function Router() {
             <Route path="/portfolio-generator" component={PortfolioGenerator} />
             <Route path="/style-dna" component={StyleDNA} />
             <Route path="/ecosystem" component={Ecosystem} />
+            <Route path="/affiliate" component={Affiliate} />
+            <Route path="/ref/:hash" component={ReferralRedirect} />
             <Route component={NotFound} />
           </Switch>
         </motion.div>
