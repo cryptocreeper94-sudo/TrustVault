@@ -14,6 +14,44 @@ export function generateUniqueHash(): string {
   return crypto.randomBytes(12).toString("hex");
 }
 
+export function getCrossPlatformLinks(hash: string): Record<string, string> {
+  return {
+    "Trust Layer Hub": `https://trusthub.tlid.io/ref/${hash}`,
+    "Trust Layer (L1)": `https://dwtl.io/ref/${hash}`,
+    "TrustHome": `https://trusthome.tlid.io/ref/${hash}`,
+    "TrustVault": `https://trustvault.tlid.io/ref/${hash}`,
+    "TLID.io": `https://tlid.io/ref/${hash}`,
+    "THE VOID": `https://thevoid.tlid.io/ref/${hash}`,
+    "Signal Chat": `https://signalchat.tlid.io/ref/${hash}`,
+    "DarkWave Studio": `https://darkwavestudio.tlid.io/ref/${hash}`,
+    "Guardian Shield": `https://guardianshield.tlid.io/ref/${hash}`,
+    "Guardian Scanner": `https://guardianscanner.tlid.io/ref/${hash}`,
+    "Guardian Screener": `https://guardianscreener.tlid.io/ref/${hash}`,
+    "TradeWorks AI": `https://tradeworks.tlid.io/ref/${hash}`,
+    "StrikeAgent": `https://strikeagent.tlid.io/ref/${hash}`,
+    "Pulse": `https://pulse.tlid.io/ref/${hash}`,
+    "Chronicles": `https://chronicles.tlid.io/ref/${hash}`,
+    "The Arcade": `https://thearcade.tlid.io/ref/${hash}`,
+    "Bomber": `https://bomber.tlid.io/ref/${hash}`,
+    "Trust Golf": `https://trustgolf.tlid.io/ref/${hash}`,
+    "ORBIT Staffing OS": `https://orbit.tlid.io/ref/${hash}`,
+    "Orby Commander": `https://orby.tlid.io/ref/${hash}`,
+    "GarageBot": `https://garagebot.tlid.io/ref/${hash}`,
+    "Lot Ops Pro": `https://lotops.tlid.io/ref/${hash}`,
+    "TORQUE": `https://torque.tlid.io/ref/${hash}`,
+    "TL Driver Connect": `https://driverconnect.tlid.io/ref/${hash}`,
+    "VedaSolus": `https://vedasolus.tlid.io/ref/${hash}`,
+    "Verdara": `https://verdara.tlid.io/ref/${hash}`,
+    "Arbora": `https://arbora.tlid.io/ref/${hash}`,
+    "PaintPros": `https://paintpros.tlid.io/ref/${hash}`,
+    "Nashville Painting Professionals": `https://nashvillepainting.tlid.io/ref/${hash}`,
+    "Trust Book": `https://trustbook.tlid.io/ref/${hash}`,
+    "DarkWave Academy": `https://darkwaveacademy.tlid.io/ref/${hash}`,
+    "Happy Eats": `https://happyeats.tlid.io/ref/${hash}`,
+    "Brew & Board Coffee": `https://brewandboard.tlid.io/ref/${hash}`,
+  };
+}
+
 export function getAffiliateTier(convertedCount: number): { tier: AffiliateTier; rate: number; label: string } {
   const tiers: AffiliateTier[] = ["diamond", "platinum", "gold", "silver", "base"];
   for (const tier of tiers) {
@@ -190,12 +228,7 @@ export async function getAffiliateDashboard(pinAuthId: number) {
   return {
     uniqueHash: hash,
     referralLink: `https://trustvault.tlid.io/ref/${hash}`,
-    crossPlatformLinks: {
-      trusthub: `https://trusthub.tlid.io/ref/${hash}`,
-      trustvault: `https://trustvault.tlid.io/ref/${hash}`,
-      thevoid: `https://thevoid.tlid.io/ref/${hash}`,
-      tradeworks: `https://tradeworks.tlid.io/ref/${hash}`,
-    },
+    crossPlatformLinks: getCrossPlatformLinks(hash),
     tier: tierInfo.tier,
     tierLabel: tierInfo.label,
     commissionRate: tierInfo.rate,

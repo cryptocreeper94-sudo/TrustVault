@@ -1837,16 +1837,12 @@ export async function registerRoutes(
     try {
       const { ensureUniqueHash } = await import("./affiliate");
       const pinAuthId = req.session.pinAuthId!;
+      const { getCrossPlatformLinks } = await import("./affiliate");
       const hash = await ensureUniqueHash(pinAuthId);
       res.json({
         uniqueHash: hash,
         referralLink: `https://trustvault.tlid.io/ref/${hash}`,
-        crossPlatformLinks: {
-          trusthub: `https://trusthub.tlid.io/ref/${hash}`,
-          trustvault: `https://trustvault.tlid.io/ref/${hash}`,
-          thevoid: `https://thevoid.tlid.io/ref/${hash}`,
-          tradeworks: `https://tradeworks.tlid.io/ref/${hash}`,
-        },
+        crossPlatformLinks: getCrossPlatformLinks(hash),
       });
     } catch (err) {
       res.status(500).json({ error: "Failed to get referral link" });
