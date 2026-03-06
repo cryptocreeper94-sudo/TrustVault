@@ -225,6 +225,14 @@ async function bootstrapEcosystemTenants() {
       webhookUrl: "https://trustbook.replit.app/api/trustvault/webhook",
       capabilities: ["media_vault", "media_upload", "media_read", "media_delete", "document_storage", "epub_storage"],
     },
+    {
+      tenantId: "trustgen",
+      appName: "TrustGen",
+      apiKey: process.env.TRUSTGEN_API_KEY || "",
+      apiSecret: process.env.TRUSTGEN_API_SECRET || "",
+      webhookUrl: "https://trustgen.replit.app/api/trustvault/webhook",
+      capabilities: ["media_vault", "media_upload", "media_read", "media_delete", "3d_model_storage", "animation_storage", "texture_storage"],
+    },
   ];
 
   for (const t of tenants) {

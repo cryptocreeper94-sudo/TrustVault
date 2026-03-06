@@ -49,6 +49,7 @@ export function getCrossPlatformLinks(hash: string): Record<string, string> {
     "DarkWave Academy": `https://darkwaveacademy.tlid.io/ref/${hash}`,
     "Happy Eats": `https://happyeats.tlid.io/ref/${hash}`,
     "Brew & Board Coffee": `https://brewandboard.tlid.io/ref/${hash}`,
+    "TrustGen": `https://trustgen.tlid.io/ref/${hash}`,
   };
 }
 

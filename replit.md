@@ -93,6 +93,7 @@ This project, known as TrustVault or DW Media Studio, is a universal media vault
 - **Resend**: Transactional email service.
 - **ORBIT Staffing OS Financial Hub**: Outbound integration for financial operations.
 - **DarkWave Ecosystem Widget**: Embeddable widget loaded via `<script src="https://dwsc.io/api/ecosystem/widget.js"></script>`. Widget data API: `GET https://dwsc.io/api/ecosystem/widget-data` with Trust Layer SSO JWT in Authorization header.
+- **TrustGen**: 3D model and animation generator integration, handoff documented at `docs/TRUSTGEN_HANDOFF.md`.
 - **Verdara (App #28)**: Ecosystem integration handoff documented at `docs/VERDARA_RETURN_HANDOFF.md`.
 - **TrustHome**: Media editor ecosystem integration handoff documented at `docs/TRUSTHOME_RETURN_HANDOFF.md`.
 - **TrustBook**: ePub publisher platform integration with document/ePub storage capabilities, handoff documented at `docs/TRUSTBOOK_HANDOFF.md`.
